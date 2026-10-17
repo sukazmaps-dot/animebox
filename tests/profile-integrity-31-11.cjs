@@ -102,7 +102,7 @@ async function testHook() {
  assert(src.includes('if (!profile || !user || savingRef.current || editorBusy || !dirty) return;'),'Save must reject simultaneous call');
  assert(src.includes('savingRef.current = true;'),'Save must acquire mutex before upload');
  assert(/finally\s*\{\s*savingRef\.current = false;\s*setSaving\(false\);/s.test(src),'mutex always released in finally');
- assert(src.includes('data-editor-save disabled={(!dirty && !needsPremiumCTA) || editorBusy}'),'Save disabled while crop/modal/busy');
+ assert(src.includes('{dirty && <div ref={savebarRef}') && src.includes('data-editor-save disabled={editorBusy}'),'Save only exists for dirty draft, and must be disabled during crop/upload/modal work');
  assert.equal((src.match(/await discardPrivateProfileMedia\(pendingMedia\)/g)||[]).length,1,'only one cleanup path on profile POST errors');
  await testQueue();
  await testHook();

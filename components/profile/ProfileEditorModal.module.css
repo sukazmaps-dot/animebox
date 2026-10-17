@@ -1,0 +1,214 @@
+/* 31.14: the only geometry owner of the mounted profile editor.
+   Legacy v13/v18 styles remain for non-modal components, but the modal
+   selectors below intentionally win without another global patch layer. */
+.modal {
+  --editor-border:color-mix(in srgb,var(--ab-ui-accent) 18%,transparent);
+  --editor-surface:var(--ab-ui-surface);
+  position:fixed; inset:0; top:var(--ab-editor-viewport-top,0px); z-index:750;
+  display:grid;place-items:center; box-sizing:border-box;
+  width:100%;max-width:none; min-width:0;min-height:0;
+  height:var(--ab-editor-viewport-height,100dvh);
+  padding:24px; margin:0; isolation:isolate; overflow:hidden;
+  background:color-mix(in srgb,var(--ab-ui-canvas) 94%,black);
+}
+.modal :global(.profile-editor-v40__shell) {
+  position:relative; display:grid; grid-template-rows:56px minmax(0,1fr);
+  width:min(1200px,calc(100vw - 48px));max-width:1200px;
+  height:min(800px,calc(100dvh - 48px));
+  max-height:calc(var(--ab-editor-viewport-height,100dvh) - 48px);
+  min-width:0;min-height:0;margin:0;padding:0;overflow:hidden;
+  border:1px solid var(--editor-border);border-radius:18px;
+  background:var(--editor-surface);box-shadow:0 24px 100px rgba(0,0,0,.45);
+}
+.modal :global(.profile-editor-v40__header) {
+  position:relative;z-index:4;min-width:0;min-height:0;height:56px;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 16px;gap:10px;background:var(--editor-surface);
+  border-bottom:1px solid var(--editor-border);
+}
+.modal :global(.profile-editor-v40__header) h1 {font-size:16px;letter-spacing:-.02em;}
+.modal :global(.profile-editor-v31__header-title) {display:flex;gap:8px;align-items:center;min-width:0;}
+.modal :global(.profile-editor-v31__header-title) button {width:34px;height:34px;min-width:34px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ab-ui-text);font-size:24px;cursor:pointer;}
+.modal :global(.profile-editor-v40__header-end) {display:flex;gap:12px;align-items:center;min-width:0;}
+.modal :global(.profile-editor-v31__status) {font-size:12px;white-space:nowrap;color:var(--ab-ui-muted);}
+.modal :global(.profile-editor-v40__more) {position:relative;z-index:8;}
+.modal :global(.profile-editor-v40__more) > summary {display:grid;place-items:center;list-style:none;width:36px;height:36px;border-radius:9px;color:var(--ab-ui-text);font-size:23px;cursor:pointer;}
+.modal :global(.profile-editor-v40__more) > summary::-webkit-details-marker {display:none;}
+.modal :global(.profile-editor-v40__more-menu) {position:absolute;z-index:20;right:0;top:40px;display:grid;gap:3px;width:220px;padding:6px;background:var(--ab-ui-raised);border:1px solid var(--editor-border);border-radius:12px;box-shadow:0 14px 44px rgba(0,0,0,.4);}
+.modal :global(.profile-editor-v40__more-menu) button {padding:10px;text-align:left;border:0;border-radius:8px;background:transparent;color:var(--ab-ui-text);font-size:12px;cursor:pointer;}
+.modal :global(.profile-editor-v40__more-menu) button:disabled {opacity:.4;cursor:default;}
+
+.modal :global(.profile-editor-v40__workbench) {
+  position:relative;grid-row:2;display:grid;
+  grid-template-columns:72px 300px minmax(360px,1fr) 340px;
+  grid-template-rows:minmax(0,1fr);
+  min-width:0;min-height:0;width:100%;height:100%;overflow:hidden;
+}
+.modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {
+  grid-template-columns:72px 0 minmax(360px,1fr) 340px;
+}
+.modal :global(.profile-editor-v40__tiles) {
+  grid-column:1;grid-row:1;display:flex;flex-direction:column;
+  gap:6px;align-items:center;min-width:0;min-height:0;
+  padding:12px 3px 96px;overflow-x:hidden;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-gutter:auto;
+  background:color-mix(in srgb,var(--ab-ui-canvas) 65%,transparent);
+  border-right:1px solid var(--editor-border);
+}
+.modal :global(.profile-editor-v40__tiles) button {
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;flex:0 0 56px;width:56px;height:56px;min-height:56px;
+  min-width:0;padding:5px 2px;border:1px solid transparent;border-radius:11px;
+  background:transparent;color:var(--ab-ui-muted);font:inherit;cursor:pointer;
+}
+.modal :global(.profile-editor-v40__tiles) button svg {width:20px;height:20px;flex:0 0 20px;color:currentColor;}
+.modal :global(.profile-editor-v40__tiles) button small {
+  display:block;max-width:100%;width:100%;min-width:0;overflow:hidden;
+  font-size:11px;font-weight:500;line-height:1.1;text-align:center;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.modal :global(.profile-editor-v40__tiles) button[data-selected='true'] {
+  color:var(--ab-ui-text);background:color-mix(in srgb,var(--ab-ui-accent) 14%,var(--ab-ui-surface));
+  border-color:color-mix(in srgb,var(--ab-ui-accent) 38%,transparent);
+}
+.modal :global(.profile-editor-v40__tiles) button:hover:not([data-selected='true']) {color:var(--ab-ui-text);background:color-mix(in srgb,var(--ab-ui-accent) 8%,transparent);}
+.modal :global(.profile-editor-v40__tiles) button i {position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:var(--ab-ui-accent);}
+
+.modal :global(.profile-editor-v40__stage) {
+  grid-column:3;grid-row:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;gap:12px;
+  min-width:0;min-height:0;padding:18px 18px 100px;
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-gutter:stable;
+}
+.modal :global(.profile-editor-v40__stage) > :global([aria-label='Живой предпросмотр профиля']) {
+  align-self:center;max-width:440px;flex:0 0 auto;
+}
+.modal :global(.profile-editor-v40__stage-header) {display:flex;align-items:center;justify-content:space-between;gap:8px;width:min(100%,440px);font-size:11px;font-weight:700;color:var(--ab-ui-muted);}
+.modal :global(.profile-editor-v40__stage-header) button {background:transparent;border:0;color:var(--ab-ui-accent);font:inherit;cursor:pointer;}
+.modal :global(.profile-editor-v40__hint) {width:min(100%,440px);margin:0;font-size:11px;text-align:center;color:var(--ab-ui-muted);}
+.modal :global(.profile-editor-v40__board-toggle) {display:none;}
+.modal :global(.profile-editor-v40__board) {
+  grid-column:4;grid-row:1;min-width:0;min-height:0;padding:16px 12px 100px;
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-gutter:stable;
+  border-left:1px solid var(--editor-border);
+  background:color-mix(in srgb,var(--ab-ui-canvas) 25%,var(--ab-ui-surface));
+}
+.modal :global(.profile-editor-v40__popover[hidden]) {display:none;}
+.modal :global(.profile-editor-v40__popover) {
+  grid-column:2;grid-row:1;position:relative;inset:auto;
+  display:flex;flex-direction:column;align-self:start;
+  min-width:0;min-height:0;width:100%;max-width:none;
+  height:auto;max-height:100%;overflow:hidden;z-index:auto;
+  border:0;border-right:1px solid var(--editor-border);border-radius:0;
+  background:var(--editor-surface);box-shadow:none;
+}
+.modal :global(.profile-editor-v40__popover) > header {
+  display:flex;justify-content:space-between;align-items:center;
+  flex:0 0 auto;min-height:48px;padding:9px 14px;
+  border-bottom:1px solid var(--editor-border);
+}
+.modal :global(.profile-editor-v40__popover) > header h2 {margin:0;font-size:14px;font-weight:700;color:var(--ab-ui-text);}
+.modal :global(.profile-editor-v40__popover) > header button {display:none;}
+.modal :global(.profile-editor-v40__panel-content) {
+  display:block;position:relative;flex:0 1 auto;
+  min-width:0;min-height:0;width:100%;max-height:calc(100% - 48px);
+  margin:0;padding:14px 12px;border:0;
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-gutter:stable;container-type:inline-size;container-name:profile-modal-inspector;
+}
+.modal :global(.profile-editor-v19__direct-tab),
+.modal :global(.profile-editor-v13__premium-tab),
+.modal :global(.profile-editor-v13__showcase-tab) {
+  position:static;display:block;min-width:0;min-height:0;width:100%;
+  max-width:none;padding:0;margin:0;
+}
+.modal :global(.profile-editor-v13__premium-tab[hidden]) {display:none;}
+.modal :global(.profile-editor-v40__account) {display:grid;gap:12px;min-width:0;}
+.modal :global(.profile-editor-v40__account) h3 {font-size:14px;font-weight:600;margin:0;color:var(--ab-ui-text);}
+.modal :global(.profile-editor-v40__account) :is(input,button,select) {max-width:100%;font-size:13px;}
+.modal :global(.profile-editor-v40__upgrade) {min-height:42px;width:100%;margin-top:12px;border:1px solid var(--editor-border);border-radius:10px;background:var(--ab-ui-primary);color:var(--ab-ui-text);cursor:pointer;}
+.modal :global(.profile-editor-v40__error),
+.modal :global(.profile-editor-v40__recovery) {position:absolute;z-index:12;top:62px;left:84px;right:12px;padding:12px;margin:0;background:var(--editor-surface);border:1px solid var(--editor-border);border-radius:10px;}
+.modal :global(.profile-editor-v40__savebar) {
+  position:absolute;z-index:35;bottom:max(12px,env(safe-area-inset-bottom));left:50%;right:auto;
+  transform:translateX(-50%);display:flex;align-items:center;justify-content:flex-end;
+  gap:10px;width:min(570px,calc(100% - 28px));min-height:62px;margin:0;padding:9px 12px;
+  border:1px solid color-mix(in srgb,var(--ab-ui-accent) 35%,transparent);
+  border-radius:13px;background:var(--ab-ui-raised);box-shadow:0 14px 45px rgba(0,0,0,.45);
+}
+.modal :global(.profile-editor-v40__savebar) :global(.profile-editor-v18__savebar-copy) {min-width:0;margin-right:auto;padding:0;}
+.modal :global(.profile-editor-v40__savebar) :global(.profile-editor-v18__savebar-copy) strong {font-size:12px;white-space:normal;}
+.modal :global(.profile-editor-v40__savebar) button {min-height:40px;min-width:88px;padding:0 12px;font-size:12px;border-radius:9px;}
+.modal :global(.profile-editor-v40__shell) button:focus-visible,
+.modal :global(.profile-editor-v40__shell) summary:focus-visible {outline:2px solid var(--ab-ui-accent);outline-offset:2px;}
+
+.modal :global(.profile-editor-v40__stage-actions) {display:flex;gap:9px;align-items:center;}
+.modal :global(.profile-editor-v40__collapse) {display:none;}
+.modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__popover) {max-height:calc(100% - 82px);}
+.modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__panel-content) {padding-bottom:96px;}
+@media (min-width:1100px) and (max-width:1279px) {
+  .modal :global(.profile-editor-v40__workbench) {grid-template-columns:72px 300px minmax(0,1fr);}
+  .modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {grid-template-columns:72px 0 minmax(0,1fr);}
+  .modal :global(.profile-editor-v40__board) {display:none;}
+}
+@media (max-width:1099px) {
+  .modal {padding:0;}
+  .modal :global(.profile-editor-v40__shell) {
+    width:100%;max-width:none;height:100%;max-height:100%;
+    border:0;border-radius:0;grid-template-rows:56px minmax(0,1fr);
+  }
+  .modal :global(.profile-editor-v40__workbench),
+  .modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:70px minmax(0,1fr);
+    overflow:hidden;
+  }
+  .modal :global(.profile-editor-v40__tiles) {
+    grid-column:1;grid-row:1;flex-direction:row;justify-content:flex-start;
+    align-items:center;gap:6px;padding:6px 8px;
+    overflow-x:auto;overflow-y:hidden;scrollbar-gutter:auto;
+    border-right:0;border-bottom:1px solid var(--editor-border);
+  }
+  .modal :global(.profile-editor-v40__tiles) button {flex:0 0 64px;width:64px;}
+  .modal :global(.profile-editor-v40__stage) {
+    grid-column:1;grid-row:2;align-items:center;justify-content:flex-start;
+    padding:12px 14px 112px;overflow-x:hidden;overflow-y:auto;
+  }
+  .modal :global(.profile-editor-v40__stage-header) {width:min(100%,440px);}
+  .modal :global(.profile-editor-v40__collapse) {display:inline-flex;}
+  .modal :global(.profile-editor-v40__board) {display:none;}
+  .modal :global(.profile-editor-v40__popover) {
+    position:absolute;z-index:16;grid-column:auto;grid-row:auto;
+    left:0;right:0;top:auto;bottom:0;
+    width:100%;height:auto;max-height:80dvh;min-height:0;
+    border:1px solid var(--editor-border);border-radius:16px 16px 0 0;
+    background:var(--editor-surface);box-shadow:0 -16px 60px rgba(0,0,0,.48);
+  }
+  .modal :global(.profile-editor-v40__popover) > header button {display:grid;place-items:center;width:32px;height:32px;min-width:32px;border:0;border-radius:8px;background:transparent;color:var(--ab-ui-text);font-size:22px;cursor:pointer;}
+  .modal :global(.profile-editor-v40__panel-content) {
+    flex:0 1 auto;min-height:0;max-height:calc(80dvh - 48px);
+    padding:12px 14px 14px;
+  }
+  .modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__popover) {
+    bottom:calc(80px + env(safe-area-inset-bottom));max-height:calc(80dvh - 80px - env(safe-area-inset-bottom));
+  }
+  .modal :global(.profile-editor-v40__shell):has(:global(.profile-editor-v40__savebar)) :global(.profile-editor-v40__panel-content) {padding-bottom:calc(104px + env(safe-area-inset-bottom));}
+  .modal :global(.profile-editor-v40__savebar) {
+    position:absolute;bottom:max(8px,env(safe-area-inset-bottom));
+    width:calc(100% - 16px);max-height:35dvh;min-height:56px;
+    padding:8px;gap:7px;overflow:auto;
+  }
+  .modal :global(.profile-editor-v40__savebar) button {min-width:74px;font-size:11px;padding:0 8px;}
+  .modal :global(.profile-editor-v40__error),
+  .modal :global(.profile-editor-v40__recovery) {left:12px;right:12px;top:60px;}
+  .modal :global(.profile-editor-v40__stage[data-preview-collapsed='true']) > :is(:global([aria-label='Живой предпросмотр профиля']), :global(.profile-editor-v40__hint)) {display:none;}
+}
+@media (max-width:430px) {
+  .modal :global(.profile-editor-v40__header) {padding:4px 10px;}
+  .modal :global(.profile-editor-v40__header) h1 {font-size:15px;}
+  .modal :global(.profile-editor-v31__status) {font-size:10px;}
+  .modal :global(.profile-editor-v40__stage) {padding:10px 10px 112px;}
+  .modal :global(.profile-editor-v40__savebar) :global(.profile-editor-v18__savebar-copy) strong {font-size:10px;}
+}

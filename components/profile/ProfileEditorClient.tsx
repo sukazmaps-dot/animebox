@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { TextAa as Type, UserCircle as CircleUserRound, Image as ImageIcon, FrameCorners as Frame, Palette, SquaresFour as LayoutGrid, Trophy, Link as Link2 } from '@phosphor-icons/react';
+import modalStyles from './ProfileEditorModal.module.css';
 
-import { useProfileEditorAnchors } from '@/hooks/useProfileEditorAnchors';
-import { profileEditorAnchor, type ProfileEditorAnchor } from '@/lib/profile-editor-navigation';
+import type { ProfileEditorAnchor } from '@/lib/profile-editor-navigation';
 import { useProfileEditorHistory } from '@/hooks/useProfileEditorHistory';
 import type { ProfileEditorDraft } from '@/lib/profile-editor-draft';
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
@@ -25,7 +26,6 @@ import ProgressionOverview from '@/components/progression/ProgressionOverview';
 import ProfileDirectEditSurface from '@/components/profile/ProfileDirectEditSurface';
 import ProfileEditorLivePreview, { type ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
 import TelegramAccountLinkCard from '@/components/profile/TelegramAccountLinkCard';
-import ProfileEditorNavigation from '@/components/profile/ProfileEditorNavigation';
 import { notifyAuthChanged } from '@/lib/auth-events';
 import { usernamePolicyError } from '@/lib/auth-identity-policy';
 import { communityRequest } from '@/lib/community-client';
@@ -107,6 +107,12 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
 
   const showcaseRequestRef = useRef<Promise<ShowcasePayload> | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>(normalizedTab(initialTab));
+  const [focusedSection, setFocusedSection] = useState<ProfileEditorSection>(
+    initialAnchor === 'avatar' || initialAnchor === 'banner' || initialAnchor === 'frame' ? initialAnchor : 'profile',
+  );
+  const [panelOpen, setPanelOpen] = useState(initialTab !== 'profile' || Boolean(initialAnchor && initialAnchor !== 'name'));
+  const [accountPanel, setAccountPanel] = useState(false);
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
   const [savedFrame, setSavedFrame] = useState<string | null>(null);
   const frameInitializedRef = useRef(false);
@@ -324,9 +330,10 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
 
 
   function switchTab(tab: EditorTab) {
-    document.querySelector<HTMLElement>('.profile-editor-v13')?.scrollTo({ top: 0 });
     setComparing(false);
     setActiveTab(tab);
+    setAccountPanel(false);
+    setPanelOpen(true);
     setError('');
     setSaved('');
     const url = tab === 'profile' ? '/profile/edit' : `/profile/edit?tab=${tab}`;
@@ -356,6 +363,13 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
       document.documentElement.style.removeProperty('--ab-editor-viewport-top');
       document.documentElement.style.removeProperty('--ab-editor-keyboard-inset');
     };
+  }, []);
+
+  // Mounted modal owns the viewport: avoid an independent document scrollbar.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
   }, []);
 
   function leaveEditor() {
@@ -562,15 +576,31 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     baseline:JSON.stringify([profile,premiumSettings,savedFrame]),draft:editorDraft,
     dirty:dirty || (!premiumActive && premiumDirty),onApply:applyEditorDraft,
   });
-  const { activeAnchor, navigateToAnchor } = useProfileEditorAnchors(
-    !loading && !!profile && activeTab === 'profile', initialAnchor ?? profileEditorAnchor(initialTab),
-  );
   function navigatePreview(section: ProfileEditorSection) {
     if (section === 'style') { switchTab('style'); return; }
-    if (activeTab !== 'profile') switchTab('profile');
-    else setComparing(false);
-    navigateToAnchor(profileEditorAnchor(section));
+    setFocusedSection(section);
+    switchTab('profile');
   }
+  function chooseTile(tile: ProfileEditorSection | 'showcase' | 'rewards' | 'account') {
+    const same = panelOpen && (tile === 'account' ? accountPanel
+      : tile === 'showcase' || tile === 'rewards' || tile === 'style'
+        ? activeTab === tile : !accountPanel && activeTab === 'profile' && focusedSection === tile);
+    if (same) { setPanelOpen(false); return; }
+    if (tile === 'account') { switchTab('profile'); setAccountPanel(true); }
+    else if (tile === 'showcase' || tile === 'rewards' || tile === 'style') switchTab(tile);
+    else navigatePreview(tile);
+  }
+  useEffect(() => {
+    if (!panelOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || baseMediaEditor || previewOpen) return;
+      if ((event.target as HTMLElement | null)?.closest('dialog,[role="dialog"]') &&
+        !(event.target as HTMLElement).closest('.profile-editor-v40__shell')) return;
+      setPanelOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [panelOpen, baseMediaEditor, previewOpen]);
 
   const fieldDirty:Record<string,boolean> = {
     profile:username.trim()!==(profile?.username ?? '').trim() || bio.trim()!==(profile?.bio ?? '').trim(),
@@ -588,7 +618,9 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     !FREE_BANNER_STYLES.includes(bannerStyle) &&
     (bannerStyle !== normalizeBannerStyle(profile?.banner_style) ||
       bannerColor.toLowerCase() !== (profile?.banner_color ?? '#70618c').toLowerCase());
-  const needsPremiumCTA = bannerFillUpgradeRequired || (!premiumActive && activeTab === 'style' && !baseDirty);
+  // Free Premium demos have a separate upgrade button. Never hijack the
+  // staged Save action for ordinary fields or frames when the style tile is open.
+  const needsPremiumCTA = bannerFillUpgradeRequired;
   // Native Telegram back follows the same draft confirmation as the close button.
   useEffect(() => {
     const tg = (window as Window & {Telegram?:{WebApp?:{BackButton?:{
@@ -813,12 +845,14 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   useEffect(()=>{
     const keydown=(event:KeyboardEvent)=>{
       if(!(event.ctrlKey||event.metaKey))return;
+      const blockingDialog = [...document.querySelectorAll('dialog[open],[aria-modal="true"]')]
+        .some(element => !element.classList.contains('profile-editor-v40__shell'));
       if(event.key.toLowerCase()==='s') {
         event.preventDefault();
-        if(!document.querySelector('dialog[open],[aria-modal="true"]'))document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
+        if(!blockingDialog)document.querySelector<HTMLButtonElement>('[data-editor-save]')?.click();
         return;
       }
-      if(editorBusy || document.querySelector('dialog[open],[aria-modal="true"]'))return;
+      if(editorBusy || blockingDialog)return;
       const target=event.target as HTMLElement;
       // Text inputs keep native undo; the toolbar undoes changes across sections.
       if(target.closest('input,textarea,[contenteditable="true"]'))return;
@@ -889,56 +923,92 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   }
 
   return (
-    <main className="profile-editor-v13" data-editor-tab={activeTab}>
-      <div className="profile-editor-v13__ambient" aria-hidden="true" />
-
-      <section className="profile-editor-v13__shell">
-        <header className="profile-editor-v13__header">
+    <main className={`profile-editor-v13 ${modalStyles.modal}`} data-editor-tab={activeTab} data-editor-layout="modal">
+      <section className="profile-editor-v13__shell profile-editor-v40__shell" role="dialog" aria-modal="true" aria-label="Редактор профиля">
+        <header className="profile-editor-v13__header profile-editor-v40__header">
           <div className="profile-editor-v31__header-title">
             <button type="button" onClick={leaveEditor} aria-label="Закрыть редактор">×</button>
             <h1>Редактор профиля</h1>
           </div>
-          <span className="profile-editor-v31__status" role="status" aria-live="polite">{saving ? 'Сохранение…' : dirty ? '● Не сохранено' : '✓ Сохранено'}</span>
+          <div className="profile-editor-v40__header-end">
+            <span className="profile-editor-v31__status" role="status" aria-live="polite">
+              {saving ? 'Сохранение…' : dirty ? '● Не сохранено' : saved || '✓ Сохранено'}
+            </span>
+            <details className="profile-editor-v40__more">
+              <summary aria-label="История и сравнение">⋯</summary>
+              <div className="profile-editor-v40__more-menu">
+                <button type="button" disabled={!editorHistory.canUndo || editorBusy} onClick={editorHistory.undo}>↶ Отменить</button>
+                <button type="button" disabled={!editorHistory.canRedo || editorBusy} onClick={editorHistory.redo}>↷ Повторить</button>
+                <button type="button" aria-pressed={comparing}
+                  onPointerDown={event => {event.currentTarget.setPointerCapture(event.pointerId);setComparing(true);}}
+                  onPointerUp={() => setComparing(false)} onPointerCancel={() => setComparing(false)}
+                  onBlur={() => setComparing(false)}
+                  onKeyDown={event=>{if(event.key===' '||event.key==='Enter'){event.preventDefault();setComparing(true);}}}
+                  onKeyUp={() => setComparing(false)}>Удерживай для сравнения</button>
+              </div>
+            </details>
+          </div>
         </header>
-
-        <div className="profile-editor-v31__live-preview">
-          <button type="button" className="profile-editor-v31__expand" onClick={() => setPreviewOpen(true)}>⤢ Развернуть превью</button>
-          <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
-            username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
-            bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
-            bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
-            frameKey={comparing ? savedFrame : selectedFrame} onNavigate={navigatePreview}
-            previewPremiumFill={bannerFillUpgradeRequired}
-          />
-        </div>
-
-        <aside className="profile-editor-v33__board" hidden={activeTab !== 'profile'}>
-          <ProfileEditorShowcasePreview data={showcase} loading={showcaseLoading || (!showcase && !showcaseError)} error={showcaseError}
-            onConfigure={() => switchTab('showcase')}
-            onRetry={() => { setShowcaseError(''); setShowcaseReloadKey(value => value + 1); }} />
-        </aside>
-
-        <ProfileEditorNavigation activeTab={activeTab} dirty={sectionDirty} onNavigate={switchTab} />
-
-        <fieldset className="profile-editor-v31__settings" disabled={editorBusy}>
-        <div className="profile-editor-v31__tools">
-          <span>История правок</span>
-          <button type="button" disabled={!editorHistory.canUndo || editorBusy} onClick={editorHistory.undo} aria-label="Отменить изменение" title="Отменить изменение (Ctrl+Z)">↶</button>
-          <button type="button" disabled={!editorHistory.canRedo || editorBusy} onClick={editorHistory.redo} aria-label="Вернуть изменение" title="Вернуть изменение (Ctrl+Shift+Z)">↷</button>
-          <button type="button" aria-pressed={comparing}
-            onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);setComparing(true);}}
-            onPointerUp={()=>setComparing(false)} onPointerCancel={()=>setComparing(false)} onBlur={()=>setComparing(false)}
-            onKeyDown={event=>{if(event.key===' '||event.key==='Enter'){event.preventDefault();setComparing(true);}}}
-            onKeyUp={()=>setComparing(false)}>Сравнить</button>
-        </div>
-        {editorHistory.recovery && <div className="profile-editor-v31__recovery" role="status">
-          <span>На устройстве есть несохранённый черновик.</span>
+        {editorHistory.recovery && <div className="profile-editor-v31__recovery profile-editor-v40__recovery" role="status">
+          <span>Найден несохранённый черновик.</span>
           <button type="button" disabled={editorBusy} onClick={editorHistory.restore}>Восстановить</button>
           <button type="button" disabled={editorBusy} onClick={editorHistory.discard}>Удалить</button>
         </div>}
         {editorHistory.notice && <p className="profile-editor-v31__draft-note">{editorHistory.notice}</p>}
-        <div className="profile-editor-v13__premium-tab" hidden={activeTab !== 'style'}>
-            <PremiumStudioClient
+        {(error || baseMediaError) && <div className="profile-editor-v31__error profile-editor-v40__error" role="alert">{baseMediaError || error}</div>}
+        <div className="profile-editor-v40__workbench" data-panel-open={panelOpen}>
+          <nav className="profile-editor-v40__tiles" aria-label="Настройки профиля">
+            {([
+              ['profile','Имя',Type],['avatar','Аватар',CircleUserRound],['banner','Баннер',ImageIcon],
+              ['frame','Рамка',Frame],['style','Тема',Palette],
+              ['showcase','Витрина',LayoutGrid],['rewards','Награды',Trophy],
+              ['account','Аккаунт',Link2],
+            ] as const).map(([tile,label,Icon]) => (
+              <button type="button" key={tile} title={label} aria-label={label}
+                data-selected={panelOpen && (tile === 'account' ? accountPanel
+                  : tile === 'style' || tile === 'showcase' || tile === 'rewards'
+                    ? activeTab === tile : !accountPanel && activeTab === 'profile' && focusedSection === tile)}
+                aria-pressed={panelOpen && (tile === 'account' ? accountPanel
+                  : tile === 'style' || tile === 'showcase' || tile === 'rewards'
+                    ? activeTab === tile : !accountPanel && activeTab === 'profile' && focusedSection === tile)}
+                onClick={() => chooseTile(tile)}>
+                <Icon size={20} weight="regular" aria-hidden="true" /><small>{label}</small>
+                {fieldDirty[tile] && <i aria-label="Есть изменения" />}
+              </button>
+            ))}
+          </nav>
+          <section className="profile-editor-v40__stage" aria-label="Живой профиль" data-preview-collapsed={previewCollapsed}>
+            <div className="profile-editor-v40__stage-header">
+              <span>ТВОЙ ПРОФИЛЬ</span>
+              <div className="profile-editor-v40__stage-actions"><button type="button" className="profile-editor-v40__collapse" aria-expanded={!previewCollapsed} onClick={() => setPreviewCollapsed(v=>!v)}>{previewCollapsed ? "Показать" : "Свернуть"}</button><button type="button" onClick={() => setPreviewOpen(true)}>Развернуть ↗</button></div>
+            </div>
+            <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
+            username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
+            bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
+            bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
+            frameKey={comparing ? savedFrame : selectedFrame} onNavigate={navigatePreview}
+            onUsernameChange={value => {setUsername(value);setSaved('');}}
+            onBioChange={value => {setBio(value);setSaved('');}}
+            previewPremiumFill={bannerFillUpgradeRequired}
+          />
+            <p className="profile-editor-v40__hint">Нажми на имя, аватар или баннер, чтобы изменить их.</p>
+          </section>
+          <aside className="profile-editor-v40__board" aria-label="Витрина профиля">
+            <ProfileEditorShowcasePreview data={showcase}
+              loading={showcaseLoading || (!showcase && !showcaseError)} error={showcaseError}
+              onConfigure={() => switchTab('showcase')}
+              onRetry={() => { setShowcaseError(''); setShowcaseReloadKey(value => value + 1); }} />
+          </aside>
+          <aside className="profile-editor-v40__popover" hidden={!panelOpen} aria-label="Настройки выбранного элемента">
+            <header>
+              <h2>{accountPanel ? 'Аккаунт' : activeTab === 'style' ? 'Тема' : activeTab === 'showcase' ? 'Витрина'
+                : activeTab === 'rewards' ? 'Награды'
+                : ({profile:'Имя и описание',avatar:'Аватар',banner:'Баннер',frame:'Рамка'} as Record<string,string>)[focusedSection]}</h2>
+              <button type="button" onClick={() => setPanelOpen(false)} aria-label="Закрыть настройки">×</button>
+            </header>
+            <fieldset className="profile-editor-v31__settings profile-editor-v40__panel-content" disabled={editorBusy}>
+              <div className="profile-editor-v13__premium-tab" hidden={activeTab !== 'style'}>
+                <PremiumStudioClient
               ref={premiumStudioRef}
               embedded
               hideDock
@@ -955,72 +1025,23 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
               onSettingsCommitted={(settings) => {
                 setPremiumSettings(settings);
                 setPremiumDirty(false);
-              }}
-            />
-          </div>
-        {(error || baseMediaError) && (
-          <div className="profile-editor-v31__error" role="alert">{baseMediaError || error}</div>
-        )}
-        {activeTab === 'rewards' ? (
-          <div className="profile-editor-v13__showcase-tab profile-editor-v18__rewards-tab">
-            <ProgressionOverview />
-            <ProfileRewardsPanel />
-          </div>
-        ) : activeTab === 'showcase' ? (
-          <div className="profile-editor-v13__showcase-tab">
-            <div className="profile-editor-v13__section-title profile-editor-v13__showcase-title">
-              <div>
-                <span>ВИТРИНА ПРОФИЛЯ</span>
-                <h2>Витрина профиля</h2>
-                <p>Настрой порядок блоков и закрепи любимые аниме — всё в одном месте.</p>
+              }}            />
               </div>
-            </div>
-
-            {showcaseLoading && (
-              <div className="profile-editor-v13__showcase-state">
-                <AnimeBoxLoader label="Загружаем витрину…" size={46} />
-              </div>
-            )}
-
-            {!showcaseLoading && showcaseError && (
-              <div className="profile-editor-v13__showcase-state is-error" role="alert">
-                {showcaseError}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowcaseError('');
-                    setShowcase(null);
-                    setShowcaseReloadKey((value) => value + 1);
-                  }}
-                >
-                  Повторить
-                </button>
-              </div>
-            )}
-
-            {!showcaseLoading && showcase && (
-              <ProfileWidgetEditor
-                embedded
-                data={showcase}
-                maxFavorites={showcaseMaxFavorites}
-                onSaved={(widgets) => {
-                  setShowcase(widgets);
-                  setSaved('Витрина сохранена ✓');
-                }}
-              />
-            )}
-          </div>
-        ) : null}
-
-          <div className="profile-editor-v19__direct-tab" hidden={activeTab !== 'profile'}>
-          <nav className="profile-editor-v32__anchors" data-profile-anchor-nav aria-label="Настройки профиля">
-            {([['name','Имя'],['avatar','Аватар'],['banner','Баннер'],['frame','Рамка']] as const).map(([anchor,label]) => (
-              <button type="button" key={anchor} data-profile-anchor-link={anchor} aria-current={activeAnchor === anchor ? 'location' : undefined}
-                onClick={() => navigateToAnchor(anchor)}>{label}</button>
-            ))}
-          </nav>
-            <ProfileDirectEditSurface
-            section="profile"
+              {activeTab === 'rewards' && <div className="profile-editor-v18__rewards-tab">
+                <ProgressionOverview /><ProfileRewardsPanel />
+              </div>}
+              {activeTab === 'showcase' && <div className="profile-editor-v13__showcase-tab">
+                {showcaseLoading && <AnimeBoxLoader label="Загружаем витрину…" size={40} />}
+                {!showcaseLoading && showcaseError && <div role="alert">{showcaseError}
+                  <button type="button" onClick={() => {setShowcaseError('');setShowcase(null);setShowcaseReloadKey(v=>v+1);}}>Повторить</button>
+                </div>}
+                {!showcaseLoading && showcase && <ProfileWidgetEditor embedded data={showcase}
+                  maxFavorites={showcaseMaxFavorites} onSaved={widgets => {setShowcase(widgets);setSaved('Витрина сохранена ✓');}} />}
+              </div>}
+              {accountPanel && <section className="profile-editor-v40__account" aria-label="Привязка Telegram"><h3>Привязка Telegram</h3><TelegramAccountLinkCard /></section>}
+              {activeTab === 'profile' && !accountPanel && <div className="profile-editor-v19__direct-tab">
+                <ProfileDirectEditSurface
+            section={focusedSection} compact
             showPreview={false}
             onSectionChange={navigatePreview}
             onFrameChange={setSelectedFrame}
@@ -1093,28 +1114,25 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             onOpenPremium={() => switchTab('style')}
           />
 
-          <details className="profile-editor-v34__connections">
-            <summary>Привязка Telegram</summary>
-            <TelegramAccountLinkCard />
-          </details>
-          </div>
-
-        </fieldset>
-
-        <div ref={savebarRef} data-visible="true" className={`profile-editor-v13__mobile-save profile-editor-v18__savebar ${dirty ? 'is-dirty' : ''}`} >
+              </div>}
+              {!premiumActive && activeTab === 'style' && <button type="button" className="profile-editor-v40__upgrade"
+                onClick={() => router.push('/premium#premium-plans')}>Открыть Premium ✦</button>}
+            </fieldset>
+          </aside>
+        </div>
+        {dirty && <div ref={savebarRef} data-visible="true"
+          className="profile-editor-v13__mobile-save profile-editor-v18__savebar profile-editor-v40__savebar">
           <span className="profile-editor-v18__savebar-copy">
-            <strong>{saving ? 'Сохранение…' : dirty ? 'Есть изменения' : 'Всё сохранено'}</strong>
-            {resetUndoAvailable && <button type="button" disabled={editorBusy} onClick={()=>{editorHistory.undo();setResetUndoAvailable(false);}}>Вернуть сброшенное</button>}
-            {error ? <small className="profile-editor-v31__error" role="alert">{error}</small> : dirty && <small>Изменения ещё не сохранены.</small>}
+            <strong>{saving ? 'Сохранение…' : 'Несохранённые изменения'}</strong>
+            {resetUndoAvailable && <button type="button" disabled={editorBusy}
+              onClick={() => {editorHistory.undo();setResetUndoAvailable(false);}}>Вернуть сброшенное</button>}
           </span>
-          <button type="button" className="profile-editor-v18__reset" disabled={editorBusy || (!dirty && !premiumDirty)} onClick={cancelChanges}>
-            Сбросить
-          </button>
-          <button type="button" data-editor-save disabled={(!dirty && !needsPremiumCTA) || editorBusy}
+          <button type="button" className="profile-editor-v18__reset" disabled={editorBusy} onClick={cancelChanges}>Сбросить</button>
+          <button type="button" data-editor-save disabled={editorBusy}
             onClick={() => needsPremiumCTA ? router.push('/premium#premium-plans') : void saveProfile()}>
             {saving ? 'Сохраняем…' : needsPremiumCTA ? 'Сохранить с Premium' : 'Сохранить'}
           </button>
-        </div>
+        </div>}
       </section>
 
       {previewOpen && <ProfileMediaModal busy={false} onClose={()=>setPreviewOpen(false)} labelledBy="profile-expanded-preview-title">

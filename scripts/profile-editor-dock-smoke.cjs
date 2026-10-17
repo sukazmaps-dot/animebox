@@ -3,12 +3,52 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 const read=p=>fs.readFileSync(p,'utf8');
 const source=ts.transpileModule(read('lib/profile-editor-dock.ts'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 let css=[...read('app/layout.tsx').matchAll(/import '\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1]).replace(/@import[^;]+;/g,'')).join('\n');
-css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n');
-(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});try{const page=await browser.newPage();let checks=0;
-for(const theme of ['dark','light'])for(const width of [320,360,390,412,560,768])for(const font of [14,22])for(const navHeight of [70,94]){
-await page.setViewportSize({width,height:900});await page.setContent(`<style>${css}</style><style>body{margin:0}.mobile-nav{display:flex;position:fixed;inset:auto 0 0;height:${navHeight}px!important}.profile-editor-v18__savebar :is(button,strong){font-size:${font}px!important}.profile-editor-v13__shell{padding-top:1600px}.lastCard{height:180px}</style><main class="profile-editor-v13" data-editor-tab="style"><section class="profile-editor-v13__shell"><div class="lastCard">Полночь — последний пресет</div><button class="premium-studio-v22__preview-fab" aria-label="Предпросмотр"></button><div class="profile-editor-v13__mobile-save profile-editor-v18__savebar is-dirty"><span class="profile-editor-v18__savebar-copy"><strong>Есть несохранённые изменения</strong><small>Проверь предпросмотр</small></span><button class="profile-editor-v18__reset">Сбросить</button><button>Сохранить изменения</button></div></section></main>`);
-await page.evaluate(theme=>{document.documentElement.setAttribute('data-animebox-theme',theme);document.documentElement.classList.add('ab-profile-editor-open');},theme);
-await page.addScriptTag({content:`(()=>{const exports={};${source};window.stopDock=exports.observeProfileEditorDock(document.querySelector('.profile-editor-v18__savebar'));})()`});await page.waitForTimeout(80);await page.evaluate(()=>{const root=document.querySelector('.profile-editor-v13');root.scrollTop=root.scrollHeight;});
-const boxes=await page.evaluate(()=>{const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height}};return {bar:box('.profile-editor-v18__savebar'),navPresent:Boolean(document.querySelector('.mobile-nav')),fab:box('.premium-studio-v22__preview-fab'),last:box('.lastCard'),position:getComputedStyle(document.querySelector('.profile-editor-v18__savebar')).position,overflow:document.documentElement.scrollWidth>innerWidth+1}});
-assert.equal(boxes.position,'fixed',`savebar must be fixed on mobile: ${theme} ${width}px`);assert.equal(boxes.navPresent,false,'global navigation should not mount during editing');assert(boxes.bar.bottom<=900+1,'savebar escapes viewport');assert(boxes.bar.top>=0,'savebar offscreen');assert(boxes.last.bottom<=boxes.bar.top,'last preset hidden behind fixed save actions');assert(!boxes.overflow,'horizontal overflow');await page.evaluate(()=>window.stopDock());checks++;
-}console.log(`PASS: ${checks} fullscreen editor width/font/nav-height combinations; global nav unmounted and last preset visible.`)}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
+css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n')+'\n'+read('components/profile/ProfileEditorModal.module.css').replace(/:global\(([^)]+)\)/g,'$1').replace(/\.modal\b/g,'.modalTest');
+function fixture(font,navHeight){
+ return `<style>${css}</style>
+ <style>body{margin:0}.profile-editor-v40__savebar :is(button,strong){font-size:${font}px!important}
+ .lastCard{min-height:140px;padding:10px}</style>
+ <main class="profile-editor-v13 modalTest" data-editor-tab="profile" data-editor-layout="modal">
+ <section class="profile-editor-v13__shell profile-editor-v40__shell">
+ <header class="profile-editor-v13__header profile-editor-v40__header"><h1>Редактор</h1></header>
+ <div class="profile-editor-v40__workbench" data-panel-open="true"><nav class="profile-editor-v40__tiles"><button>Имя</button></nav>
+ <div class="profile-editor-v40__stage">Профиль</div>
+ <aside class="profile-editor-v40__popover"><header><h2>Настройки</h2></header>
+ <fieldset class="profile-editor-v31__settings profile-editor-v40__panel-content">
+ <div style="height:1450px">Настройки и цвета</div>
+ <button class="lastCard">Последний пресет — доступен для нажатия</button>
+ </fieldset></aside></div>
+ <div class="profile-editor-v13__mobile-save profile-editor-v18__savebar profile-editor-v40__savebar is-dirty">
+ <span class="profile-editor-v18__savebar-copy"><strong>Несохранённые изменения</strong></span>
+ <button class="profile-editor-v18__reset">Сбросить</button><button>Сохранить изменения</button></div>
+ </section></main>`;
+}
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});try{
+const page=await browser.newPage();let checks=0;
+for(const theme of ['dark','light'])for(const width of [320,360,390,412,560,768])
+for(const font of [14,22])for(const navHeight of [70,94]){
+ await page.setViewportSize({width,height:900});await page.setContent(fixture(font,navHeight));
+ await page.evaluate(theme=>{document.documentElement.setAttribute('data-animebox-theme',theme);document.documentElement.classList.add('ab-profile-editor-open');},theme);
+ await page.addScriptTag({content:`(()=>{const exports={};${source};window.stopDock=exports.observeProfileEditorDock(document.querySelector('.profile-editor-v40__savebar'));})()`});
+ await page.waitForTimeout(50);
+ await page.locator('.lastCard').scrollIntoViewIfNeeded();
+ const boxes=await page.evaluate(()=>{
+  const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height,left:r.left,right:r.right}};
+  const bar=document.querySelector('.profile-editor-v40__savebar');
+  return {bar:box('.profile-editor-v40__savebar'),navPresent:document.querySelector('.mobile-nav')!==null,
+  panel:box('.profile-editor-v40__popover'),last:box('.lastCard'),
+  barVar:parseFloat(document.querySelector('.profile-editor-v13').style.getPropertyValue('--profile-editor-savebar-height')),
+  position:getComputedStyle(bar).position,overflow:document.documentElement.scrollWidth>innerWidth+1};
+ });
+ const label=`${theme} ${width}px font=${font} nav=${navHeight}`;
+ assert.equal(boxes.position,'absolute',label+' dock anchored within modal');
+ assert.equal(boxes.navPresent,false,label+' real route unmounts the site navigation');
+ assert(boxes.bar.bottom<=900+1&&boxes.bar.top>=0,label+' savebar within visible modal');
+ assert(boxes.last.bottom<=boxes.bar.top+2,label+' last setting hidden behind savebar');
+ assert(boxes.panel.bottom<=boxes.bar.top+2,label+' popover intersects savebar');
+ assert(boxes.barVar>=boxes.bar.height-1,label+' measured dock height');
+ assert(!boxes.overflow,label+' horizontal overflow');
+ await page.evaluate(()=>window.stopDock());checks++;
+}
+console.log(`PASS: ${checks} modal dock layout combinations, settings scroll clearance, hidden global nav and measured height.`);
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
