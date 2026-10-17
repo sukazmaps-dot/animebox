@@ -1,5 +1,5 @@
 'use client';
-import { useState, type CSSProperties } from 'react';
+import { useId, useState, type CSSProperties } from 'react';
 import { premiumStudioCssVariables, type PremiumStudioSettings } from '@/lib/premium-studio';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import { bannerStyleBackground, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
@@ -21,6 +21,8 @@ export default function ProfileEditorLivePreview({
   full=false, createdAt, appearance, expanded=false, username, bio, avatarUrl, bannerUrl, bannerColor, bannerStyle,
   premiumActive, frameKey, previewPremiumFill=false, onNavigate, onUsernameChange, onBioChange,
 }: Props) {
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const avatarMenuId = useId();
   const [editingName, setEditingName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const background = bannerStyleBackground(bannerColor, previewPremiumFill ? bannerStyle : visibleBannerStyle(bannerStyle, premiumActive));
@@ -39,11 +41,17 @@ export default function ProfileEditorLivePreview({
         <span className={styles.editBanner}>✎ Баннер</span>
       </button>
       <div className={styles.identity}>
-        <button type="button" className={styles.avatar} data-has-frame={frameKey ? 'true' : 'false'} onClick={() => onNavigate('avatar')} aria-controls="profile-editor-avatar" aria-label="Настроить аватар и рамку">
+        <button type="button" className={styles.avatar} data-has-frame={frameKey ? 'true' : 'false'} onClick={() => setAvatarMenuOpen(open => !open)} aria-haspopup="menu" aria-expanded={avatarMenuOpen} aria-controls={avatarMenuId} aria-label="Настроить аватар">
           <span className={styles.avatarImage}><img src={avatarUrl} alt="" /></span>
           <ProfileFrameOverlay frameKey={frameKey ?? null} premium={premiumActive} className={styles.avatarFrame} />
           <span className={styles.editAvatar} aria-hidden="true">✎</span>
         </button>
+        {avatarMenuOpen && <div className={styles.avatarMenu} id={avatarMenuId} role="menu"
+          onKeyDown={event => {if(event.key==='Escape'){event.stopPropagation();setAvatarMenuOpen(false);}}}
+          onBlur={event => {if(!event.currentTarget.contains(event.relatedTarget))setAvatarMenuOpen(false);}}>
+          <button type="button" role="menuitem" onClick={() => {setAvatarMenuOpen(false);onNavigate('avatar');}}>Загрузить аватар</button>
+          <button type="button" role="menuitem" onClick={() => {setAvatarMenuOpen(false);onNavigate('frame');}}>Рамка аватара</button>
+        </div>}
         <div className={styles.copy}>
           {editingName && onUsernameChange ? <input
             className={styles.inlineName} aria-label="Имя пользователя"
