@@ -152,7 +152,7 @@
     "profile-media:browser": "node scripts/profile-media-browser-smoke.cjs",
     "patch31-4:check": "node tests/home-hero-art-server.cjs && node tests/home-hero-art.cjs",
     "patch31-4:browser": "node scripts/home-hero-recovery-smoke.cjs",
-    "editor-workspace:check": "node tests/profile-editor-workspace.cjs && node tests/profile-editor-navigation.cjs && node tests/profile-editor-discord-workspace.cjs",
+    "editor-workspace:check": "node tests/profile-editor-workspace.cjs && node tests/profile-editor-navigation.cjs && node tests/profile-editor-discord-workspace.cjs && node tests/profile-integrity-31-11.cjs",
     "editor-workspace:browser": "node scripts/profile-editor-responsive-smoke.cjs",
     "editor-unified:browser": "node scripts/profile-editor-unified-browser-smoke.cjs",
     "player-fullscreen:browser": "node scripts/player-fullscreen-browser-smoke.cjs",
