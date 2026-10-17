@@ -76,8 +76,11 @@
 :global(html[data-animebox-theme='light']) .page:global(.episode-page) :global(.premium-player-dropdown) > div:last-child { background: var(--ab-ui-surface) !important; }
 
 /* Playback layout owner: media, title, source chips, selectors, then page actions. */
-/* Open voice menus belong above sibling episode/actions cards. Keep this on
- * the player ancestor: a high z-index on the menu cannot escape its stack. */
+/* The outer player root is `isolate`, so raising its inner menu/header alone
+ * cannot lift it above the following EpisodeQuickSelector sibling. Elevate the
+ * entire isolated root only while a menu is expanded; never globally change
+ * stacking for Watch Together, fullscreen, or closed episode controls. */
+.page:global(.episode-page) :global(.animebox-player-root):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { z-index: 30; }
 .page:global(.episode-page) :global(.animebox-premium-player):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { position: relative; z-index: 20; }
 .page:global(.episode-page) :global(.animebox-player-header):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { position: relative; z-index: 2; }
 .page:global(.episode-page) :global(.premium-player-dropdown):has(:global(.premium-player-dropdown-trigger[aria-expanded='true'])) { z-index: 3; }
