@@ -605,7 +605,9 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     !FREE_BANNER_STYLES.includes(bannerStyle) &&
     (bannerStyle !== normalizeBannerStyle(profile?.banner_style) ||
       bannerColor.toLowerCase() !== (profile?.banner_color ?? '#70618c').toLowerCase());
-  const needsPremiumCTA = bannerFillUpgradeRequired || (!premiumActive && activeTab === 'style' && !baseDirty);
+  // Free Premium demos have a separate upgrade button. Never hijack the
+  // staged Save action for ordinary fields or frames when the style tile is open.
+  const needsPremiumCTA = bannerFillUpgradeRequired;
   // Native Telegram back follows the same draft confirmation as the close button.
   useEffect(() => {
     const tg = (window as Window & {Telegram?:{WebApp?:{BackButton?:{
