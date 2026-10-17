@@ -27,8 +27,8 @@
 .previewCard,.previewBoard{min-width:0;}
 .previewCard > :global([aria-label='Живой предпросмотр профиля']){max-width:100%;width:100%;min-height:0;}
 .previewBoard{padding:0;}
-.columns[data-context!='profile']{grid-template-columns:minmax(0,700px);justify-content:center;}
-.columns[data-context!='profile'] .previewCard{min-width:0;}
+.columns:not([data-context='profile']){grid-template-columns:minmax(0,700px);justify-content:center;}
+.columns:not([data-context='profile']) .previewCard{min-width:0;}
 .sceneInStage{display:grid;width:min(100%,440px);min-width:0;margin:0 auto;}
 .scrollBody[data-device='mobile'] .columns{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;width:min(390px,100%);max-width:390px;border:9px solid var(--ab-ui-raised);border-radius:26px;padding:12px 10px 20px;background:var(--ab-ui-canvas);}
 .scrollBody[data-device='mobile'] .previewCard{width:100%;}
