@@ -136,6 +136,9 @@ function unchangedSecurity() {
   assert(analytics.includes('isAllowedBrowserOrigin') && analytics.includes('contentLength > 32_000'), 'origin and payload checks retained');
   const membership = read('lib/telegram/channel-membership.ts');
   assert(membership.includes('validateTelegramInitData(initData, botToken)'), 'Telegram signed initData is required');
+  const controls = read('lib/runtime-controls-server.ts');
+  assert(controls.includes('.abortSignal(AbortSignal.timeout(1_200))'), 'public runtime controls must have a bounded outage deadline');
+  assert(controls.includes('expiresAt: now + 10_000'), 'failed control reads must back off briefly');
   const gate = read('components/TelegramSubscriptionGate.tsx');
   assert(gate.includes("setState('unavailable')"));
   assert(gate.includes("state === 'unavailable' ? 'Не удалось проверить подписку'"), 'errors must not show compulsory subscription text');
