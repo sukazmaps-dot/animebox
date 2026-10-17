@@ -61,7 +61,7 @@
     "client-bundle:check": "node scripts/client-bundle-check.mjs",
     "runtime-effects:check": "node scripts/runtime-effects-check.mjs",
     "css-route-scope:check": "node scripts/css-route-scope-check.mjs",
-    "opening-skip-safety:check": "node scripts/opening-skip-safety-check.mjs",
+    "opening-skip-safety:check": "node scripts/opening-skip-safety-check.mjs && node tests/kodik-opening-ownership.cjs",
     "desktop-runtime-budget:check": "node scripts/desktop-runtime-budget-check.mjs",
     "patch18-5-1:check": "node scripts/patch-18-5-1-check.mjs",
     "patch18-5-2:check": "node scripts/patch-18-5-2-integrity-check.mjs",
