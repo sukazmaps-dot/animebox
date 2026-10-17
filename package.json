@@ -159,7 +159,7 @@
     "player-fullscreen:browser": "node scripts/player-fullscreen-browser-smoke.cjs",
     "mobile-player-shell:browser": "node scripts/mobile-player-shell-smoke.cjs",
     "loading-budgets:check": "node tests/loading-budgets.cjs",
-    "hotfix31-16:check": "node tests/patch31-16-db-outage.cjs"
+    "hotfix31-16:check": "node tests/patch31-16-db-outage.cjs && node tests/catalog-recovery-fix.cjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
