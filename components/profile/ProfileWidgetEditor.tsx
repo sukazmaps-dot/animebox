@@ -301,7 +301,7 @@ export default function ProfileWidgetEditor({
                       {String(index + 1).padStart(2, '0')}
                     </span>
                     <strong>{PROFILE_WIDGET_TITLES[item.key]}</strong>
-                    <div className="profile-widgets-editor__row-actions">
+                    <div className="profile-widgets-editor__row-actions" aria-label="Порядок виджета">
                       <button
                         type="button"
                         disabled={index === 0}
@@ -318,15 +318,15 @@ export default function ProfileWidgetEditor({
                       >
                         ↓
                       </button>
-                      <button
-                        type="button"
-                        className="profile-widgets-editor__visibility"
-                        data-on={item.visible ? 'true' : 'false'}
-                        onClick={() => toggleWidget(item.key)}
-                      >
-                        {item.visible ? 'Показывать' : 'Скрыто'}
-                      </button>
-                    </div>
+                      </div>
+                    <button type="button"
+                      className="profile-widgets-editor__visibility"
+                      data-on={item.visible ? 'true' : 'false'}
+                      aria-pressed={item.visible}
+                      aria-label={`${PROFILE_WIDGET_TITLES[item.key]}: ${item.visible ? 'Включено' : 'Выключено'}`}
+                      onClick={() => toggleWidget(item.key)}>
+                      {item.visible ? 'Вкл' : 'Выкл'}
+                    </button>
                   </div>
                 ))}
               </div>
