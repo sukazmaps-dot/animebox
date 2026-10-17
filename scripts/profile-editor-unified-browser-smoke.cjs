@@ -46,9 +46,16 @@ const root=process.cwd();
   assert.equal(await page.locator('[aria-label="Живой предпросмотр профиля"]').isVisible(),true,'shared live card visible');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'document overflow '+width);
   if(width>=1280){
-   const geometry=await page.evaluate(()=>['.profile-editor-v40__tiles','.profile-editor-v40__popover','.profile-editor-v40__stage','.profile-editor-v40__board'].map(selector=>{
+   const geometry=await page.evaluate(()=>['.profile-editor-v40__tiles','.profile-editor-v40__stage','.profile-editor-v40__board'].map(selector=>{
     const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right};}));
-   assert(geometry[0].right<=geometry[1].left+2&&geometry[1].right<=geometry[2].left+2&&geometry[2].right<=geometry[3].left+2,'four-track modal geometry '+width);
+   assert(geometry[0].right<=geometry[1].left+2&&geometry[1].right<=geometry[2].left+2,'four-track modal geometry with closed inspector '+width);
+   const showcase=await page.evaluate(()=>{
+    const header=document.querySelector('.profile-editor-v40__board header');
+    const h=header.querySelector('h2').getBoundingClientRect(),b=header.querySelector('button').getBoundingClientRect();
+    return {sameRow:Math.abs(h.top-b.top)<20,posters:[...document.querySelectorAll('.profile-editor-v40__board .posters img')].map(n=>n.getBoundingClientRect().width)};
+   });
+   assert(showcase.sameRow,'showcase configure button must be alongside the heading');
+   assert(showcase.posters.length>0&&showcase.posters.every(w=>w>=71),'showcase poster width >=72 px');
   }else assert.equal(await page.locator('.profile-editor-v40__board').isVisible(),false,'showcase moves to rail below 1280');
   await page.getByRole('button',{name:'Имя',exact:true}).click();
   assert(await page.locator('.profile-editor-v40__popover').isVisible(),'name inspector opens '+width);
