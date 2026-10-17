@@ -49,6 +49,9 @@ explain the error. Do not disable protection globally or assume a malicious sour
 
 ### 3. Diagnostics and follow-up beyond this hotfix
 
+- Runtime control-plane reads have a bounded 1.2 s Supabase deadline and a
+  10 s degraded-state cache, retaining the existing fail-open behaviour.
+
 - Observe `503` at `/api/image`, `/api/recommendations`, and
   `/api/telegram/subscription-check`; distinguish `429` (limit) from
   `503` (upstream unavailable).
