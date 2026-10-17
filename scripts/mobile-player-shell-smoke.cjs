@@ -103,7 +103,7 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     },width>=740);
     assert.equal(stack.isolated,'isolate','true production isolation '+width);
     assert.equal(stack.closedBefore,'auto','closed player must retain normal stacking '+width);
-    assert.equal(stack.openZ,'30','open dropdown must elevate outer isolated root '+width);
+    assert.equal(stack.openZ,'20','open dropdown must elevate outer root below fixed site chrome '+width);
     assert.equal(stack.theaterZ,'10001','theater mode must preserve pre-existing fullscreen stacking '+width);
     assert.equal(stack.closedAfter,'auto','closing dropdown restores stacking '+width);
     if(width>=740){
@@ -115,6 +115,62 @@ const Account=compile(read('components/MobileAccountNav.tsx'),id=>{
     assert(renderToStaticMarkup(React.createElement(Header,{showEpisodeSelector:true})).includes('aria-label="Серия"'));
     await page.close();cases++;
    }
+  }
+  // 31.10.2: Site chrome is a distinct fixed stacking context. The previous
+  // smoke only rendered the episode content, missing the fixed search header.
+  // Use the real global and route-scoped CSS, actual player controls/episode
+  // navigator JSX, and the production app-shell / topbar / sidebar ancestry.
+  for(const [width,height] of [[1440,900],[1920,1080]]){
+   const page=await browser.newPage({viewport:{width,height}});
+   const controls=renderToStaticMarkup(React.createElement(Header,{showEpisodeSelector:false}));
+   const quick=renderToStaticMarkup(React.createElement(Quick,{currentEpisode:1,totalEpisodes:28,hasNext:true,hasPrev:false,nextLabel:'След.',onPrevious:()=>{},onNext:()=>{},onSelect:()=>{}}));
+   await page.setContent(`<html><head><style>*,*::before,*::after{box-sizing:border-box}.relative{position:relative}.isolate{isolation:isolate}.absolute{position:absolute}.invisible{visibility:hidden}.opacity-0{opacity:0}.w-full{width:100%}.h-full{height:100%}.inset-0{inset:0}.flex{display:flex}.inline-flex{display:inline-flex}.items-center{align-items:center}.flex-1{flex:1}.block{display:block}.min-w-0{min-width:0}.h-4{height:16px}.w-4{width:16px}.shrink-0{flex-shrink:0}${css}</style></head><body><aside class="sidebar">ANIMEBOX</aside><header class="topbar"><form class="topbar__search"><input aria-label="Найти аниме" value="Фрирен" /></form></header><div class="app-shell"><main class="fixture_page episode-page" style="padding:12px"><div class="animebox-player-root relative isolate w-full"><div><section class="animebox-premium-player"><div class="animebox-player-media relative" style="height:420px;background:#333"></div>${controls}</section></div></div>${quick}<div style="height:1600px"></div></main></div></body></html>`);
+   const geometry=await page.evaluate(()=>{
+    const topbar=document.querySelector('.topbar'),search=topbar.querySelector('input'),side=document.querySelector('.sidebar');
+    const root=document.querySelector('.animebox-player-root'),navigation=document.querySelector('.episode-quick-nav');
+    const dropdown=root.querySelector('.premium-player-dropdown'),trigger=dropdown.querySelector('.premium-player-dropdown-trigger'),menu=dropdown.lastElementChild;
+    const siteZ=getComputedStyle(topbar).zIndex,sidebarZ=getComputedStyle(side).zIndex,closedRootZ=getComputedStyle(root).zIndex;
+    trigger.setAttribute('aria-expanded','true');trigger.classList.add('is-open');
+    Object.assign(menu.style,{position:'absolute',top:'calc(100% + 10px)',left:0,width:'100%',height:'300px',visibility:'visible',opacity:'1',zIndex:'50',background:'#222'});
+    navigation.style.zIndex='10'; // adversarial sibling, not production claim
+    const openRootZ=getComputedStyle(root).zIndex;
+    // First validate menu is clickable on top of the next-episode controls.
+    navigation.scrollIntoView({block:'center'});
+    const nav=navigation.getBoundingClientRect(),m=menu.getBoundingClientRect();
+    const x=Math.max(m.left+5,Math.min(m.right-5,nav.left+nav.width/2));
+    const y=Math.max(m.top+5,nav.top+12);
+    const overlap=x<m.right&&x>m.left&&x<nav.right&&x>nav.left&&y<m.bottom&&y>m.top&&y<nav.bottom&&y>nav.top;
+    const menuHit=menu.contains(document.elementFromPoint(x,y));
+    // Scroll player behind sticky search: opening dropdown must never cover it.
+    const desiredY=16;
+    window.scrollBy(0,root.getBoundingClientRect().top-desiredY);
+    const searchRect=search.getBoundingClientRect();
+    const sx=searchRect.left+searchRect.width/2,sy=searchRect.top+searchRect.height/2;
+    const headerHit=topbar.contains(document.elementFromPoint(sx,sy));
+    const searchHit=search.contains(document.elementFromPoint(sx,sy));
+    const playerRect=root.getBoundingClientRect();
+    const headerRect=topbar.getBoundingClientRect();
+    const underHeader=playerRect.top<headerRect.bottom&&playerRect.bottom>headerRect.top&&playerRect.left<sx&&playerRect.right>sx;
+    // Exact regression control: previous root z-index 30 ties the topbar at
+    // z-index 30; later player DOM paints over the search.
+    root.style.zIndex='30';
+    const previousHit=topbar.contains(document.elementFromPoint(sx,sy));
+    root.style.removeProperty('z-index');
+    const restoredHit=topbar.contains(document.elementFromPoint(sx,sy));
+    trigger.setAttribute('aria-expanded','false');trigger.classList.remove('is-open');
+    const closedAfter=getComputedStyle(root).zIndex;
+    return {siteZ,sidebarZ,closedRootZ,openRootZ,overlap,menuHit,headerHit,searchHit,underHeader,previousHit,restoredHit,closedAfter,playerRect:{top:playerRect.top,left:playerRect.left},searchRect:{left:searchRect.left,top:searchRect.top}};
+   });
+   assert.equal(geometry.siteZ,'30','fixture must keep actual fixed desktop topbar z-index '+width);
+   assert.equal(geometry.sidebarZ,'40','fixture must keep desktop sidebar z-index '+width);
+   assert.equal(geometry.closedRootZ,'auto','closed player uses ordinary stacking '+width);
+   assert.equal(geometry.openRootZ,'20','open popup must sit between sibling navigator and chrome '+width);
+   assert(geometry.overlap&&geometry.menuHit,'dropdown options above episode nav '+width+' '+JSON.stringify(geometry));
+   assert(geometry.underHeader&&geometry.headerHit&&geometry.searchHit,'search must stay reachable above scrolled open player '+width+' '+JSON.stringify(geometry));
+   assert(!geometry.previousHit,'old z-index:30 must reproduce search hidden behind player '+width+' '+JSON.stringify(geometry));
+   assert(geometry.restoredHit,'new z-index:20 must restore topbar hit '+width);
+   assert.equal(geometry.closedAfter,'auto','closed menu must restore player normal stacking '+width);
+   await page.close();cases++;
   }
   console.log(`PASS ${cases} actual-source controls/nav/isolated-voice-menu cases: 360–1920px, restored z-index and negative occlusion control, avatar zoom 1–3, one episode picker, 44px fullscreen.`);
  }finally{await browser.close()}
