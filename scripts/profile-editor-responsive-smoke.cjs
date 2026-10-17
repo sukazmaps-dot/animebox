@@ -23,55 +23,70 @@ const Color=load('components/profile/ProfileColorField.tsx').default;
 const preview=renderToStaticMarkup(React.createElement(Preview,{username:'Длинное имя пользователя',bio:'Описание профиля, которое должно оставаться внутри карточки',avatarUrl:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>',bannerUrl:null,bannerColor:'#70618c',bannerStyle:'soft',premiumActive:true,full:true,createdAt:'2021-02-19T00:00:00Z',onNavigate:()=>{}}));
 const colors=['Основной цвет','Акцент','Текст и иконки'].map(label=>renderToStaticMarkup(React.createElement(Color,{label,value:'#70618C',hint:'Пояснение назначения цвета, которое раньше сжималось в очень узкую колонку',onChange:()=>{}}))).join('');
 let css=[...read('app/layout.tsx').matchAll(/import '\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1]).replace(/@import[^;]+;/g,'')).join('\n');
-css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n')+'\n'+moduleSheets.join('\n');
+css+='\n'+[...read('app/profile/layout.tsx').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>read('app/'+m[1])).join('\n')+'\n'+moduleSheets.join('\n')+'\n'+read('components/profile/ProfileEditorModal.module.css').replace(/:global\(([^)]+)\)/g,'$1').replace(/\.modal\b/g,'.modalTest');
 const dockSource=ts.transpileModule(read('lib/profile-editor-dock.ts'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-const Navigation=load('components/profile/ProfileEditorNavigation.tsx').default;
-const nav=tab=>renderToStaticMarkup(React.createElement(Navigation,{activeTab:tab,onNavigate:()=>{}}));
-const premium=`<div class="profile-editor-v13__premium-tab"><div class="premium-studio premium-studio-v12 is-embedded"><div class="premium-studio-v15__layout"><div class="premium-studio-v15__hero"><div class="premium-studio-v15__hero-main"><div class="premium-studio-v15__color-list">${colors}</div></div><aside class="premium-studio-v12__preview-wrap premium-studio-v15__preview-wrap"><div class="premium-studio-v15__sticky"><div class="premium-studio-v23__preview-tabs"><button>Профиль</button><button>Мини</button><button>Комментарий</button><button>Комната</button></div><div class="premium-studio-v15__preview"><div class="premium-studio-v15__preview-banner"></div><div class="premium-studio-v15__preview-body" style="height:250px">Premium profile</div></div></div></aside></div><div class="premium-studio-v16__section-nav"><button>Оформление</button><button>Атмосфера</button></div><div class="premium-studio-v15__sections"><section style="height:1200px">Длинный набор настроек</section><button class="lastControl">Последняя настройка</button></div></div><button class="premium-studio-v22__preview-fab">Превью</button></div></div>`;
-function fixture(tab){return `<style>${css}</style><style>body{margin:0}.lastControl{min-height:44px}.profile-editor-v31__header-title h1{margin:0}</style><main class="profile-editor-v13" data-editor-tab="${tab}"><section class="profile-editor-v13__shell"><header class="profile-editor-v13__header"><div class="profile-editor-v31__header-title"><button>×</button><h1>Редактор профиля</h1></div><span class="profile-editor-v31__status">Не сохранено</span></header><div class="profile-editor-v31__live-preview">${preview}</div><aside class="profile-editor-v33__board" ${tab==='style'?'hidden':''}><h2>Доска профиля</h2><div style="min-height:300px">Любимые аниме</div></aside>${nav(tab)}<fieldset class="profile-editor-v31__settings">${tab==='style'?premium:`<div class="profile-editor-v19__direct-tab"><label>Имя<input value="Профиль" /></label><div style="height:1400px">Форма</div><button class="lastControl">Убрать баннер</button></div>`}</fieldset><div class="profile-editor-v13__mobile-save profile-editor-v18__savebar"><span class="profile-editor-v18__savebar-copy"><strong>Правки видны в превью</strong></span><button>Сбросить</button><button>Сохранить</button></div></section></main>`;}
+// Browser fixture uses the actual modal layout classes and real shared profile card.
+function fixture(dirty,panelOpen){
+ const tiles=['Имя','Аватар','Баннер','Рамка','Тема','Витрина','Награды','Аккаунт']
+   .map((t,i)=>`<button data-selected="${panelOpen&&i===0}"><span>◇</span><small>${t}</small></button>`).join('');
+ return `<style>${css}</style><style>body{margin:0}.profile-editor-v31__header-title h1{margin:0}</style>
+ <main class="profile-editor-v13 modalTest" data-editor-tab="profile" data-editor-layout="modal">
+ <section class="profile-editor-v13__shell profile-editor-v40__shell">
+ <header class="profile-editor-v13__header profile-editor-v40__header">
+ <div class="profile-editor-v31__header-title"><button>×</button><h1>Редактор профиля</h1></div>
+ <span class="profile-editor-v31__status">${dirty?'● Не сохранено':'✓ Сохранено'}</span></header>
+ <div class="profile-editor-v40__workbench" data-panel-open="${panelOpen}">
+ <nav class="profile-editor-v40__tiles" aria-label="Настройки профиля">${tiles}</nav>
+ <section class="profile-editor-v40__stage"><div class="profile-editor-v40__stage-header">ТВОЙ ПРОФИЛЬ</div>${preview}<p class="profile-editor-v40__hint">Нажми на элемент</p></section>
+ <aside class="profile-editor-v40__board"><h2>Витрина</h2><p>Настоящие аниме</p></aside>
+ <aside class="profile-editor-v40__popover" ${panelOpen?'':'hidden'}><header><h2>Имя и описание</h2><button>×</button></header>
+ <fieldset class="profile-editor-v31__settings profile-editor-v40__panel-content">
+ <label>Имя<input type="text" value="AnimeBox" /></label><label>Описание<textarea>Мой профиль</textarea></label>
+ <button>Применить</button></fieldset></aside></div>
+ ${dirty?'<div class="profile-editor-v13__mobile-save profile-editor-v18__savebar profile-editor-v40__savebar"><span class="profile-editor-v18__savebar-copy"><strong>Несохранённые изменения</strong></span><button>Сбросить</button><button>Сохранить</button></div>':''}
+ </section></main>`;
+}
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});try{
  const page=await browser.newPage();let count=0;
- for(const theme of ['dark','light'])for(const tab of ['profile','style'])for(const [width,height] of [[320,900],[390,900],[560,900],[768,900],[900,900],[1180,900],[1440,900],[1920,1080]]){
-  await page.setViewportSize({width,height});await page.setContent(fixture(tab));await page.evaluate(theme=>{document.documentElement.setAttribute('data-animebox-theme',theme);document.documentElement.classList.add('ab-profile-editor-open');},theme);
-  await page.addScriptTag({content:`(()=>{const exports={};${dockSource};window.stopDock=exports.observeProfileEditorDock(document.querySelector('.profile-editor-v18__savebar'));})()`});await page.waitForTimeout(20);
-  const geometry=await page.evaluate(()=>{
-   const q=s=>document.querySelector(s),box=s=>{const r=q(s).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
-   return {rootOverflow:getComputedStyle(q('.profile-editor-v13')).overflowY,documentOverflow:document.documentElement.scrollWidth>innerWidth+1,rootOverflowX:q('.profile-editor-v13').scrollWidth>innerWidth+1,settings:box('.profile-editor-v31__settings'),preview:box('.profile-editor-v31__live-preview'),nav:box('nav'),bar:box('.profile-editor-v18__savebar'),header:box('header'),buttons:[...document.querySelectorAll('nav > button')].filter(n=>getComputedStyle(n).display!=='none').map(n=>n.getBoundingClientRect().height),fields:[...document.querySelectorAll('input[type=text]')].map(n=>({right:n.getBoundingClientRect().right,parent:n.parentElement.getBoundingClientRect().right,width:n.getBoundingClientRect().width})),nestedScroll:[...document.querySelectorAll('.premium-studio-v15__sticky')].some(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY))};
+ for(const theme of ['dark','light'])for(const dirty of [false,true])for(const panelOpen of [false,true])
+ for(const [width,height] of [[320,900],[390,844],[560,900],[768,900],[900,900],[1024,768],[1180,900],[1366,768],[1680,900],[1920,1080]]){
+  await page.setViewportSize({width,height});await page.setContent(fixture(dirty,panelOpen));
+  await page.evaluate(theme=>{document.documentElement.setAttribute('data-animebox-theme',theme);document.documentElement.classList.add('ab-profile-editor-open');},theme);
+  const g=await page.evaluate(()=>{
+   const q=s=>document.querySelector(s),rect=s=>{const r=q(s).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
+   return {root:rect('.profile-editor-v13'),shell:rect('.profile-editor-v40__shell'),nav:rect('.profile-editor-v40__tiles'),
+     stage:rect('.profile-editor-v40__stage'),board:rect('.profile-editor-v40__board'),
+     pop:rect('.profile-editor-v40__popover'),bar:document.querySelector('.profile-editor-v40__savebar')?rect('.profile-editor-v40__savebar'):null,
+     boardDisplay:getComputedStyle(q('.profile-editor-v40__board')).display,
+     popDisplay:getComputedStyle(q('.profile-editor-v40__popover')).display,
+     overflow:document.documentElement.scrollWidth>innerWidth+1,
+     tileHeights:[...q('.profile-editor-v40__tiles').children].map(n=>n.getBoundingClientRect().height)};
   });
-  const label=`${theme} ${tab} ${width}x${height}`;
-  assert.equal(geometry.rootOverflow,'auto',label+' main scroll root');assert(!geometry.documentOverflow&&!geometry.rootOverflowX,label+' horizontal overflow');assert(geometry.buttons.every(h=>h>=44&&h<=60),label+' menu button size');assert(!geometry.nestedScroll,label+' nested preview wheel trap');
-  if(width<900){assert(geometry.nav.bottom<=height+1,label+' nav viewport');assert(geometry.bar.bottom<=geometry.nav.top+1,label+' save/nav overlap');if(tab==='profile')assert(geometry.settings.top>=geometry.preview.bottom-1,label+' preview/form overlap');}
-  else if(tab==='profile'){assert(geometry.preview.left>=geometry.settings.right-1,label+' desktop right column');assert(geometry.preview.top<geometry.settings.top+60,label+' preview must start alongside form');}
-  if(width>=1180&&tab==='style')assert(geometry.nav.right<=geometry.settings.left+1,label+' compact desktop rail');
-  if(width>=1180&&tab==='profile')assert(geometry.settings.width>=260&&geometry.settings.width<=320,label+' compact inspector width');
-  if(width>=1440&&tab==='style')assert(geometry.settings.width>500,label+' use wide screen');
-  assert(geometry.fields.every(f=>f.right<=f.parent+1&&f.width>=80),label+' HEX field clipped');
-  await page.evaluate(()=>{const root=document.querySelector('.profile-editor-v13');root.scrollTop=600;});await page.waitForTimeout(15);
-  if(width>=900&&tab==='profile'){const top=await page.locator('.profile-editor-v31__live-preview').evaluate(n=>n.getBoundingClientRect().top);assert(top>=geometry.header.height-1&&top<geometry.header.height+80,label+' sticky preview');}
-  if(tab==='style'&&width>=900){const top=await page.locator('.premium-studio-v15__sticky').evaluate(n=>n.getBoundingClientRect().top);assert(top>=geometry.header.height-1&&top<geometry.header.height+80,label+' sticky Premium preview');}
-  await page.evaluate(()=>{const root=document.querySelector('.profile-editor-v13');root.scrollTop=root.scrollHeight;});await page.waitForTimeout(15);
-  const last=await page.locator('.lastControl').boundingBox(),bar=await page.locator('.profile-editor-v18__savebar').boundingBox();assert(last.y+last.height<=bar.y+1,label+' last control hidden under dock');
-  await page.evaluate(()=>window.stopDock());count++;
+  const label=`${theme} ${width}x${height} dirty=${dirty} panel=${panelOpen}`;
+  assert.equal(Math.round(g.root.width),width,label+' fullscreen portal');
+  assert.equal(Math.round(g.root.height),height,label+' viewport height');
+  assert(g.shell.width<=width+1&&g.shell.height<=height+1,label+' modal bounded');
+  assert(!g.overflow,label+' no horizontal overflow');
+  if(width>=1100)assert(g.nav.right<=g.stage.left+2,label+' tile/sidebar collision');
+  if(width>=1280&&panelOpen)assert(g.pop.right<=g.stage.left+2,label+' inspector must not overlay the card');
+  assert(g.tileHeights.every(h=>h>=55),label+' accessible tile targets');
+  assert.equal(g.bar!==null,dirty,label+' dirty-only savebar');
+  assert.equal(g.popDisplay!=='none',panelOpen,label+' tile popover');
+  if(width>=1280){assert(g.board.left>=g.stage.right-2,label+' showcase right');assert(g.boardDisplay!=='none',label+' desktop showcase');}
+  else assert.equal(g.boardDisplay,'none',label+' folded mobile showcase');
+  if(panelOpen){assert(g.pop.left>=g.shell.left-1&&g.pop.right<=g.shell.right+1,label+' inspector horizontal bounds');
+    if(dirty)assert(g.pop.bottom<=g.bar.top+2,label+' savebar obscures inspector');}
+  if(dirty){
+    assert(g.bar.bottom<=g.shell.bottom+1,label+' savebar outside modal');
+    assert(g.bar.left>=g.shell.left-1&&g.bar.right<=g.shell.right+1,label+' savebar shifted outside shell horizontally');
+  }
+  count++;
  }
- // Simulate a keyboard shrinking visualViewport while the layout viewport stays tall.
- await page.setViewportSize({width:390,height:900});await page.setContent(fixture('profile'));
- await page.evaluate(()=>{
-  document.documentElement.setAttribute('data-profile-editor-keyboard','');
-  document.documentElement.style.setProperty('--ab-editor-viewport-height','400px');
-  document.documentElement.style.setProperty('--ab-editor-keyboard-inset','500px');
- });
- const keyboard=await page.evaluate(()=>({root:document.querySelector('.profile-editor-v13').getBoundingClientRect().height,preview:getComputedStyle(document.querySelector('.profile-editor-v31__live-preview')).display,bar:document.querySelector('.profile-editor-v18__savebar').getBoundingClientRect().bottom,nav:document.querySelector('nav').getBoundingClientRect().top}));
- assert.equal(keyboard.root,400,'legacy min-height must not override visualViewport');assert.equal(keyboard.preview,'none','keyboard leaves room for editing');assert(keyboard.bar<=keyboard.nav+1,'keyboard save controls overlap navigation');
- await page.evaluate(()=>{document.documentElement.removeAttribute('data-profile-editor-keyboard');document.documentElement.style.removeProperty('--ab-editor-viewport-height');document.documentElement.style.removeProperty('--ab-editor-keyboard-inset');});
- // A long save failure must stay visible in the fixed dock and reserve its new height.
- await page.setViewportSize({width:360,height:900});await page.setContent(fixture('profile'));
- await page.addScriptTag({content:`(()=>{const exports={};${dockSource};window.stopDock=exports.observeProfileEditorDock(document.querySelector('.profile-editor-v18__savebar'));})()`});
- await page.evaluate(()=>{document.querySelector('.profile-editor-v18__savebar-copy').innerHTML='<strong>Правки видны в превью</strong><small class="profile-editor-v31__error" role="alert">Не удалось сохранить профиль. Проверь соединение и повтори попытку. Черновик остаётся на устройстве.</small>';});
- await page.waitForTimeout(60);
- const saveError=await page.locator('.profile-editor-v18__savebar-copy .profile-editor-v31__error').boundingBox();assert(saveError&&saveError.height>0,'save error is hidden by an old small-text rule');
- await page.evaluate(()=>{const root=document.querySelector('.profile-editor-v13');root.scrollTop=root.scrollHeight;});
- const finalControl=await page.locator('.lastControl').boundingBox(),errorDock=await page.locator('.profile-editor-v18__savebar').boundingBox();assert(finalControl.y+finalControl.height<=errorDock.y+1,'resized error dock hides the last setting');
- await page.evaluate(()=>window.stopDock());
+ await page.setViewportSize({width:390,height:900});await page.setContent(fixture(true,true));
+ await page.evaluate(()=>document.documentElement.style.setProperty('--ab-editor-viewport-height','400px'));
+ const keyboard=await page.locator('.profile-editor-v13').evaluate(n=>n.getBoundingClientRect().height);
+ assert.equal(keyboard,400,'editor must track visualViewport keyboard height');
+ await page.evaluate(()=>document.documentElement.style.removeProperty('--ab-editor-viewport-height'));
  // Real browser IndexedDB: staged files survive a reload and accounts stay separate.
  await page.route('http://editor-fixture.test/**',route=>route.fulfill({contentType:'text/html',body:'<html></html>'}));
  await page.goto('http://editor-fixture.test/');
@@ -88,5 +103,5 @@ function fixture(tab){return `<style>${css}</style><style>body{margin:0}.lastCon
   Date.now=now;await a.profileDraftStorage('account-A','delete');
   if(await a.profileDraftStorage('account-A','read')!==null)throw Error('deleted draft still present');
  });
- console.log(`PASS ${count} editor layout cases: both themes, 320–1920px, sticky/right preview, 44px menu, HEX containment, single scroll root, last control above dock; IndexedDB file recovery, account isolation and expiry.`);
+ console.log(`PASS ${count} editor layout cases: both themes, 320–1920px, compact modal, sidebar tiles, popup bounds, dirty-only savebar and mobile keyboard height; IndexedDB file recovery, account isolation and expiry.`);
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1);});

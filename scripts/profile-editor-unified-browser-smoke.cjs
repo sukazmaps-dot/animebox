@@ -10,58 +10,127 @@ const root=process.cwd();
  let css=[...fs.readFileSync('app/layout.tsx','utf8').matchAll(/import '\.\/([^']+\.css)'/g)].map(m=>fs.readFileSync('app/'+m[1],'utf8').replace(/@import[^;]+;/g,'')).join('\n');
  css+='\n'+[...fs.readFileSync('app/profile/layout.tsx','utf8').matchAll(/import '\.\.\/([^']+\.css)'/g)].map(m=>fs.readFileSync('app/'+m[1],'utf8')).join('\n')+'\n'+bundled.outputFiles.find(f=>f.path.endsWith('.css')).text;
  const js=bundled.outputFiles.find(f=>f.path.endsWith('.js')).text;
- const html='<style>'+css+'</style><div style="width:100%;overflow:hidden"><div id="root" style="transform:translateX(-160px);margin-left:230px;overflow:hidden;width:700px"></div></div><script>'+js.replace(/<\/script/g,'<\\/script')+'</script>';
+ const html='<style>'+css+'</style><div id="root"></div><script>'+js.replace(/<\/script/g,'<\\/script')+'</script>';
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
- try{const page=await browser.newPage();let requests=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.route('http://editor-fixture.test/**',async r=>{
-  if(r.request().url().includes('/api/')){requests++;await new Promise(resolve=>setTimeout(resolve,50));return r.fulfill({json:{selectedFrame:null,unlockedLevelFrames:[],unlockedFrames:[]}});}
-  return r.fulfill({contentType:'text/html',body:html});
+ try {const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ let requests=0;
+ await page.route('http://editor-fixture.test/**',async route=>{
+  if(route.request().url().includes('/api/')){requests++;return route.fulfill({json:{selectedFrame:null,unlockedLevelFrames:[],unlockedFrames:[]}});}
+  return route.fulfill({contentType:'text/html',body:html});
  });
- for(const theme of ['dark','light'])for(const width of [320,390,560,768,900,1180,1440,1920]){
-  requests=0;await page.setViewportSize({width,height:1000});await page.goto('http://editor-fixture.test/');await page.waitForSelector('#profile-editor-banner');await page.evaluate(theme=>document.documentElement.dataset.animeboxTheme=theme,theme);await page.waitForTimeout(150);
-  assert.equal(await page.locator('[data-profile-anchor]').count(),4);assert.equal(requests,1,'one StrictMode frame request');
-  assert.equal(await page.evaluate(()=>document.activeElement.tagName),'BODY','no autofocus');
-  assert.equal(await page.locator('[data-section=style]').isVisible(),false,'secondary destinations start collapsed');
-  assert.equal(await page.getByRole('button',{name:'Лаванда',exact:true}).isVisible(),false,'palette starts collapsed');
-  assert(await page.evaluate(()=>document.querySelector('.profile-editor-v13').scrollWidth<=innerWidth+1),'overflow '+width);
-  assert(await page.locator('[data-profile-anchor] button').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).every(n=>{const r=n.getBoundingClientRect();return r.width>=43.9&&r.height>=43.9;})),'44px card touch targets '+width);
-  if(process.env.PROFILE_EDITOR_SCREENSHOT&&[390,1440].includes(width))await page.screenshot({path:process.env.PROFILE_EDITOR_SCREENSHOT.replace('.png','-'+theme+'-'+width+'.png')});
-  if(width>=900){const below=await page.locator('.profile-editor-v31__expand').evaluate(button=>button.getBoundingClientRect().top>=document.querySelector('[aria-label="Живой предпросмотр профиля"]').getBoundingClientRect().bottom);assert(below,'expand button covers desktop preview '+width);}
-  const viewport=await page.locator('.profile-editor-v13').evaluate(n=>({left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right}));assert.equal(viewport.left,0,'shifted ancestor clips editor');assert.equal(viewport.right,width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'document overflow '+width);
-  if(width>=1180){const boxes=await page.evaluate(()=>['.profile-editor-v31__settings','.profile-editor-v31__live-preview','.profile-editor-v33__board'].map(s=>{const r=document.querySelector(s).getBoundingClientRect();return {left:r.left,right:r.right,width:r.width};}));assert(boxes[0].width<=320&&boxes[1].left>=boxes[0].right&&boxes[2].left>=boxes[1].right,'three-column Discord workspace '+JSON.stringify(boxes));}
-  const cards=await page.locator('[data-profile-anchor]').evaluateAll(nodes=>nodes.filter(n=>n.tagName==='SECTION').map(n=>({width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,overflow:getComputedStyle(n).overflowY})));
-  assert.equal(cards.length,3);assert(cards.every(c=>c.height>100&&c.overflow==='visible'),'stacked cards '+JSON.stringify(cards));
-  for(const anchor of ['avatar','frame','banner','name']){
-   await page.locator('[data-profile-anchor-link='+anchor+']').click();await page.waitForTimeout(700);
-   if(anchor==='frame')assert.equal(await page.locator('#profile-editor-frame').evaluate(n=>n.open),true,'frame anchor opens collection');
-   const g=await page.locator('[data-profile-anchor="'+anchor+'"]').evaluate(el=>({top:el.getBoundingClientRect().top,offset:parseFloat(document.querySelector('.profile-editor-v13').style.getPropertyValue('--profile-editor-anchor-offset'))}));
-   assert(g.top>=g.offset-4&&g.top<1000,'anchor covered '+width+' '+anchor+' '+JSON.stringify(g));
-   assert.equal(await page.locator('[data-profile-anchor-nav] [aria-current]').getAttribute('data-profile-anchor-link'),anchor,'scroll spy '+width);
+ let checks=0, screenshotCount=0;
+ const screenshotSizes={390:844,1024:768,1366:768,1680:900,1920:1080};
+ async function capture(theme,width,tab){
+  if(theme!=='dark'||!process.env.PROFILE_EDITOR_SCREENSHOT_DIR||!Object.hasOwn(screenshotSizes,width))return;
+  const dir=process.env.PROFILE_EDITOR_SCREENSHOT_DIR;fs.mkdirSync(dir,{recursive:true});
+  await page.screenshot({path:path.join(dir,width+'x'+screenshotSizes[width]+'-'+tab+'.png'),fullPage:false});
+  screenshotCount++;
+ }
+ for(const theme of ['dark','light'])for(const width of [320,390,560,768,900,1024,1180,1366,1680,1920]){
+  requests=0;await page.setViewportSize({width,height:screenshotSizes[width]||900});
+  await page.goto('http://editor-fixture.test/');
+  await page.waitForSelector('.profile-editor-v40__stage');
+  await page.evaluate(theme=>document.documentElement.dataset.animeboxTheme=theme,theme);
+  await page.waitForTimeout(70);
+  assert.equal(await page.locator('.profile-editor-v40__tiles button').count(),8,'eight compact sidebar tiles');
+  const initial=await page.evaluate(()=>{
+   const modal=document.querySelector('.profile-editor-v40__shell').getBoundingClientRect();
+   const tiles=[...document.querySelectorAll('.profile-editor-v40__tiles button small')];
+   return {modalTop:modal.top,modalBottom:modal.bottom,viewport:innerHeight,
+    labels:tiles.map(n=>({client:n.clientWidth,scroll:n.scrollWidth}))};
+  });
+  assert(initial.modalTop>=-1&&initial.modalBottom<=initial.viewport+1,'modal stays entirely in viewport '+width);
+  assert(initial.labels.every(v=>v.scroll<=v.client+1),'rail tile labels should ellipsize without overflow '+width);
+  assert.equal(await page.locator('.profile-editor-v40__savebar').count(),0,'clean editor must not show savebar');
+  assert.equal(await page.locator('.profile-editor-v40__popover').isVisible(),false,'no inspector on fresh load');
+  assert.equal(await page.locator('[aria-label="Живой предпросмотр профиля"]').isVisible(),true,'shared live card visible');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'document overflow '+width);
+  if(width>=1280){
+   const geometry=await page.evaluate(()=>{
+    const box=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
+    return {shell:box('.profile-editor-v40__shell'),workbench:box('.profile-editor-v40__workbench'),
+      rail:box('.profile-editor-v40__tiles'),stage:box('.profile-editor-v40__stage'),
+      board:box('.profile-editor-v40__board'),card:box('[aria-label="Живой предпросмотр профиля"]')};
+   });
+   assert(geometry.workbench.width>=geometry.shell.width-4,'workbench must span full modal shell '+width);
+   assert(geometry.rail.width>=68,'rail must be full 72px rather than clipped '+width);
+   assert(geometry.stage.width>=360&&geometry.board.width>=330,'card and 340px board tracks must be nonzero '+width);
+   assert(geometry.rail.right<=geometry.stage.left+2&&geometry.stage.right<=geometry.board.left+2,'four-track modal geometry '+width);
+   assert(geometry.card.width>=250&&geometry.card.left>=geometry.stage.left-1&&geometry.card.right<=geometry.stage.right+1,'real preview visible within its track '+width);
+   assert(geometry.board.right<=geometry.shell.right+2,'board must not be clipped by old 190px shell column '+width);
+   const showcase=await page.evaluate(()=>{
+    const header=document.querySelector('.profile-editor-v40__board header');
+    const h=header.querySelector('h2').getBoundingClientRect(),b=header.querySelector('button').getBoundingClientRect();
+    return {sameRow:Math.abs(h.top-b.top)<20,posters:[...document.querySelectorAll('.profile-editor-v40__board [aria-label="Предпросмотр витрины"] img')].map(n=>n.getBoundingClientRect().width)};
+   });
+   assert(showcase.sameRow,'showcase configure button must be alongside the heading');
+   assert(showcase.posters.length>0&&showcase.posters.every(w=>w>=71),'showcase poster width >=72 px');
+  }else assert.equal(await page.locator('.profile-editor-v40__board').isVisible(),false,'showcase moves to rail below 1280');
+  await page.getByRole('button',{name:'Имя',exact:true}).click();
+  assert(await page.locator('.profile-editor-v40__popover').isVisible(),'name inspector opens '+width);
+  assert.equal(await page.locator('[data-profile-anchor]').count(),1,'focused section only');
+  const nameInput=page.locator('#profile-editor-name input');
+  assert(await nameInput.isVisible());
+  if(width>=1100){
+   const overlap=await page.evaluate(()=>{
+    const a=document.querySelector('.profile-editor-v40__popover').getBoundingClientRect();
+    const b=document.querySelector('[aria-label="Живой предпросмотр профиля"]').getBoundingClientRect();
+    return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+   });
+   assert(!overlap,'inspector and live profile must not overlap at '+width);
+   const actual=await page.evaluate(()=>{
+     const b=s=>document.querySelector(s).getBoundingClientRect();
+     const p=b('.profile-editor-v40__popover'),w=b('.profile-editor-v40__workbench'),t=b('.profile-editor-v40__stage');
+     return {panelLeft:p.left,panelRight:p.right,panelWidth:p.width,workbenchLeft:w.left,workbenchWidth:w.width,stageLeft:t.left};
+   });
+   assert(actual.panelWidth>=296&&actual.panelRight<=actual.stageLeft+2,
+     '300px inspector visible in separate track '+width+' '+JSON.stringify(actual));
   }
-  await page.getByRole('button',{name:'Настроить баннер',exact:true}).click();await page.waitForTimeout(700);assert.equal(await page.locator('[data-profile-anchor-nav] [aria-current]').getAttribute('data-profile-anchor-link'),'banner');
-  if(width===1440){await page.locator('#profile-editor-name input').fill('А'.repeat(24));await page.locator('#profile-editor-name textarea').fill('Длинноеслово'.repeat(30).slice(0,300));assert(await page.evaluate(()=>document.querySelector('.profile-editor-v13').scrollWidth<=innerWidth+1),'long draft overflows workspace');}
-  if(width===390){await page.locator('.profile-editor-v31__expand').click();await page.waitForSelector('dialog[open]');assert(await page.locator('dialog [data-full=true]').count());assert(await page.locator('dialog [aria-label="Предпросмотр витрины"]').count());await page.getByRole('button',{name:'Закрыть',exact:true}).click();await page.waitForSelector('dialog',{state:'detached'});}
-  const draftName=await page.locator('#profile-editor-name input').inputValue();
-  await page.locator('.profile-editor-v34__more > summary').click();
-  await page.locator('.profile-editor-v34__more > summary').press('Escape');
-  assert.equal(await page.locator('[data-section=style]').isVisible(),false,'Escape closes secondary navigation');
-  await page.locator('.profile-editor-v34__more > summary').click();await page.locator('[data-section=style]').click();await page.locator('[data-section=profile]').click();await page.waitForTimeout(100);assert.equal(requests,1,'tab switch remounts frames');
-  assert.equal(await page.locator('#profile-editor-name input').inputValue(),draftName,'navigation retains draft');
+  await nameInput.fill('Персональный профиль');
+  assert.equal(await page.locator('.profile-editor-v40__savebar').count(),1,'savebar appears on edit');
+  const dock=await page.evaluate(()=>{
+   const a=document.querySelector('.profile-editor-v40__savebar').getBoundingClientRect();
+   const b=document.querySelector('.profile-editor-v40__shell').getBoundingClientRect();
+   return {top:a.top,bottom:a.bottom,left:a.left,right:a.right,modalLeft:b.left,modalRight:b.right,modalBottom:b.bottom};
+  });
+  assert(dock.top>=-1&&dock.bottom<=dock.modalBottom+1,'dirty savebar inside shell '+width);
+  assert(dock.left>=dock.modalLeft-1&&dock.right<=dock.modalRight+1,
+    'dirty savebar horizontally inside shell '+width+' '+JSON.stringify(dock));
+  await capture(theme,width,'name');
+  assert((await page.locator('[aria-label="Живой предпросмотр профиля"]').innerText()).includes('Персональный профиль'),'live card updates');
+  await page.getByRole('button',{name:'Баннер',exact:true}).click();
+  assert.equal(await page.locator('[data-profile-anchor]').count(),1,'name inspector no longer rendered');
+  assert(await page.locator('#profile-editor-banner').isVisible(),'banner inspector opens');
   await page.getByText('Палитра и эффекты',{exact:true}).click();
-  assert.equal(await page.locator('[aria-label="Цвета баннера"] button').count(),12,'all presets remain available');
+  assert.equal(await page.locator('[aria-label="Цвета баннера"] button').count(),12,'12 banner presets');
   await page.getByRole('button',{name:'Сакура',exact:true}).click();
-  assert(await page.getByRole('button',{name:/Свой цвет/}).innerText().then(t=>t.includes('#DB91AE')),'preset updates current color');
-  console.log('PASS actual cards/anchors/preview/StrictMode/one fetch '+theme+' '+width);
+  assert((await page.getByRole('button',{name:/Свой цвет/}).innerText()).includes('#DB91AE'),'color preview and draft update');
+  await capture(theme,width,'banner');
+  await page.getByRole('button',{name:'Рамка',exact:true}).click();
+  assert(await page.locator('#profile-editor-frame').isVisible(),'frame section opens');
+  assert.equal(await page.locator('#profile-editor-frame').evaluate(n=>n.open),true,'frame inventory expanded');
+  await page.getByRole('button',{name:'Тема',exact:true}).click();
+  await capture(theme,width,'theme');
+  await page.getByRole('button',{name:'Витрина',exact:true}).click();
+  await capture(theme,width,'showcase');
+  await page.getByRole('button',{name:'Имя',exact:true}).click();
+  assert.equal(await page.locator('#profile-editor-name input').inputValue(),'Персональный профиль','tile switches retain draft');
+  if(width<1100)await page.getByRole('button',{name:'Закрыть настройки'}).click();
+  else await page.getByRole('button',{name:'Имя',exact:true}).click();
+  assert.equal(await page.locator('.profile-editor-v40__popover').isVisible(),false,'popover closes without resetting draft');
+  await page.locator('[data-editor-save]').click();
+  assert.equal(await page.locator('.profile-editor-v40__savebar').count(),0,'savebar disappears after successful save');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow after edits');
+  assert(requests>=1 && requests<=2,'no runaway frames requests '+requests);
+  checks++;
  }
- await page.setViewportSize({width:900,height:450});await page.goto('http://editor-fixture.test/');await page.waitForTimeout(150);
- assert.equal(await page.locator('.profile-editor-v31__live-preview').evaluate(n=>getComputedStyle(n).position),'static','short viewport traps tall sticky preview');
- await page.getByText('Палитра и эффекты',{exact:true}).click();await page.locator('#profile-editor-banner button').last().scrollIntoViewIfNeeded();
- const last=await page.locator('#profile-editor-banner button').last().boundingBox(),dock=await page.locator('.profile-editor-v18__savebar').boundingBox();assert(last.y+last.height<=dock.y+1,'short viewport dock hides final control');
  for(const anchor of ['avatar','banner','frame']){
-  await page.emulateMedia({reducedMotion:'reduce'});await page.goto('http://editor-fixture.test/?tab='+anchor);await page.waitForTimeout(180);
-  assert.equal(await page.locator('[data-profile-anchor-nav] [aria-current]').getAttribute('data-profile-anchor-link'),anchor,'legacy deep link '+anchor);
+  await page.setViewportSize({width:390,height:700});
+  await page.goto('http://editor-fixture.test/?tab='+anchor);
+  await page.waitForSelector('.profile-editor-v40__popover:not([hidden])');
+  assert(await page.locator('#profile-editor-'+anchor).isVisible(),'legacy URL deep-link '+anchor);
  }
- assert.deepEqual(errors,[]);
- console.log('PASS legacy aliases and reduced motion, no runtime errors');
+ assert.deepEqual(errors,[],'React browser errors');
+ console.log('PASS '+checks+' actual React modal editor layouts: inspector isolation, bounded modal and savebar, inline profile, tiles, banner presets, frame, draft/save and old URL links; '+screenshotCount+' fixture screenshots.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -17,3 +17,15 @@
 @media(max-width:620px){.status{grid-template-columns:72px minmax(0,1fr);gap:12px}.frame{width:72px;height:72px}.metrics{grid-column:1/-1;grid-template-columns:repeat(3,1fr);min-width:0;text-align:center}.metrics b{justify-self:center}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.grid{grid-template-columns:1fr}.card{grid-template-columns:66px minmax(0,1fr);justify-items:start;text-align:left}.cardFrame{grid-row:1/4;width:60px;height:60px}.card strong,.card small,.card em{grid-column:2}}
 @media(prefers-reduced-motion:reduce){.frame[data-premium='true']{filter:none}}
+
+/* Progression milestones in the 300px profile modal inspector: viewport
+   media queries cannot detect this narrow embedded surface. */
+@container profile-modal-inspector (max-width:340px) {
+ .status {grid-template-columns:72px minmax(0,1fr);gap:10px;padding:12px;}
+ .frame {width:72px;height:72px;}
+ .metrics {grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));min-width:0;text-align:center;}
+ .metrics b {justify-self:center;}
+ .grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+ .card {padding:10px 6px;}
+ .cardFrame {width:66px;height:66px;}
+}

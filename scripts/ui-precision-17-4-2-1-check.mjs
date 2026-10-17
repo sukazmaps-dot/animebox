@@ -59,11 +59,11 @@ if (
 }
 
 if (
-  !editor.includes('data-visible="true"') ||
+  !editor.includes('{dirty && <div ref={savebarRef}') ||
   !editor.includes('✓ Сохранено') ||
-  !editor.includes('disabled={(!dirty && !needsPremiumCTA)')
+  !editor.includes('data-editor-save disabled={editorBusy}')
 ) {
-  failures.push('clean profile editor state must have a visible, inactive Save action and clear status');
+  failures.push('clean profile editor must hide Save entirely and show saved status; dirty Save remains busy-locked');
 }
 
 if (

@@ -1,49 +1,86 @@
 'use client';
 import avatarImage from '@/public/ui/animebox-mascot.webp';
 import bannerImage from '@/public/backgrounds/hero-fallback.webp';
-import { StrictMode, useEffect, useState } from 'react';
-import Navigation from '@/components/profile/ProfileEditorNavigation';
+import { StrictMode, useEffect, useRef, useState } from 'react';
 import Surface from '@/components/profile/ProfileDirectEditSurface';
 import Viewport from '@/components/profile/ProfileEditorViewport';
 import Board from '@/components/profile/ProfileEditorShowcasePreview';
-import ProfileMediaModal from '@/components/profile/ProfileMediaModal';
 import Preview, { type ProfileEditorSection } from '@/components/profile/ProfileEditorLivePreview';
-import { useProfileEditorAnchors } from '@/hooks/useProfileEditorAnchors';
-import { profileEditorAnchor } from '@/lib/profile-editor-navigation';
 import { observeProfileEditorDock } from '@/lib/profile-editor-dock';
+import modalStyles from '@/components/profile/ProfileEditorModal.module.css';
+import { TextAa as Type, UserCircle as CircleUserRound, Image as ImageIcon, FrameCorners as Frame, Palette, SquaresFour as LayoutGrid, Trophy, Link as Link2 } from '@phosphor-icons/react';
 
-const image=avatarImage;
+type Tile = ProfileEditorSection | 'showcase' | 'rewards' | 'account';
+const boardData = {
+ layout:[{key:'favorites' as const,position:0,visible:true},{key:'watching' as const,position:1,visible:true}],
+ favorites:Array.from({length:6},(_,i)=>({animeId:i,title:['Евангелион','Фрирен','Ван-Пис'][i%3],slug:null,posterUrl:bannerImage,genres:[],totalEpisodes:12,position:i})),
+ watching:[],ratings:[],genres:[],activity:[],ratingSummary:{count:0,average:null}
+};
 function Harness(){
- const [previewOpen,setPreviewOpen]=useState(false);
- const [tab,setTab]=useState<'profile'|'style'|'showcase'|'rewards'>('profile');
+ const query=new URLSearchParams(window.location.search).get('tab');
+ const initial: Tile = query==='avatar'||query==='banner'||query==='frame'||query==='style'||query==='showcase'||query==='rewards' ? query : 'profile';
+ const [tab,setTab]=useState<Tile>(initial);
+ const [panelOpen,setPanelOpen]=useState(initial!=='profile');
+ const [previewCollapsed,setPreviewCollapsed]=useState(false);
  const [name,setName]=useState('Имя пользователя');
  const [bio,setBio]=useState('Описание профиля');
  const [color,setColor]=useState('#70618c');
  const [frame,setFrame]=useState<string|null>(null);
- const initial=typeof window==='undefined'?'name':profileEditorAnchor(new URLSearchParams(window.location.search).get('tab'));
- const {activeAnchor,navigateToAnchor}=useProfileEditorAnchors(tab==='profile',initial);
- useEffect(()=>observeProfileEditorDock(document.querySelector<HTMLElement>('.profile-editor-v18__savebar')),[]);
- function navigate(section:ProfileEditorSection){setTab('profile');navigateToAnchor(profileEditorAnchor(section));}
- return <main className="profile-editor-v13" data-editor-tab={tab}><section className="profile-editor-v13__shell">
-  <header className="profile-editor-v13__header"><div className="profile-editor-v31__header-title"><button type="button" aria-label="Закрыть редактор">×</button><h1>Редактор профиля</h1></div><span className="profile-editor-v31__status">Не сохранено</span></header>
-  <div className="profile-editor-v31__live-preview"><button type="button" className="profile-editor-v31__expand" onClick={()=>setPreviewOpen(true)}>Развернуть превью</button><Preview full createdAt="2021-02-19T00:00:00Z" username={name} bio={bio} avatarUrl={image} bannerUrl={bannerImage} bannerColor={color} bannerStyle="soft" premiumActive={false} frameKey={frame} onNavigate={navigate}/></div>
-  <aside className="profile-editor-v33__board" hidden={tab!=='profile'}><Board data={{layout:[{key:'favorites',position:0,visible:true},{key:'watching',position:1,visible:true}],favorites:Array.from({length:6},(_,i)=>({animeId:i,title:['Евангелион','Фрирен','Ван-Пис'][i%3],slug:null,posterUrl:bannerImage,genres:[],totalEpisodes:12,position:i})),watching:[],ratings:[],genres:[],activity:[],ratingSummary:{count:0,average:null}}} loading={false} error="" onConfigure={()=>setTab('showcase')} onRetry={()=>{}}/></aside>
-  <Navigation activeTab={tab} onNavigate={setTab}/>
-  <fieldset className="profile-editor-v31__settings">
-   <div className="profile-editor-v19__direct-tab" hidden={tab!=='profile'}>
-    <nav className="profile-editor-v32__anchors" data-profile-anchor-nav aria-label="Настройки профиля">
-     {(['name','avatar','banner','frame'] as const).map(value=><button key={value} data-profile-anchor-link={value} aria-current={activeAnchor===value?'location':undefined} onClick={()=>navigateToAnchor(value)}>{{name:'Имя',avatar:'Аватар',banner:'Баннер',frame:'Рамка'}[value]}</button>)}
-    </nav>
-    <Surface showPreview={false} section="profile" username={name} bio={bio} avatarUrl={image} baseAvatarUrl={image} bannerUrl={null} baseBannerUrl={null} bannerColor={color} bannerColorMode="manual" premiumActive={false}
-     avatarPremiumOverride={false} bannerPremiumOverride={false} avatarBusy={false} bannerBusy={false} canRemoveAvatar={false} canRemoveBanner={false}
-     selectedFrameDraft={frame} onFrameChange={setFrame} onSectionChange={navigate} onUsernameChange={setName} onBioChange={setBio} onBannerColorChange={setColor}
-     onAvatarFile={()=>{}} onBannerFile={()=>{}} onRemoveAvatar={()=>{}} onRemoveBanner={()=>{}} onUseBaseAvatar={()=>{}} onUseBaseBanner={()=>{}} onOpenPremium={()=>setTab('style')}/>
-   </div>
-   {tab!=='profile'&&<p>Другой раздел</p>}
-  </fieldset>
-  <div className="profile-editor-v13__mobile-save profile-editor-v18__savebar" data-visible="true"><span className="profile-editor-v18__savebar-copy"><strong>Не сохранено</strong></span><button>Сбросить</button><button data-editor-save>Сохранить</button></div>
+ const [savedName,setSavedName]=useState(name);
+ const [savedBio,setSavedBio]=useState(bio);
+ const [savedColor,setSavedColor]=useState(color);
+ const [savedFrame,setSavedFrame]=useState(frame);
+ const savebarRef=useRef<HTMLDivElement|null>(null);
+ const dirty=name!==savedName||bio!==savedBio||color!==savedColor||frame!==savedFrame;
+ useEffect(()=>{if(!savebarRef.current)return;return observeProfileEditorDock(savebarRef.current)},[dirty]);
+ function choose(next:Tile){if(tab===next&&panelOpen){setPanelOpen(false);return;}setTab(next);setPanelOpen(true);}
+ function navigate(section:ProfileEditorSection){choose(section);}
+ useEffect(()=>{
+  const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape'&&panelOpen)setPanelOpen(false);};
+  window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);
+ },[panelOpen]);
+ return <main className={`profile-editor-v13 ${modalStyles.modal}`} data-editor-tab={tab} data-editor-layout="modal">
+ <section className="profile-editor-v13__shell profile-editor-v40__shell" role="dialog" aria-modal="true" aria-label="Редактор профиля">
+ <header className="profile-editor-v13__header profile-editor-v40__header">
+ <div className="profile-editor-v31__header-title"><button type="button" aria-label="Закрыть редактор">×</button><h1>Редактор профиля</h1></div>
+ <span className="profile-editor-v31__status">{dirty?'● Не сохранено':'✓ Сохранено'}</span></header>
+ <div className="profile-editor-v40__workbench" data-panel-open={panelOpen}>
+ <nav className="profile-editor-v40__tiles" aria-label="Настройки профиля">
+ {([['profile','Имя',Type],['avatar','Аватар',CircleUserRound],['banner','Баннер',ImageIcon],['frame','Рамка',Frame],['style','Тема',Palette],['showcase','Витрина',LayoutGrid],['rewards','Награды',Trophy],['account','Аккаунт',Link2]] as const)
+ .map(([section,label,Icon])=><button type="button" aria-label={label} key={section} data-selected={tab===section&&panelOpen} onClick={()=>choose(section)}>
+ <Icon aria-hidden="true" size={20}/><small>{label}</small></button>)}
+ </nav>
+ <section className="profile-editor-v40__stage" data-preview-collapsed={previewCollapsed}>
+ <div className="profile-editor-v40__stage-header"><span>ТВОЙ ПРОФИЛЬ</span><button type="button" className="profile-editor-v40__collapse" onClick={()=>setPreviewCollapsed(v=>!v)}>Свернуть</button></div>
+ <Preview full createdAt="2021-02-19T00:00:00Z" username={name} bio={bio} avatarUrl={avatarImage}
+ bannerUrl={bannerImage} bannerColor={color} bannerStyle="soft" premiumActive={false} frameKey={frame}
+ onNavigate={navigate} onUsernameChange={setName} onBioChange={setBio}/>
+ 
  </section>
- {previewOpen&&<ProfileMediaModal busy={false} onClose={()=>setPreviewOpen(false)} labelledBy="qa-preview-title"><section className="profile-editor-v31__preview-dialog"><header><h2 id="qa-preview-title">Предпросмотр профиля</h2><button onClick={()=>setPreviewOpen(false)}>Закрыть</button></header><Preview expanded username={name} bio={bio} avatarUrl={image} bannerUrl={bannerImage} bannerColor={color} bannerStyle="soft" premiumActive={false} onNavigate={navigate}/><Board data={null} loading={false} error="" onConfigure={()=>{setPreviewOpen(false);setTab('showcase');}} onRetry={()=>{}}/></section></ProfileMediaModal>}
- </main>;
+ <aside className="profile-editor-v40__board">
+ <Board data={boardData} loading={false} error="" onConfigure={()=>choose('showcase')} onRetry={()=>{}}/></aside>
+ <aside className="profile-editor-v40__popover" hidden={!panelOpen} aria-label="Настройки выбранного элемента">
+ <header><h2>{tab}</h2><button type="button" aria-label="Закрыть настройки" onClick={()=>setPanelOpen(false)}>×</button></header>
+ <fieldset className="profile-editor-v31__settings profile-editor-v40__panel-content">
+ <div className="profile-editor-v19__direct-tab" hidden={tab==='showcase'||tab==='rewards'||tab==='style'}>
+ <Surface showPreview={false} compact section={tab==='showcase'||tab==='rewards'||tab==='account'?'profile':tab==='style'?'profile':tab}
+ username={name} bio={bio} avatarUrl={avatarImage} baseAvatarUrl={avatarImage} bannerUrl={null} baseBannerUrl={null}
+ bannerColor={color} bannerColorMode="manual" premiumActive={false} avatarPremiumOverride={false} bannerPremiumOverride={false}
+ avatarBusy={false} bannerBusy={false} canRemoveAvatar={false} canRemoveBanner={false} selectedFrameDraft={frame}
+ onFrameChange={setFrame} onFrameLoaded={setFrame} onSectionChange={navigate} onUsernameChange={setName} onBioChange={setBio}
+ onBannerColorChange={next=>setColor(next)} onAvatarFile={()=>{}} onBannerFile={()=>{}} onRemoveAvatar={()=>{}}
+ onRemoveBanner={()=>{}} onUseBaseAvatar={()=>{}} onUseBaseBanner={()=>{}} onOpenPremium={()=>choose('style')}/>
+ </div>
+ {tab==='style'&&<p>Дополнительные настройки Premium</p>}
+ {tab==='showcase'&&<p>Настройка витрины</p>}
+ {tab==='rewards'&&<p>Награды</p>}
+ </fieldset></aside>
+ </div>
+ {dirty&&<div ref={savebarRef} className="profile-editor-v13__mobile-save profile-editor-v18__savebar profile-editor-v40__savebar" data-visible="true">
+ <span className="profile-editor-v18__savebar-copy"><strong>Несохранённые изменения</strong></span>
+ <button type="button" onClick={()=>{setName(savedName);setBio(savedBio);setColor(savedColor);setFrame(savedFrame);}}>Сбросить</button>
+ <button type="button" data-editor-save onClick={()=>{setSavedName(name);setSavedBio(bio);setSavedColor(color);setSavedFrame(frame);}}>Сохранить</button>
+ </div>}
+ </section></main>;
 }
 export default function Fixture(){return <StrictMode><Viewport><Harness/></Viewport></StrictMode>;}
