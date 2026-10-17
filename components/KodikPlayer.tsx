@@ -395,6 +395,11 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     }
 
     function forceRouteEpisode() {
+      // A delayed/stale current_episode message can arrive during or after
+      // an opening skip. Sending change_episode at that point restarts the
+      // video from the beginning even though the viewer never changed routes.
+      // Only repair mismatched episode metadata before meaningful playback.
+      if ((currentPositionRef.current ?? 0) > 5) return;
       if (
         !iframeRef.current?.contentWindow ||
         typeof episodeNumber !== 'number' ||
