@@ -906,20 +906,6 @@
     gap: 6px !important;
     padding: 6px !important;
   }
-  .episode-quick-nav__previous span:last-child {
-    font-size: 0;
-  }
-  .episode-quick-nav__previous span:last-child::after {
-    content: 'Пред.';
-    font-size: 10px;
-  }
-  .episode-quick-nav__next span:first-child {
-    font-size: 0;
-  }
-  .episode-quick-nav__next span:first-child::after {
-    content: 'След.';
-    font-size: 10px;
-  }
 }
 
 /* Patch 18.7 — Episode navigation polish
@@ -1177,20 +1163,6 @@
     padding-inline: 6px !important;
   }
 
-  .episode-quick-nav__previous span:last-child,
-  .episode-quick-nav__next span:first-child {
-    font-size: 0 !important;
-  }
-
-  .episode-quick-nav__previous span:last-child::after {
-    content: 'Пред.';
-    font-size: 9px;
-  }
-
-  .episode-quick-nav__next span:first-child::after {
-    content: 'След.';
-    font-size: 9px;
-  }
 }
 
 /* Narrow phones: keep the central selector dominant while retaining 44px+
@@ -1216,10 +1188,6 @@
     grid-template-columns: 52px minmax(0, 1fr) 74px !important;
   }
 
-  .episode-quick-nav__previous span:last-child::after,
-  .episode-quick-nav__next span:first-child::after {
-    font-size: 8.5px;
-  }
 }
 
 /* Patch 18.7c — Desktop episode navigation scale polish */
