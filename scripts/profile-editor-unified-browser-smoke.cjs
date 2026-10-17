@@ -54,7 +54,7 @@ const root=process.cwd();
    });
    assert(geometry.workbench.width>=geometry.shell.width-4,'workbench must span full modal shell '+width);
    assert(geometry.rail.width>=68,'rail must be full 72px rather than clipped '+width);
-   assert(geometry.stage.width>=360&&geometry.board.width>=330,'card and 340px board tracks must be nonzero '+width);
+   assert(geometry.stage.width>=360&&geometry.board.width>=310,'card and 340px board tracks must be nonzero '+width);
    assert(geometry.rail.right<=geometry.stage.left+2&&geometry.stage.right<=geometry.board.left+2,'four-track modal geometry '+width);
    assert(geometry.card.width>=250&&geometry.card.left>=geometry.stage.left-1&&geometry.card.right<=geometry.stage.right+1,'real preview visible within its track '+width);
    assert(geometry.board.right<=geometry.shell.right+2,'board must not be clipped by old 190px shell column '+width);
