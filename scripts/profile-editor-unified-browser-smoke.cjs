@@ -91,9 +91,11 @@ const root=process.cwd();
   const dock=await page.evaluate(()=>{
    const a=document.querySelector('.profile-editor-v40__savebar').getBoundingClientRect();
    const b=document.querySelector('.profile-editor-v40__shell').getBoundingClientRect();
-   return {top:a.top,bottom:a.bottom,modalBottom:b.bottom};
+   return {top:a.top,bottom:a.bottom,left:a.left,right:a.right,modalLeft:b.left,modalRight:b.right,modalBottom:b.bottom};
   });
   assert(dock.top>=-1&&dock.bottom<=dock.modalBottom+1,'dirty savebar inside shell '+width);
+  assert(dock.left>=dock.modalLeft-1&&dock.right<=dock.modalRight+1,
+    'dirty savebar horizontally inside shell '+width+' '+JSON.stringify(dock));
   await capture(theme,width,'name');
   assert((await page.locator('[aria-label="Живой предпросмотр профиля"]').innerText()).includes('Персональный профиль'),'live card updates');
   await page.getByRole('button',{name:'Баннер',exact:true}).click();
