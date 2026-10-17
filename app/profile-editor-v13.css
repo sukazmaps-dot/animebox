@@ -1282,3 +1282,7 @@
 }
 
 /* Modal geometry moved to components/profile/ProfileEditorModal.module.css (31.14). */
+
+/* Route-wide document locking is intentionally global; modal geometry is scoped. */
+html.ab-profile-editor-open, html.ab-profile-editor-open body {overflow:hidden;}
+html.ab-profile-editor-open .mobile-nav,html.ab-profile-editor-open .topbar,html.ab-profile-editor-open .sidebar {display:none;}
