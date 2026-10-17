@@ -95,8 +95,6 @@ export default function ProfileDirectEditSurface({
   bio,
   avatarUrl,
   bannerUrl,
-  baseAvatarUrl,
-  baseBannerUrl,
   bannerColor = '#70618c',
   bannerColorMode = 'auto',
   bannerStyle = 'soft',
@@ -431,7 +429,7 @@ export default function ProfileDirectEditSurface({
                 onChange={(event) => onUsernameChange(event.target.value)}
               />
             </label>
-            <p className={styles.help}>Имя видно в профиле, комментариях и превью.</p>
+
           </div>
 
         <div className={styles.inspectorSection}>
@@ -444,7 +442,7 @@ export default function ProfileDirectEditSurface({
                 onChange={(event) => onBioChange(event.target.value)}
               />
             </label>
-            <p className={styles.help}>До 300 символов. Изменения сразу видны в превью.</p>
+
           </div>
 
       </section>
@@ -459,7 +457,7 @@ export default function ProfileDirectEditSurface({
                   data-milestone={isLevelFrameKey(selectedFrame) ? 'true' : 'false'}
                 >
                   <img
-                    src={baseAvatarUrl}
+                    src={avatarUrl}
                     alt=""
                     style={
                       selectedMilestoneScale
@@ -477,7 +475,7 @@ export default function ProfileDirectEditSurface({
                 </span>
                 <div>
                   <strong>Аватар</strong>
-                  <small>Нажми, чтобы заменить или настроить кадр.</small>
+                  <small>Фото и кадрирование</small>
                 </div>
               </div>
 
@@ -572,7 +570,7 @@ export default function ProfileDirectEditSurface({
                       >
                         <span className={styles.frameThumb} data-kind={frame.kind}>
                           <img
-                            src={baseAvatarUrl}
+                            src={avatarUrl}
                             alt=""
                             style={
                               milestoneScale
@@ -661,7 +659,21 @@ export default function ProfileDirectEditSurface({
 
             {bannerEditorMode === 'color' ? (
               <div role="tabpanel" className={styles.bannerPalette}>
-                <p className={styles.help}>Выбери оттенок — изменения сразу видны в превью.</p>
+
+                <div className={styles.colorActionRow}>
+                  <button type="button" className={styles.colorOpen} onClick={()=>setSheetStart({color:bannerColor,mode:bannerColorMode})}>
+                    <span className={styles.colorOpenSwatch} style={{background:bannerColor}} />
+                    <span>Свой цвет · {bannerColor.toUpperCase()}</span>
+                    <span aria-hidden="true">✎</span>
+                  </button>
+                  <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
+                  <button type="button" onClick={()=>{
+                    onBannerStyleChange?.('soft');
+                    void onBannerColorChange?.('#70618c','manual');
+                  }}>↺ Сброс</button>
+                </div>
+                <details className={styles.paletteDetails}>
+                  <summary>Палитра и эффекты</summary>
                 <div className={styles.bannerPresetGrid} aria-label="Цвета баннера">
                   {BANNER_COLOR_PRESETS.map(preset => {
                     const locked=Boolean(preset.premium && !premiumActive);
@@ -695,18 +707,7 @@ export default function ProfileDirectEditSurface({
                     </button>;
                   })}
                 </div>
-                <div className={styles.colorActionRow}>
-                  <button type="button" className={styles.colorOpen} onClick={()=>setSheetStart({color:bannerColor,mode:bannerColorMode})}>
-                    <span className={styles.colorOpenSwatch} style={{background:bannerColor}} />
-                    <span>Свой цвет · {bannerColor.toUpperCase()}</span>
-                    <span aria-hidden="true">✎</span>
-                  </button>
-                  <button type="button" onClick={()=>void onBannerColorChange?.(bannerColor,'auto')}>Из аватара</button>
-                  <button type="button" onClick={()=>{
-                    onBannerStyleChange?.('soft');
-                    void onBannerColorChange?.('#70618c','manual');
-                  }}>↺ Сброс</button>
-                </div>
+                </details>
                 {sheetStart && <BannerColorSheet
                   color={sheetStart.color}
                   onPreview={color=>void onBannerColorChange?.(color,'manual')}
@@ -716,15 +717,15 @@ export default function ProfileDirectEditSurface({
                   }}
                   onAccept={()=>setSheetStart(null)}
                 />}
-                <p className={styles.help}>10 цветов доступны бесплатно. Дополнительные эффекты — Premium.</p>
+
 
               </div>
             ) : (
               <div role="tabpanel">
                 <button type="button" className={styles.bannerDropzone} disabled={bannerBusy}
                   onClick={() => premiumActive ? openMediaPicker('banner') : onOpenPremium()}>
-                  {baseBannerUrl ? <img src={baseBannerUrl} alt="Текущий баннер" /> : <Icon name="image" size={26} />}
-                  <span>{premiumActive ? (baseBannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320') : 'Картинка баннера · Premium'}</span>
+                  {bannerUrl ? <img src={bannerUrl} alt="Текущий баннер" /> : <Icon name="image" size={26} />}
+                  <span>{premiumActive ? (bannerUrl ? 'Заменить изображение' : 'Загрузить баннер · 960×320') : 'Картинка баннера · Premium'}</span>
                 </button>
                 <div className={styles.actionRow}>
                   <button type="button" className={styles.primaryAction} aria-busy={bannerBusy}

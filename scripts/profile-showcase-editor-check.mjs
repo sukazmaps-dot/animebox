@@ -8,6 +8,7 @@ const failures = [];
 const editor = read('components/profile/ProfileWidgetEditor.tsx');
 const perf = read('app/patch16-6-1-mobile-performance.css');
 const editorShell = read('components/profile/ProfileEditorClient.tsx');
+const editorNavigation = read('components/profile/ProfileEditorNavigation.tsx');
 const editPage = read('app/profile/edit/page.tsx');
 const profilePage = read('app/profile/page.tsx');
 const miniProfileCss = read('components/profile/ProfilePreview.module.css');
@@ -30,9 +31,9 @@ for (const [label, needle] of [
 }
 
 for (const [label, source, needle] of [
-  ['Profile Studio profile tab', editorShell, "['profile','Профиль','user']"],
+  ['Profile Studio profile destination', editorNavigation, 'data-section="profile"'],
   ['Profile Studio direct edit surface', editorShell, '<ProfileDirectEditSurface'],
-  ['Profile Studio rewards tab', editorShell, "['rewards','Награды','trophy']"],
+  ['Profile Studio rewards destination', editorNavigation, "['rewards', 'Награды']"],
   ['legacy appearance URL alias remains supported', editPage, "params.tab === 'appearance' || params.tab === 'media'"],
   ['direct edit frame inventory', directEditor, 'КОЛЛЕКЦИЯ РАМОК'],
   ['direct edit avatar control', directEditor, 'Изменить аватар'],
