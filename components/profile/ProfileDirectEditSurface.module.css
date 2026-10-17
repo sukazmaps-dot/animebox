@@ -1276,3 +1276,47 @@
 .cardStack [data-profile-anchor] { scroll-margin-top:var(--profile-editor-anchor-offset,120px); }
 .cardStack .inventorySection { scroll-margin-top:var(--profile-editor-anchor-offset,120px); }
 @media (prefers-reduced-motion:reduce) { .cardStack { scroll-behavior:auto; } }
+
+/* 31.9: compact inspector groups. Geometry belongs to the control container. */
+.cardStack { gap:0; container-type:inline-size; container-name:editor-controls; }
+.cardStack > .inspector { padding:20px 0; border:0; border-bottom:1px solid var(--ab-ui-border); border-radius:0; background:none; box-shadow:none; }
+.cardStack .inspectorHead { margin-bottom:16px; }
+.cardStack .inspectorHead h3 { font-size:16px; letter-spacing:0; line-height:1.35; }
+.cardStack .field > span { font-size:13px; }
+.cardStack .field small { font-size:12px; color:var(--ab-ui-muted); }
+.cardStack .field input,.cardStack .field textarea { font-size:14px; border-radius:8px; background:var(--ab-ui-canvas); border-color:var(--ab-ui-border); }
+.cardStack .field textarea { min-height:100px; }
+.cardStack .help { font-size:12px; line-height:1.5; color:var(--ab-ui-muted); }
+.cardStack .inspectorSection { gap:10px; }
+.cardStack .inspectorSection + .inspectorSection { margin-top:16px; }
+.cardStack :is(.primaryAction,.dangerAction,.premiumLink,.overrideCard button,.premiumFrameCard button,.filters button,.bannerModes button) { font-size:12px; }
+.cardStack .avatarControl { gap:12px; }
+.cardStack .avatarControl strong { font-size:14px; }
+.cardStack .avatarControl small { font-size:12px; line-height:1.4; }
+.cardStack .avatarControlPreview { width:64px; height:64px; flex:0 0 64px; }
+.cardStack .overrideCard { grid-template-columns:auto minmax(0,1fr); padding:12px; }
+.cardStack .overrideCard button { grid-column:1/-1; }
+.cardStack .overrideCard :is(strong,p) { font-size:12px; line-height:1.5; }
+.cardStack .bannerPresetGrid { max-width:304px; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
+.cardStack .bannerModes { gap:8px; }
+.cardStack .colorActionRow button { font-size:12px; }
+.collectionToggle { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; min-height:64px; padding:12px; border:1px solid var(--ab-ui-border); border-radius:8px; cursor:pointer; font-size:14px; background:var(--ab-ui-raised); }
+.collectionToggle > span:last-child { color:var(--ab-ui-muted); font-size:12px; }
+.collectionToggle:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:2px; }
+.collectionBody { display:grid; gap:16px; padding-top:16px; }
+.cardStack .frameGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.cardStack .frameItem { min-width:0; }
+.cardStack .frameItem :is(strong,small) { font-size:12px; overflow-wrap:anywhere; }
+.cardStack .frameRule p { font-size:12px; line-height:1.5; }
+@container editor-controls (max-width:360px) {
+  .cardStack .bannerPresetGrid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .cardStack .fillModeRail { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; }
+  .cardStack .colorActionRow { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .cardStack .colorActionRow .colorOpen { grid-column:1/-1; }
+  .cardStack .actionRow { grid-template-columns:minmax(0,1fr); }
+  .cardStack .frameGrid { grid-template-columns:minmax(0,1fr); }
+}
+
+.cardStack :is(.inventoryHead span,.lockedFrames > span,.frameError,.inventoryState) { font-size:12px; }
+.cardStack .inventoryHead h4 { font-size:14px; }
+.cardStack :is(.lockedFrames p,.lockedFrames strong,.lockedFrames small,.premiumFrameCard strong,.premiumFrameCard p) { font-size:12px; line-height:1.5; }

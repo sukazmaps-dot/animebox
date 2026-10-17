@@ -431,7 +431,7 @@ export default function ProfileDirectEditSurface({
                 onChange={(event) => onUsernameChange(event.target.value)}
               />
             </label>
-            <p className={styles.help}>Новое имя сразу видно в предпросмотре. После сохранения оно обновится в профиле, комментариях и меню.</p>
+            <p className={styles.help}>Имя видно в профиле, комментариях и превью.</p>
           </div>
 
         <div className={styles.inspectorSection}>
@@ -440,11 +440,11 @@ export default function ProfileDirectEditSurface({
               <textarea
                 value={bio}
                 maxLength={300}
-                rows={5}
+                rows={3}
                 onChange={(event) => onBioChange(event.target.value)}
               />
             </label>
-            <p className={styles.help}>Короткое био лучше читается в мини-профиле и на мобильных устройствах.</p>
+            <p className={styles.help}>До 300 символов. Изменения сразу видны в превью.</p>
           </div>
 
       </section>
@@ -511,7 +511,9 @@ export default function ProfileDirectEditSurface({
               )}
             </div>
 
-            <div id="profile-editor-frame" data-profile-anchor="frame" className={styles.inventorySection}>
+            <details id="profile-editor-frame" data-profile-anchor="frame" className={styles.inventorySection}>
+              <summary className={styles.collectionToggle}><span>Рамка профиля</span><span>{frameLoading ? 'Загружаем…' : frameError ? 'Ошибка загрузки' : activeFrameLabel + ' · ' + ownedFrames.length + ' доступно'}</span></summary>
+              <div className={styles.collectionBody}>
               <div className={styles.inventoryHead}>
                 <div>
                   <span>КОЛЛЕКЦИЯ РАМОК</span>
@@ -643,7 +645,9 @@ export default function ProfileDirectEditSurface({
                 </div>
                 {!premiumActive && <button type="button" onClick={onOpenPremium}>Подробнее</button>}
               </div>
-            </div>
+
+              </div>
+            </details>
           </>   </section>
       <section id="profile-editor-banner" data-profile-anchor="banner" className={styles.inspector} aria-label="Баннер">
         <div className={styles.inspectorHead}><h3>Баннер</h3></div>

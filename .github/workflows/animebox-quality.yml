@@ -33,7 +33,7 @@ jobs:
 
       - name: Install Chromium for layout regression
         run: |
-          npm install --prefix "$RUNNER_TEMP/animebox-browser" --no-audit --no-fund --save-exact playwright@1.62.1
+          npm install --prefix "$RUNNER_TEMP/animebox-browser" --no-audit --no-fund --save-exact playwright@1.62.1 esbuild@0.28.2
           "$RUNNER_TEMP/animebox-browser/node_modules/.bin/playwright" install --with-deps chromium
 
       - name: Home hero artwork recovery and quality
@@ -68,8 +68,9 @@ jobs:
 
       - name: Profile editor responsive workspace and draft recovery
         env:
+          ESBUILD_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/esbuild
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
-        run: node scripts/profile-editor-dock-smoke.cjs && npm run editor-workspace:check && npm run editor-workspace:browser
+        run: node scripts/profile-editor-dock-smoke.cjs && npm run editor-workspace:check && npm run editor-workspace:browser && npm run editor-unified:browser
 
       - name: Patch 30.7 intent-based card prefetch
         run: npm run patch30-7:check

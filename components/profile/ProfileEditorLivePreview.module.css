@@ -95,3 +95,44 @@
 
 .preview.expanded {width:100%;height:320px;margin:0;}
 .preview.expanded .banner {height:230px;}
+
+/* 31.9: a full identity card, with compact presentation on the phone workspace. */
+.preview { color:var(--preview-text,var(--ab-ui-text)); }
+.name { color:var(--preview-text,var(--ab-ui-text)); }
+.bio { color:var(--preview-muted,var(--ab-ui-muted)); }
+.details { display:grid; gap:24px; padding:24px; border-top:1px solid color-mix(in srgb,currentColor 10%,transparent); }
+.badges { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:12px; }
+.badges > span { padding:4px 8px; border-radius:6px; background:color-mix(in srgb,currentColor 8%,transparent); }
+.badges button { min-height:44px; padding:6px 8px; border:1px solid color-mix(in srgb,currentColor 20%,transparent); border-radius:8px; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+.about h3 { font-size:12px; margin:0 0 8px; font-weight:700; }
+.about p { font-size:14px; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
+.preview[data-full=true] .name { white-space:normal; overflow-wrap:anywhere; text-align:left; line-height:1.25; }
+.preview button:focus-visible { outline:2px solid var(--ab-ui-accent); outline-offset:-3px; }
+@media(min-width:900px) {
+  .preview[data-full=true] { height:auto; min-height:480px; box-shadow:none; border-radius:12px; }
+  .preview[data-full=true] .banner { height:160px; }
+  .preview[data-full=true] .identity { display:block; padding:0 24px 20px; margin-top:-48px; }
+  .preview[data-full=true] .avatar { width:112px; height:112px; }
+  .preview[data-full=true] .copy { margin-top:12px; padding:0; }
+  .preview[data-full=true] .name { font-size:26px; }
+  .preview[data-full=true] .bio { display:none; }
+}
+@media(max-width:899px) {
+  .preview[data-full=true]:not(.expanded) .details { display:none; }
+  .preview[data-full=true]:not(.expanded) { height:136px; margin:8px auto; }
+  .preview[data-full=true]:not(.expanded) .banner { height:72px; }
+  .preview[data-full=true]:not(.expanded) .avatar { width:64px; height:64px; flex-basis:64px; }
+  .preview[data-full=true]:not(.expanded) .identity { margin-top:-24px; }
+  .preview[data-full=true]:not(.expanded) .name { font-size:18px; white-space:nowrap; }
+  .preview[data-full=true]:not(.expanded) .bio { font-size:12px; }
+}
+.preview.expanded { height:auto; min-height:400px; }
+.preview.expanded .banner { height:160px; }
+.preview.expanded .identity { display:block; padding:0 20px 20px; margin-top:-40px; }
+.preview.expanded .avatar { width:96px; height:96px; }
+.preview.expanded .copy { margin-top:12px; }
+.preview.expanded .bio { display:none; }
+@media(max-width:899px) and (max-height:500px) {
+  .preview[data-full=true]:not(.expanded) {height:116px;}
+  .preview[data-full=true]:not(.expanded) .banner {height:52px;}
+}
