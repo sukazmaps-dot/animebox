@@ -163,7 +163,10 @@ export async function getRuntimeControlSnapshot(): Promise<RuntimeControlSnapsho
     const { data, error } = await createSupabaseAdmin()
       .from('system_runtime_controls')
       .select('control_key,state,reason,updated_by,updated_at')
-      .order('control_key', { ascending: true });
+      .order('control_key', { ascending: true })
+      // An optional control-plane read must not block public GETs during
+      // transient Supabase outages. Fail-open behaviour is retained below.
+      .abortSignal(AbortSignal.timeout(1_200));
 
     if (error) throw error;
 
@@ -179,7 +182,9 @@ export async function getRuntimeControlSnapshot(): Promise<RuntimeControlSnapsho
     console.warn('[Runtime controls] registry unavailable', error);
     const snapshot = defaultSnapshot(true);
     cached = {
-      expiresAt: now + 2_000,
+      // Avoid repeating the same slow control-plane request on every
+      // public page load while Supabase is experiencing timeouts.
+      expiresAt: now + 10_000,
       snapshot,
     };
     return snapshot;
