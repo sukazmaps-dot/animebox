@@ -30,6 +30,7 @@ type FramePayload = {
 type Props = {
   section?: ProfileEditorSection;
   showPreview?: boolean;
+  compact?: boolean;
   onSectionChange?: (section: ProfileEditorSection) => void;
   onFrameChange?: (frame: string | null) => void;
   onFrameLoaded?: (frame: string | null) => void;
@@ -87,6 +88,7 @@ function formatExpiry(value?: string | null) {
 export default function ProfileDirectEditSurface({
   section = 'profile',
   showPreview = true,
+  compact = false,
   onSectionChange,
   onFrameChange,
   onFrameLoaded,
@@ -257,7 +259,7 @@ export default function ProfileDirectEditSurface({
   }
 
   return (
-    <div className={styles.workspace} data-settings-only={showPreview ? 'false' : 'true'}>
+    <div className={styles.workspace} data-settings-only={showPreview ? 'false' : 'true'} data-compact={compact ? 'true' : 'false'}>
       <input
         ref={avatarInputRef}
         className={styles.hiddenMediaInput}
@@ -418,7 +420,7 @@ export default function ProfileDirectEditSurface({
       </section>}
 
       <div className={styles.cardStack}>
-      <section id="profile-editor-name" data-profile-anchor="name" className={styles.inspector} aria-label="Имя и описание">
+      {(!compact || section === 'profile') && <section id="profile-editor-name" data-profile-anchor="name" className={styles.inspector} aria-label="Имя и описание">
         <div className={styles.inspectorHead}><h3>Имя и описание</h3></div>
         <div className={styles.inspectorSection}>
             <label className={styles.field}>
@@ -445,11 +447,11 @@ export default function ProfileDirectEditSurface({
 
           </div>
 
-      </section>
-      <section id="profile-editor-avatar" data-profile-anchor="avatar" className={styles.inspector} aria-label="Аватар и рамка">
+      </section>}
+      {(!compact || section === 'avatar' || section === 'frame') && <section id="profile-editor-avatar" data-profile-anchor="avatar" className={styles.inspector} aria-label="Аватар и рамка">
         <div className={styles.inspectorHead}><h3>Аватар и рамка</h3></div>
         <>
-            <div className={styles.inspectorSection}>
+{(!compact || section === 'avatar') && <div className={styles.inspectorSection}>
               <div className={styles.avatarControl}>
                 <span
                   className={styles.avatarControlPreview}
@@ -507,9 +509,9 @@ export default function ProfileDirectEditSurface({
                   <button type="button" onClick={() => void onUseBaseAvatar()}>Базовый вариант</button>
                 </div>
               )}
-            </div>
+            </div>}
 
-            <details id="profile-editor-frame" data-profile-anchor="frame" className={styles.inventorySection}>
+            {(!compact || section === 'frame') && <details id="profile-editor-frame" data-profile-anchor="frame" className={styles.inventorySection} open={compact && section === 'frame' ? true : undefined}>
               <summary className={styles.collectionToggle}><span>Рамка профиля</span><span>{frameLoading ? 'Загружаем…' : frameError ? 'Ошибка загрузки' : activeFrameLabel + ' · ' + ownedFrames.length + ' доступно'}</span></summary>
               <div className={styles.collectionBody}>
               <div className={styles.inventoryHead}>
@@ -645,9 +647,9 @@ export default function ProfileDirectEditSurface({
               </div>
 
               </div>
-            </details>
-          </>   </section>
-      <section id="profile-editor-banner" data-profile-anchor="banner" className={styles.inspector} aria-label="Баннер">
+            </details>}
+          </>   </section>}
+      {(!compact || section === 'banner') && <section id="profile-editor-banner" data-profile-anchor="banner" className={styles.inspector} aria-label="Баннер">
         <div className={styles.inspectorHead}><h3>Баннер</h3></div>
         <div className={styles.inspectorSection}>
             <div className={styles.bannerModes} role="tablist" aria-label="Режим редактирования баннера">
@@ -750,7 +752,7 @@ export default function ProfileDirectEditSurface({
             )}
           </div>
 
-      </section>
+      </section>}
       </div>
 
     </div>
