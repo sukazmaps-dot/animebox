@@ -29,3 +29,21 @@
  .card {padding:10px 6px;}
  .cardFrame {width:66px;height:66px;}
 }
+
+
+/* Compact inspector uses a legible milestone list rather than mini 5-column cards. */
+@container inspector (max-width:380px) {
+ .root{gap:12px;}
+ .status{grid-template-columns:64px minmax(0,1fr);padding:12px;gap:10px;}
+ .frame{width:64px;height:64px;}
+ .copy h3{font-size:15px;}
+ .copy p,.metrics span,.metrics b,.eyebrow{font-size:12px;line-height:1.45;letter-spacing:normal;}
+ .metrics{grid-column:1/-1;grid-template-columns:1fr;gap:2px;min-width:0;text-align:left;}
+ .metrics strong{font-size:18px;}.metrics b{justify-self:start;}
+ .grid{grid-template-columns:minmax(0,1fr);gap:8px;}
+ .card{grid-template-columns:72px minmax(0,1fr);grid-template-rows:repeat(3,auto);align-items:center;justify-items:start;text-align:left;padding:10px;gap:4px 10px;}
+ .cardFrame{grid-column:1;grid-row:1/4;width:68px;height:68px;}
+ .card :is(strong,small,em){grid-column:2;min-width:0;font-size:12px;line-height:1.4;}
+ .card small{white-space:normal;overflow-wrap:normal;}
+ .note,.state{font-size:12px;}
+}
