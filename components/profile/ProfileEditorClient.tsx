@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Type, CircleUserRound, Image as ImageIcon, Frame, Palette, LayoutGrid, Trophy, Link2 } from 'lucide-react';
+import modalStyles from './ProfileEditorModal.module.css';
 
 import type { ProfileEditorAnchor } from '@/lib/profile-editor-navigation';
 import { useProfileEditorHistory } from '@/hooks/useProfileEditorHistory';
@@ -109,7 +111,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     initialAnchor === 'avatar' || initialAnchor === 'banner' || initialAnchor === 'frame' ? initialAnchor : 'profile',
   );
   const [panelOpen, setPanelOpen] = useState(initialTab !== 'profile' || Boolean(initialAnchor && initialAnchor !== 'name'));
-  const [showMobileBoard, setShowMobileBoard] = useState(false);
+  const [accountPanel, setAccountPanel] = useState(false);
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
   const [savedFrame, setSavedFrame] = useState<string | null>(null);
   const frameInitializedRef = useRef(false);
@@ -329,6 +332,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   function switchTab(tab: EditorTab) {
     setComparing(false);
     setActiveTab(tab);
+    setAccountPanel(false);
     setPanelOpen(true);
     setError('');
     setSaved('');
@@ -570,11 +574,13 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     setFocusedSection(section);
     switchTab('profile');
   }
-  function chooseTile(tile: ProfileEditorSection | 'showcase' | 'rewards') {
-    const same = panelOpen && (tile === 'showcase' || tile === 'rewards' || tile === 'style'
-      ? activeTab === tile : activeTab === 'profile' && focusedSection === tile);
+  function chooseTile(tile: ProfileEditorSection | 'showcase' | 'rewards' | 'account') {
+    const same = panelOpen && (tile === 'account' ? accountPanel
+      : tile === 'showcase' || tile === 'rewards' || tile === 'style'
+        ? activeTab === tile : !accountPanel && activeTab === 'profile' && focusedSection === tile);
     if (same) { setPanelOpen(false); return; }
-    if (tile === 'showcase' || tile === 'rewards' || tile === 'style') switchTab(tile);
+    if (tile === 'account') { switchTab('profile'); setAccountPanel(true); }
+    else if (tile === 'showcase' || tile === 'rewards' || tile === 'style') switchTab(tile);
     else navigatePreview(tile);
   }
   useEffect(() => {
@@ -910,7 +916,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   }
 
   return (
-    <main className="profile-editor-v13" data-editor-tab={activeTab} data-editor-layout="modal">
+    <main className={`profile-editor-v13 ${modalStyles.modal}`} data-editor-tab={activeTab} data-editor-layout="modal">
       <section className="profile-editor-v13__shell profile-editor-v40__shell" role="dialog" aria-modal="true" aria-label="Редактор профиля">
         <header className="profile-editor-v13__header profile-editor-v40__header">
           <div className="profile-editor-v31__header-title">
@@ -943,28 +949,31 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
         </div>}
         {editorHistory.notice && <p className="profile-editor-v31__draft-note">{editorHistory.notice}</p>}
         {(error || baseMediaError) && <div className="profile-editor-v31__error profile-editor-v40__error" role="alert">{baseMediaError || error}</div>}
-        <div className="profile-editor-v40__workbench">
+        <div className="profile-editor-v40__workbench" data-panel-open={panelOpen}>
           <nav className="profile-editor-v40__tiles" aria-label="Настройки профиля">
             {([
-              ['profile','Имя','Aa'],['avatar','Аватар','◉'],['banner','Баннер','▧'],
-              ['frame','Рамка','◇'],['style','Оформление','✦'],
-              ['showcase','Витрина','▦'],['rewards','Награды','★'],
-            ] as const).map(([tile,label,symbol]) => (
+              ['profile','Имя',Type],['avatar','Аватар',CircleUserRound],['banner','Баннер',ImageIcon],
+              ['frame','Рамка',Frame],['style','Тема',Palette],
+              ['showcase','Витрина',LayoutGrid],['rewards','Награды',Trophy],
+              ['account','Аккаунт',Link2],
+            ] as const).map(([tile,label,Icon]) => (
               <button type="button" key={tile} title={label} aria-label={label}
-                data-selected={panelOpen && (tile === 'style' || tile === 'showcase' || tile === 'rewards'
-                  ? activeTab === tile : activeTab === 'profile' && focusedSection === tile)}
-                aria-pressed={panelOpen && (tile === 'style' || tile === 'showcase' || tile === 'rewards'
-                  ? activeTab === tile : activeTab === 'profile' && focusedSection === tile)}
+                data-selected={panelOpen && (tile === 'account' ? accountPanel
+                  : tile === 'style' || tile === 'showcase' || tile === 'rewards'
+                    ? activeTab === tile : !accountPanel && activeTab === 'profile' && focusedSection === tile)}
+                aria-pressed={panelOpen && (tile === 'account' ? accountPanel
+                  : tile === 'style' || tile === 'showcase' || tile === 'rewards'
+                    ? activeTab === tile : !accountPanel && activeTab === 'profile' && focusedSection === tile)}
                 onClick={() => chooseTile(tile)}>
-                <span aria-hidden="true">{symbol}</span><small>{label}</small>
+                <Icon size={20} strokeWidth={1.8} aria-hidden="true" /><small>{label}</small>
                 {fieldDirty[tile] && <i aria-label="Есть изменения" />}
               </button>
             ))}
           </nav>
-          <section className="profile-editor-v40__stage" aria-label="Живой профиль">
+          <section className="profile-editor-v40__stage" aria-label="Живой профиль" data-preview-collapsed={previewCollapsed}>
             <div className="profile-editor-v40__stage-header">
               <span>ТВОЙ ПРОФИЛЬ</span>
-              <button type="button" onClick={() => setPreviewOpen(true)}>Развернуть ↗</button>
+              <div className="profile-editor-v40__stage-actions"><button type="button" className="profile-editor-v40__collapse" aria-expanded={!previewCollapsed} onClick={() => setPreviewCollapsed(v=>!v)}>{previewCollapsed ? "Показать" : "Свернуть"}</button><button type="button" onClick={() => setPreviewOpen(true)}>Развернуть ↗</button></div>
             </div>
             <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
             username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
@@ -976,12 +985,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             previewPremiumFill={bannerFillUpgradeRequired}
           />
             <p className="profile-editor-v40__hint">Нажми на имя, аватар или баннер, чтобы изменить их.</p>
-            <button type="button" className="profile-editor-v40__board-toggle"
-              aria-expanded={showMobileBoard} onClick={() => setShowMobileBoard(v => !v)}>
-              {showMobileBoard ? 'Скрыть витрину' : 'Показать витрину'}
-            </button>
           </section>
-          <aside className="profile-editor-v40__board" data-mobile-visible={showMobileBoard} aria-label="Витрина профиля">
+          <aside className="profile-editor-v40__board" aria-label="Витрина профиля">
             <ProfileEditorShowcasePreview data={showcase}
               loading={showcaseLoading || (!showcase && !showcaseError)} error={showcaseError}
               onConfigure={() => switchTab('showcase')}
@@ -989,7 +994,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
           </aside>
           <aside className="profile-editor-v40__popover" hidden={!panelOpen} aria-label="Настройки выбранного элемента">
             <header>
-              <h2>{activeTab === 'style' ? 'Оформление' : activeTab === 'showcase' ? 'Витрина'
+              <h2>{accountPanel ? 'Аккаунт' : activeTab === 'style' ? 'Тема' : activeTab === 'showcase' ? 'Витрина'
                 : activeTab === 'rewards' ? 'Награды'
                 : ({profile:'Имя и описание',avatar:'Аватар',banner:'Баннер',frame:'Рамка'} as Record<string,string>)[focusedSection]}</h2>
               <button type="button" onClick={() => setPanelOpen(false)} aria-label="Закрыть настройки">×</button>
@@ -1026,7 +1031,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
                 {!showcaseLoading && showcase && <ProfileWidgetEditor embedded data={showcase}
                   maxFavorites={showcaseMaxFavorites} onSaved={widgets => {setShowcase(widgets);setSaved('Витрина сохранена ✓');}} />}
               </div>}
-              {activeTab === 'profile' && <div className="profile-editor-v19__direct-tab">
+              {accountPanel && <section className="profile-editor-v40__account" aria-label="Привязка Telegram"><h3>Привязка Telegram</h3><TelegramAccountLinkCard /></section>}
+              {activeTab === 'profile' && !accountPanel && <div className="profile-editor-v19__direct-tab">
                 <ProfileDirectEditSurface
             section={focusedSection} compact
             showPreview={false}
@@ -1100,9 +1106,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             onUseBaseBanner={() => clearPremiumFallbackMedia('banner')}
             onOpenPremium={() => switchTab('style')}
           />
-                {focusedSection === 'profile' && <details className="profile-editor-v34__connections">
-                  <summary>Привязка Telegram</summary><TelegramAccountLinkCard />
-                </details>}
+
               </div>}
               {!premiumActive && activeTab === 'style' && <button type="button" className="profile-editor-v40__upgrade"
                 onClick={() => router.push('/premium#premium-plans')}>Открыть Premium ✦</button>}
