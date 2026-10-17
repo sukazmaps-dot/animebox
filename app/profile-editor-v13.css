@@ -1361,6 +1361,7 @@ html.ab-profile-editor-open .sidebar {display:none;}
 .profile-editor-v40__savebar .profile-editor-v18__savebar-copy {min-width:0;margin-right:auto;padding:0;}
 .profile-editor-v40__savebar .profile-editor-v18__savebar-copy strong {font-size:12px;white-space:normal;}
 .profile-editor-v13[data-editor-layout='modal'] .profile-editor-v40__savebar button {min-height:40px;min-width:88px;padding-inline:12px;border-radius:9px;font-size:12px;}
+.profile-editor-v13[data-editor-layout='modal']:has(.profile-editor-v40__savebar) .profile-editor-v40__popover {bottom:82px;max-height:calc(100% - 92px);}
 .profile-editor-v40__shell button:focus-visible,.profile-editor-v40__shell summary:focus-visible {outline:2px solid var(--ab-ui-accent);outline-offset:2px;}
 @media(max-width:850px) {
   .profile-editor-v40__workbench {grid-template-columns:76px minmax(0,1fr);}
