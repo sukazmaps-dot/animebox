@@ -14,6 +14,29 @@ export function pageItems(value: unknown): unknown[] {
   }
   return [];
 }
+
+function episodePageItems(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    if (value.some((item) => episodeOrdinal(item) === null)) {
+      throw new Error('Invalid provider episode entry');
+    }
+    return value;
+  }
+  if (!isRecord(value)) throw new Error('Invalid provider episode page');
+  for (const key of ['data', 'items', 'episodes', 'list']) {
+    if (key in value) return episodePageItems(value[key]);
+  }
+  // Some releases expose an ordinal-keyed dictionary rather than an array.
+  return Object.entries(value).map(([key, item]) => {
+    if (!isRecord(item)) throw new Error('Invalid provider episode entry');
+    if (episodeOrdinal(item) !== null) return item;
+    const ordinal = Number(key.replace(/^ep/, ''));
+    if (!Number.isSafeInteger(ordinal) || ordinal < 1) {
+      throw new Error('Invalid provider episode dictionary');
+    }
+    return { ...item, ordinal };
+  });
+}
 /** Follow the provider's pagination contract, not an invented limit=99999. */
 export async function collectEpisodePages(
   initial: unknown,
@@ -25,7 +48,7 @@ export async function collectEpisodePages(
   let page = initial;
   let currentUrl = endpoint;
   while (true) {
-    for (const item of pageItems(page)) {
+    for (const item of episodePageItems(page)) {
       const ordinal = episodeOrdinal(item);
       if (ordinal !== null) result.set(ordinal, item);
     }
@@ -56,7 +79,7 @@ export function exactReleaseTitle(release: unknown, titles: string[]): boolean {
   // Punctuation is meaningful: Gintama, Gintama' and Gintama. are different releases.
   const normalize = (s: string) => s.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
   const values: unknown[] = [];
-  for (const field of ['title', 'name', 'names']) {
+  for (const field of ['title', 'name', 'names', 'russian', 'english', 'romaji', 'native', 'main']) {
     const value = release[field];
     if (typeof value === 'string') values.push(value);
     if (isRecord(value)) values.push(...Object.values(value));
