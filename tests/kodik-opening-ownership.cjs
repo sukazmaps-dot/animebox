@@ -1,5 +1,10 @@
 'use strict';
 
+// Production Next prebuild inherits NODE_ENV=production, where React disables
+// act/test-renderer. This isolated, non-shipping regression runs the React
+// development renderer intentionally before importing any React modules.
+process.env.NODE_ENV = 'development';
+
 // Runtime regression for Kodik's provider-owned opening skip and late
 // episode metadata. No network, iframe navigation or external player needed.
 const assert = require('node:assert/strict');
