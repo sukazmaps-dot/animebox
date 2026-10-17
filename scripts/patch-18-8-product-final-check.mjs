@@ -299,11 +299,14 @@ need('Profile Studio icon contract', icon, [
   'const Glyph = icons[name] ?? InfoIcon',
 ]);
 
+// Patch 31.14 uses project-native Phosphor SVGs rather than Unicode glyphs.
 if (!editor.includes('profile-editor-v40__tiles') ||
-    !editor.includes("['showcase','Витрина','▦']") ||
-    !editor.includes("['rewards','Награды','★']") ||
-    !editor.includes('onClick={() => chooseTile(tile)}')) {
-  failures.push('Profile Studio missing accessible Showcase/Rewards tiles in the modal editor');
+    !editor.includes("['showcase','Витрина',LayoutGrid]") ||
+    !editor.includes("['rewards','Награды',Trophy]") ||
+    !editor.includes("['account','Аккаунт',Link2]") ||
+    !editor.includes('onClick={() => chooseTile(tile)}') ||
+    !editor.includes('aria-label={label}')) {
+  failures.push('Profile Studio missing accessible Showcase/Rewards/Account SVG tiles in the modal editor');
 }
 if (!editor.includes("action: 'select_frame'") || !editor.includes('frameDirty')) {
   failures.push('Profile Studio frame must persist via common Save action');
