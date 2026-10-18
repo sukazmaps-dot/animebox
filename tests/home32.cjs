@@ -26,7 +26,7 @@ const countdownSource = ts.transpileModule(read('lib/home-schedule-time.ts'), { 
 const countdownModule = { exports: {} };
 new Function('module', 'exports', countdownSource)(countdownModule, countdownModule.exports);
 const { formatHomeScheduleCountdown } = countdownModule.exports;
-assert.equal(formatHomeScheduleCountdown((1000 * 60 + 8 * 60 * 60) / 1000, 0), 'через 8 ч 1 мин');
+assert.equal(formatHomeScheduleCountdown(8 * 3600 + 60, 0), 'через 8 ч 1 мин');
 assert.equal(formatHomeScheduleCountdown(5 * 86400 + 8 * 3600, 0), 'через 5 дн. 8 ч');
 
 const page = read('app/page.tsx');
