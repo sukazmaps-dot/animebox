@@ -1322,6 +1322,7 @@ export default function SmartRecommendationFeed({
     );
   }
 
+  const visibleAcrossRails = new Set<number>();
   return (
     <div className="smart-feed">
       <div
@@ -1348,6 +1349,11 @@ export default function SmartRecommendationFeed({
               rail.items.length === 0
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
+            const displayItems = rail.items.filter(item => !visibleAcrossRails.has(item.anime.id));
+            // Once a sparse rail has exhausted its candidate pool, do not render
+            // an orphan poster with a page-width empty track.
+            if (!railHasMore && !railLoading && !railFailed && displayItems.length > 0 && displayItems.length < 4) return null;
+            displayItems.forEach(item => visibleAcrossRails.add(item.anime.id));
 
             return (
               <Fragment key={`${rail.id}:${rowVersion}`}>
@@ -1393,7 +1399,7 @@ export default function SmartRecommendationFeed({
                     recordRailVirtualMetrics(rail.id, metrics)
                   }
                 >
-                  {rail.items.map((recommendation, index) => (
+                  {displayItems.map((recommendation, index) => (
                     <div
                       className="smart-feed__slide"
                       key={`${rail.id}:${recommendation.anime.id}`}
@@ -1432,7 +1438,7 @@ export default function SmartRecommendationFeed({
                     className="smart-feed__rail-retry"
                     onClick={() => void ensureRailDepth(rail, { retry: true, bootstrap: rail.items.length < MIN_INITIAL_RAIL_ITEMS })}
                   >
-                    {railFailed ? 'Не удалось загрузить ещё · Повторить' : 'Продолжить поиск карточек'}
+                    {railFailed ? 'Не удалось загрузить ещё · Повторить' : 'Показать больше похожих аниме'}
                   </button>
                 )}
               </section>
