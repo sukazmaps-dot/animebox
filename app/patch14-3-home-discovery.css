@@ -99,11 +99,11 @@
   margin-bottom: 10px;
 }
 
+/* This older layout must not restore table separators or eliminate spacing.
+   The HomeContinueWatching CSS Module owns the individual cards and scroller. */
 .home-page .continue-smart-grid {
-  gap: 0 !important;
-  overflow: hidden;
-  border-top: 1px solid var(--ab-line);
-  border-bottom: 1px solid var(--ab-line);
+  border-top: 0;
+  border-bottom: 0;
 }
 
 .home-page .continue-smart-card,
@@ -510,7 +510,7 @@
 
   .home-page .continue-smart-grid {
     display: flex !important;
-    gap: 0 !important;
+    gap: 12px;
     overflow-x: auto !important;
     overflow-y: hidden !important;
     margin-right: -12px;
