@@ -25,6 +25,8 @@ type ScrollRowProps = {
   ariaLabel?: string;
   stepRatio?: number;
   hasMore?: boolean;
+  /** Never show a visual arrow until the measured track actually overflows. */
+  arrowRequiresOverflow?: boolean;
   loading?: boolean;
   onEndReached?: () => void;
   endReachedRootMargin?: string;
@@ -80,6 +82,7 @@ export default function ScrollRow({
   ariaLabel = 'Горизонтальная лента',
   stepRatio = 0.8,
   hasMore = false,
+  arrowRequiresOverflow = false,
   loading = false,
   onEndReached,
   endReachedRootMargin = '0px 55% 0px 0px',
@@ -549,7 +552,7 @@ export default function ScrollRow({
         </button>
       )}
 
-      {(canScrollRight || hasMore) && (
+      {(canScrollRight || (hasMore && !arrowRequiresOverflow)) && (
         <button
           type="button"
           className={`${styles.arrow} ${styles.arrowRight}`}
