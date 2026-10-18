@@ -508,7 +508,8 @@ html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__fe
    Long-press opens the existing feedback dialog; keyboard focus reveals
    the otherwise visually hidden overflow action. */
 @media (max-width: 768px) {
-  [data-home-layout="cinematic"] .smart-card .smart-card__actions { width: 44px !important; }
+  /* Phone controls are always visible, even when a desktop browser emulates a narrow viewport. */
+  [data-home-layout="cinematic"] .smart-card .smart-card__actions { width: 44px !important; opacity: 1; visibility: visible; pointer-events: auto; }
   [data-home-layout="cinematic"] .smart-card .smart-card__plan {
     position: relative;
     border: 0 !important;
