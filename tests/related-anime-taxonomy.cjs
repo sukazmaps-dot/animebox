@@ -27,6 +27,7 @@ async function run(genres, candidates, options = {}) {
       calls.push(JSON.parse(JSON.stringify(query)));
       return candidates;
     },
+    enrichAnimePosterSources: async (items) => items,
     filterAnimeByAvailability: async (items, policy) => {
       assert.equal(policy, 'catalog');
       filtered = items;
