@@ -4,7 +4,8 @@ import {scheduleAnimeHref} from '@/lib/schedule-url';
 import Link from 'next/link';
 
 import HomeSchedulePoster from '@/components/home/HomeSchedulePoster';
-import Icon from '@/components/Icon';
+import SectionHeader from '@/components/home/SectionHeader';
+import { formatHomeScheduleCountdown } from '@/lib/home-schedule-time';
 import styles from './HomeScheduleSection.module.css';
 import { ScheduleGridSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import {
@@ -31,26 +32,11 @@ export default function HomeScheduleSection() {
       className={`section schedule ${styles.root}`}
       aria-busy={scheduleLoading}
     >
-      <div className="section-head">
-        <h2 className="section-title">
-          <span
-            className="section-title__icon section-title__icon--ui"
-            aria-hidden="true"
-          >
-            <Icon name="calendar" />
-          </span>
-          Сегодня выходит
-        </h2>
-
-        <Link
-          className="section-link"
-          href="/schedule"
-        >
-          Полное расписание →
-        </Link>
-      </div>
-
-      <p className={styles.swipeHint} aria-hidden="true">Листай дни →</p>
+      <SectionHeader
+        title={selectedScheduleDay === scheduleDays[0]?.key && visibleScheduleItems.length > 0 ? 'Сегодня выходит' : 'Скоро выходит'}
+        href="/schedule"
+        linkLabel="Полное расписание"
+      />
       <div
         className="schedule__tabs"
         role="group"
@@ -90,16 +76,13 @@ export default function HomeScheduleSection() {
           <span>{scheduleError}</span>
         </div>
       ) : visibleScheduleItems.length === 0 ? (
-        <p className={styles.empty}>На этот день серий нет · выбери соседний день.</p>
+        <p className={styles.empty}>{selectedScheduleDay === scheduleDays[0]?.key ? 'Сегодня выпусков больше нет' : 'На этот день выпусков нет'}</p>
       ) : (
         <div className="schedule__cards">
           {visibleScheduleItems
             .slice(0, 6)
             .map((item) => {
               const title = getScheduleTitle(item);
-              const released =
-                item.airingAt * 1000 <= clockNow;
-
               return (
                 <Link
                   key={item.id}
@@ -126,7 +109,7 @@ export default function HomeScheduleSection() {
 
                   <span className={styles.time}>
                     {formatScheduleTime(item.airingAt)}
-                    <small>{released && !item.timingKind ? 'Вышло' : clockNow < item.airingAt * 1000 ? `через ${Math.floor((item.airingAt * 1000 - clockNow) / 3_600_000) > 0 ? `${Math.floor((item.airingAt * 1000 - clockNow) / 3_600_000)} ч ` : ''}${Math.floor(((item.airingAt * 1000 - clockNow) % 3_600_000) / 60_000)} мин` : 'План'}</small>
+                    <small>{item.timingKind ? 'План' : formatHomeScheduleCountdown(item.airingAt, clockNow)}</small>
                   </span>
                 </Link>
               );
@@ -134,7 +117,7 @@ export default function HomeScheduleSection() {
         </div>
       )}
       {!scheduleLoading && !scheduleError && visibleScheduleItems.length > 6 && (
-        <Link className="section-link schedule__more" href="/schedule">
+        <Link className={styles.more} href="/schedule">
           Все выпуски за день · {visibleScheduleItems.length} →
         </Link>
       )}
