@@ -12,7 +12,7 @@
   min-height: 112px;
   padding: 9px 12px 12px;
   border: 1px solid var(--ab-ui-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--ab-ui-surface);
 }
 .section .card :global(.continue-smart-card__poster) {
