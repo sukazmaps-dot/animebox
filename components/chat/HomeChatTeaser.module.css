@@ -156,7 +156,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
   color: var(--ab-ui-accent);
-  font-size: 8px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 850;
 }
@@ -230,7 +230,7 @@
   gap: 7px;
   margin-top: 13px;
   color: var(--ab-ui-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .liveDot {
