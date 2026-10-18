@@ -18,7 +18,9 @@ fs.copyFileSync('tests/fixtures/home32.fixture', fixture + '/page.tsx');
 fs.mkdirSync(output, { recursive: true });
 (async () => {
   const log = fs.openSync(logPath, 'w');
-  const environment = { ...process.env, NEXT_PUBLIC_MEDIA_ORIGIN: 'https://media.youranimebox.com' };
+  // NODE_ENV remains production. Use the existing preview origin policy for
+  // localhost; production's canonical-host lock is covered by security tests.
+  const environment = { ...process.env, VERCEL_ENV: 'preview', NEXT_PUBLIC_MEDIA_ORIGIN: 'https://media.youranimebox.com' };
   let builder;
   let server;
   let browser;
@@ -44,12 +46,17 @@ fs.mkdirSync(output, { recursive: true });
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     assert(ready, 'Next did not start: ' + logPath);
+    const preflight = await fetch(origin + '/qa-home32-check?mode=normal', { redirect: 'manual' });
+    assert.equal(preflight.status, 200, 'Local production fixture must not redirect: ' + preflight.status + ' ' + preflight.headers.get('location'));
+    await preflight.body?.cancel();
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
     const cases = [360, 390, 412, 768, 1024, 1366, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
     cases.push({ width: 844, height: 390, theme: 'dark', mode: 'normal' }, { width: 1366, height: 900, theme: 'dark', mode: 'poster' });
     for (const c of cases) {
       const page = await browser.newPage({ viewport: { width: c.width, height: c.height }, reducedMotion: 'reduce' });
       const errors = [];
+      const navigations = [];
+      page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations.push(frame.url()); });
       page.on('pageerror', error => errors.push(error.stack || error.message));
       const history = c.width === 390 || c.width === 1366;
       await page.addInitScript(({ theme, history }) => {
@@ -146,9 +153,15 @@ fs.mkdirSync(output, { recursive: true });
         assert(after.title <= after.cta, 'Long title overlaps CTA');
         assert.deepEqual(errors, [], name + ' browser errors');
         console.log('PASS', name);
+      } catch (error) {
+        console.error('CASE', name, error);
+        fs.writeFileSync(path.join(output, name + '-error.json'), JSON.stringify({ error: error.stack || String(error), errors, navigations }, null, 2));
+        throw error;
       } finally {
-        await page.evaluate(() => scrollTo(0, 0));
-        if ([390, 1366, 1920].includes(c.width) || errors.length) await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true });
+        await page.evaluate(() => scrollTo(0, 0)).catch(() => {});
+        if ([390, 1366, 1920].includes(c.width) || errors.length || navigations.length > 1) {
+          await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true }).catch(error => console.error('Screenshot cleanup:', error.message));
+        }
         await page.close();
       }
     }
@@ -162,5 +175,6 @@ fs.mkdirSync(output, { recursive: true });
     fs.rmSync('.next/dev/types', { recursive: true, force: true });
     fs.rmSync('.next/types', { recursive: true, force: true });
     fs.closeSync(log);
+    fs.copyFileSync(logPath, path.join(output, 'next.log'));
   }
 })().catch(error => { console.error(error); console.error('Next log:', logPath); process.exitCode = 1; });
