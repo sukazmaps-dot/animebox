@@ -89,3 +89,20 @@
   .support { min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .page :global(.home-anime-rail__viewport) { scroll-behavior: auto; } }
+
+/* Mobile card overflow repair: poster, title and actions share the same 130px rail track. */
+.page :global(.smart-feed__slide),
+.page :global(.smart-feed__slide > .smart-card) { min-width: 0; box-sizing: border-box; }
+.page :global(.smart-card__body) { min-width: 0; }
+.page :global(.smart-card__title) { display: -webkit-box; min-height: 0; max-width: 100%; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.page :global(.smart-card__reason) { display: none; }
+.page :global(.smart-card__actions) { min-width: 0; }
+@media (max-width: 768px) {
+  .page :global(.smart-feed__rail) { overflow: hidden; }
+  .page :global(.smart-feed__slide) { width: 130px; max-width: 130px; flex: 0 0 130px; }
+  .page :global(.smart-card__body) { padding: 7px 0 0; }
+  .page :global(.smart-card__title) { font-size: 12px; line-height: 1.35; }
+  .page :global(.smart-card__actions) { display: grid; grid-template-columns: minmax(0, 1fr) 36px !important; gap: 4px; width: 100%; }
+  .page :global(.smart-card__plan) { min-width: 0 !important; width: 100% !important; padding: 0 4px !important; font-size: 11px !important; overflow: hidden; }
+  .page :global(.smart-card__dismiss) { width: 36px !important; min-width: 36px !important; }
+}
