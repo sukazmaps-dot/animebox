@@ -1,5 +1,5 @@
 const MEDIA_WORKER_VERSION = 'media-shield-v8-curated-r2';
-const CURATED_R2_WIDTHS = new Set([240, 540]);
+const CURATED_R2_WIDTHS = new Set([240, 360]);
 const CURATED_R2_MAX_BYTES = 192 * 1024;
 const ORIGIN_RELAY_TIMEOUT_MS = 2_000;
 const ORIGIN_RELAY_CACHE_TTL_SECONDS = 600;
@@ -1006,7 +1006,7 @@ async function handleRequest(request, env, ctx) {
     );
     if (etag) headers.set('ETag', etag);
 
-    // R2 is opt-in. Only small, verified 240/540 WebP transforms qualify;
+    // R2 is opt-in. Only small, verified 240/360 WebP transforms qualify;
     // never persist raw originals or multiply all responsive variant combinations.
     if (shouldWriteCuratedR2Poster(env, request.method, variant, origin, bytes, contentType)) {
       ctx.waitUntil(
