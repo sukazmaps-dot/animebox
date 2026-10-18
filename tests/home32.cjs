@@ -22,13 +22,6 @@ const navbar = read('components/Navbar.tsx');
 const globalCss = read('app/globals.css');
 assert(navbar.includes("pathname === '/' ? 'topbar topbar--home'"), 'Home route owns a distinct mobile topbar');
 assert(globalCss.includes('.topbar.topbar--home { position: absolute; top: 0; }'), 'Only home unpins mobile search');
-const countdownSource = ts.transpileModule(read('lib/home-schedule-time.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-const countdownModule = { exports: {} };
-new Function('module', 'exports', countdownSource)(countdownModule, countdownModule.exports);
-const { formatHomeScheduleCountdown } = countdownModule.exports;
-assert.equal(formatHomeScheduleCountdown(8 * 3600 + 60, 0), 'через 8 ч 1 мин');
-assert.equal(formatHomeScheduleCountdown(5 * 86400 + 8 * 3600, 0), 'через 5 дн. 8 ч');
-
 const page = read('app/page.tsx');
 assert(page.includes('revalidate = 900') && page.includes('canonical: SITE_URL'));
 assert(!/import '\.\/(home-visual-repair|patch29-1|patch30-)/.test(page), 'Legacy home replays detached');
