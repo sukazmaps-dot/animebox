@@ -45,6 +45,12 @@ const heroModule = load('components/HomeHeroCarousel.tsx', {
   '@/components/HomeHeroFacts.module.css':{default:{facts:'facts',score:'score'}},
   '@/components/HomeHeroPagination':{default:()=>null},
   '@/components/Icon':{default:()=>null},
+  // Patch 32.0.1: Hero shares the existing bookmark and auth actions.
+  // SSR regression only exercises artwork geometry, so do not invoke mutations.
+  '@/lib/community-client':{communityRequest:()=>{throw Error('SSR mutation must not run');}},
+  '@/components/AuthStateProvider':{useAuthState:()=>({user:null})},
+  '@/components/AuthModalProvider':{useAuthModal:()=>({openAuth:()=>{throw Error('SSR auth must not open');}})},
+
   '@/lib/anime-url':{animeHref:()=>'/anime/test',animeWatchHref:()=>'/anime/test/watch'},
   '@/lib/image-service':imageService,
   '@/lib/media-delivery':media,
