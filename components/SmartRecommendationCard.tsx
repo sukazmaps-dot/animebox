@@ -531,6 +531,7 @@ export default function SmartRecommendationCard({
         <AnimeIntentLink
         href={animeHref(anime)}
         className="smart-card__poster-link"
+        title={reasons.join(' · ') || title}
         onClick={trackOpen}
         aria-label={`Открыть ${title}`}
       >
@@ -585,24 +586,13 @@ export default function SmartRecommendationCard({
         <div className="smart-card__meta" aria-label="Информация об аниме">
           {Number.isInteger(releaseYear) && releaseYear > 1900 && <span>{releaseYear}</span>}
           <span>{formatLabel(anime.format)}</span>
-          {durationLabel && (
+          {ratingLabel && (
             <>
-              <span aria-hidden="true">•</span>
-              <span>{durationLabel}</span>
+              <span aria-hidden="true">·</span>
+              <span>★ {ratingLabel}</span>
             </>
           )}
         </div>
-
-        <p
-          className="smart-card__reason"
-          title={reasons.join(' · ')}
-          data-explanation-component={
-            primaryExplanation?.components.join(',') || undefined
-          }
-        >
-          <span aria-hidden="true">✦</span>
-          {reason}
-        </p>
 
         <div className="smart-card__actions">
           <button
@@ -629,7 +619,11 @@ export default function SmartRecommendationCard({
               }
               aria-hidden="true"
             >
-              {planState === 'saving' ? '' : planIcon}
+              {planState === 'saving' ? '' : (planState === 'saved' || planState === 'idle') ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={planState === 'saved' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 3.5h12v17l-6-4-6 4z" />
+                </svg>
+              ) : planIcon}
             </span>
             <span className="smart-card__plan-label">{planLabel}</span>
           </button>
