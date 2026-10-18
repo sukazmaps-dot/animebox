@@ -516,6 +516,7 @@ export default function SmartRecommendationCard({
       data-diversity-reranked-rank={diversity?.rerankedRank}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
+      onContextMenu={(event) => { event.preventDefault(); openFeedbackMenu(); }}
     >
       <AnimeCardContent media={
         <AnimeIntentLink
