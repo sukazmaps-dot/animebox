@@ -113,6 +113,37 @@ fs.mkdirSync(output, { recursive: true });
         }
         for (const r of geometry.radios) assert(r.height >= 44 && r.width >= 44, name + ' mood touch target');
         assert.equal(geometry.radios.length, 5, 'All five moods retained');
+        // Patch 32.0.1: detect the real mobile bug reported in the field:
+        // poster cards used to carry a tall duplicated reason + wide buttons
+        // which overhung the last partially visible card.
+        const compact = await page.evaluate(() => {
+          const box = el => el.getBoundingClientRect();
+          const cards = [...document.querySelectorAll('.smart-feed__slide:not(.smart-feed__slide--skeleton) .smart-card')];
+          const errors = [];
+          for (const card of cards.slice(0, 8)) {
+            const poster = card.querySelector('.smart-card__poster');
+            const actions = card.querySelector('.smart-card__actions');
+            const title = card.querySelector('.smart-card__title');
+            if (!poster || !actions || !title) continue;
+            const a = box(actions), p = box(poster);
+            if (a.x < p.x - 2 || a.right > p.right + 2 || a.y < p.y - 2 || a.bottom > p.bottom + 2) errors.push('poster overlay overflow');
+            if (getComputedStyle(card.querySelector('.smart-card__reason') || card).getPropertyValue('display') !== 'none' && card.querySelector('.smart-card__reason')) errors.push('duplicated reason tag');
+            if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push('mobile poster must be 130px');
+          }
+          for (const row of document.querySelectorAll('.smart-feed__rail')) {
+            const track = row.querySelector('[role="region"]');
+            const right = row.querySelector('button[aria-label="Прокрутить вперёд"]');
+            if (track && right && track.scrollWidth <= track.clientWidth + 4) errors.push('arrow without actual overflow');
+          }
+          const continueTrack = document.querySelector('.continue-smart-grid');
+          if (continueTrack && getComputedStyle(continueTrack).display !== 'flex') errors.push('continue cards wrapped into grid');
+          const links = document.querySelector('nav[aria-label="Разделы AnimeBox"]');
+          if (links) errors.push('duplicate shortcuts navigation');
+          return { checked: cards.length, errors };
+        });
+        assert(compact.checked > 0, name + ' recommendation cards were rendered');
+        assert.deepEqual(compact.errors, [], name + ' compact mobile/desktop recommendation geometry');
+
         assert.equal(await page.locator('.continue-smart-card').count(), history ? 1 : 0, name + ' real history only');
         if (history) assert((await page.locator('.continue-smart-card').getAttribute('href')).includes('ep=7'), 'Resume episode');
         if (c.mode === 'poster') { assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .6, 'Poster is bounded'); }
