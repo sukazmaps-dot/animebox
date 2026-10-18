@@ -187,14 +187,16 @@ export function HomeRetentionSections() {
         </DeferredMount>
       )}
 
-      <DeferredMount
-        className="home-deferred home-deferred--pulse"
-        minHeight={96}
-        rootMargin="460px 0px"
-        ariaLabel="Твой прогресс AnimeBox"
-      >
-        <HomePersonalPulse />
-      </DeferredMount>
+      {(hasWatchHistory || hasPersonalHistory) && (
+        <DeferredMount
+          className="home-deferred home-deferred--pulse"
+          minHeight={96}
+          rootMargin="460px 0px"
+          ariaLabel="Твой прогресс AnimeBox"
+        >
+          <HomePersonalPulse />
+        </DeferredMount>
+      )}
 
       <DeferredMount
         className="home-deferred home-deferred--activation"
