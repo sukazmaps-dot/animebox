@@ -133,6 +133,15 @@ fs.mkdirSync(output, { recursive: true });
           return !a || !b ? null : { left: Math.abs(a.left - b.left), right: Math.abs(a.right - b.right) };
         });
         assert(aligned && aligned.left <= 1 && aligned.right <= 1, name + ' hero/schedule gutter alignment');
+        const heroOverlaps = await page.evaluate(() => {
+          const hero = document.querySelector('[data-home-hero]');
+          const targets = [...hero.querySelectorAll('h1, .home-hero-scene__facts, .home-hero-scene__summary, a, [role="group"]')].filter(el => el.getClientRects().length);
+          return [...hero.querySelectorAll('button[aria-label="Предыдущий тайтл"], button[aria-label="Следующий тайтл"]')].some(arrow => {
+            const a = arrow.getBoundingClientRect();
+            return targets.some(el => { const b = el.getBoundingClientRect(); return Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top); });
+          });
+        });
+        assert(!heroOverlaps, name + ' hero navigation overlaps text or actions');
         const compact = await page.evaluate(() => {
           const box = el => el.getBoundingClientRect();
           // Sparse rows retain DOM identity for recommendation-order stability,
@@ -236,7 +245,7 @@ fs.mkdirSync(output, { recursive: true });
         // Full-page screenshots captured at scrollY=0 intentionally show the
         // unmounted lazy placeholders. Inspect a scrolled, settled page too:
         // real visitors approach these sections and trigger IntersectionObserver.
-        if ((c.width === 390 || c.width === 1366) && c.mode === 'normal') {
+        if ([390, 1366, 1920].includes(c.width) && c.mode === 'normal') {
           const mounts = page.locator('[data-home-layout="cinematic"] .deferred-mount');
           const count = await mounts.count();
           for (let i = 0; i < count; i++) {
@@ -254,12 +263,23 @@ fs.mkdirSync(output, { recursive: true });
             const area = document.querySelector('[data-home-layout="cinematic"]');
             const watch = area.querySelector('[id="animebox-watch-together"]');
             const nav = area.querySelector('nav[aria-label="Разделы AnimeBox"]');
-            return { height: document.documentElement.scrollHeight,
+            const promoErrors = [];
+            const promoCards = [...area.querySelectorAll('.home-deferred--support > section, .home-deferred--telegram > section')];
+            for (const card of promoCards) {
+              const box = card.getBoundingClientRect(), host = card.parentElement.getBoundingClientRect();
+              if (box.bottom > host.bottom + 2) promoErrors.push('promo exceeds deferred host');
+              for (const action of card.querySelectorAll('a')) {
+                const r = action.getBoundingClientRect();
+                if (r.top < box.top - 2 || r.bottom > box.bottom + 2 || r.right > box.right + 2) promoErrors.push('promo action clipped');
+              }
+            }
+            return { height: document.documentElement.scrollHeight, promoErrors,
               watchBottom: bottom(watch), navTop: top(nav), navBottom: bottom(nav),
               ready: [...area.querySelectorAll('.deferred-mount')].map(node => node.getAttribute('data-ready')) };
           });
           fs.writeFileSync(path.join(output, name + '-settled-geometry.json'), JSON.stringify(settled, null, 2));
           assert(settled.ready.every(state => state === 'true'), name + ' deferred sections never mounted');
+          assert.deepEqual(settled.promoErrors, [], name + ' footer promo content containment');
           await page.screenshot({ path: path.join(output, name + '-settled.png'), fullPage: true });
         }
         assert.deepEqual(errors, [], name + ' browser errors');
@@ -289,3 +309,4 @@ fs.mkdirSync(output, { recursive: true });
     fs.copyFileSync(logPath, path.join(output, 'next.log'));
   }
 })().catch(error => { console.error(error); console.error('Next log:', logPath); process.exitCode = 1; });
+
