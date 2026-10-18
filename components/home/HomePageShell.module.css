@@ -23,6 +23,17 @@
 .page :global(.smart-feed__rail-heading) h3 { font-size: 17px; font-weight: 600; }
 /* Shelves need a title; implementation copy and duplicate badges add noise. */
 .page :global(.smart-feed__rail-heading) p, .page :global(.smart-feed__rail-badge) { display: none; }
+/* Home-only compact poster rails: 1-2 items retain natural fixed width,
+   not stretched grid columns. A partial next poster intentionally suggests swipe. */
+.page :global(.smart-feed__slide) { width: 170px; max-width: 170px; flex: 0 0 170px; }
+.page :global(.smart-feed__slide > .smart-card) { min-width: 0; height: auto; }
+.page :global(.smart-card__body) { padding-top: 8px; gap: 4px; }
+.page :global(.smart-card__title) { font-size: 13px; line-height: 1.35; }
+.page :global(.smart-card__meta) { font-size: 11px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page :global(.smart-card__rating) { display: none; }
+.page :global(.smart-feed__rail) { min-width: 0; }
+.page :global(.smart-feed__rail [role="region"]) { scroll-padding-inline: 2px; }
+
 .page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; gap: 16px; scroll-snap-type: x proximity; }
 .page :global(.anime-card), .page :global(.smart-card) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .page :global(.anime-card__image-wrap), .page :global(.smart-card__poster) { overflow: hidden; border-radius: 6px; }
@@ -59,6 +70,12 @@
   .page :global(.section-title) { font-size: 20px; }
   .page :global(.section-link) { font-size: 13px; }
   .page :global(.home-anime-rail__viewport) { grid-auto-columns: 130px; gap: 10px; }
+  .page :global(.smart-feed__slide) { width: 130px; max-width: 130px; flex-basis: 130px; }
+  .page :global(.smart-feed__rail [role="region"]) { margin-inline: 0; padding-inline: 2px; scroll-padding-inline: 2px; }
+  .page :global(.smart-feed__rail-heading) h3 { font-size: 16px; }
+  .page :global(.smart-card__title) { font-size: 12px; }
+  .page :global(.smart-card__meta) { font-size: 11px; }
+
   .page :global(.anime-card__body) h3 { font-size: 13px; }
   .page :global(.continue-smart-grid) { display: flex; overflow-x: auto; gap: 12px; scroll-snap-type: x proximity; overscroll-behavior-inline: contain; padding-bottom: 8px; }
   .page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { flex: 0 0 86vw; min-width: 0; max-width: 360px; scroll-snap-align: start; }
