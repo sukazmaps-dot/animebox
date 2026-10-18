@@ -9,9 +9,8 @@ export default function HomeWatchTogetherSection() {
     <section className={styles.section} aria-labelledby="home-watch-together-title" id="animebox-watch-together">
       <div className={styles.heading}>
         <div className={styles.headingCopy}>
-          <span className={styles.eyebrow}>WATCH TOGETHER · ANIMEBOX</span>
-          <h2 id="home-watch-together-title">Аниме лучше смотреть вместе</h2>
-          <p>Загляни в открытую комнату или создай свою. Смотреть синхронно и общаться можно даже на расстоянии.</p>
+          <h2 id="home-watch-together-title">Смотреть вместе</h2>
+          <p>Открытые комнаты и синхронный просмотр с друзьями.</p>
         </div>
         <div className={styles.headingActions}>
           <Link className={styles.primaryAction} href="/watch-together">

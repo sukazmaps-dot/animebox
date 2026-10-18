@@ -8,6 +8,7 @@ function load(file, imports = {}) {
   });
   new Function('module','exports','require',outputText)(module,module.exports,name => {
     if (name in imports) return imports[name];
+    if (name.endsWith('.module.css')) return {default: {}};
     if (name === 'react' || name === 'react/jsx-runtime') return require(name);
     throw Error('Unexpected import: '+name);
   });

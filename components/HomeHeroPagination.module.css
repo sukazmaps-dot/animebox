@@ -27,6 +27,16 @@
   white-space: nowrap;
 }
 
+.pagination.cinematic {
+  inset: auto 24px 24px auto;
+  background: transparent;
+  backdrop-filter: none;
+  color: #fff;
+}
+.cinematic .counter { color: inherit; }
+.cinematic .mark { background: rgb(255 255 255 / 45%); }
+.cinematic .position[aria-pressed='true'] .mark { background: #c5abff; }
+
 .positions {
   display: flex;
   flex: 0 1 220px;
@@ -70,6 +80,7 @@
 
 @media (max-width: 768px) {
   .pagination { inset: auto auto 10px 14px; }
+  .pagination.cinematic { inset: auto 12px 12px auto; }
 }
 @media (max-width: 390px) {
   .pagination { left: 6px; max-width: calc(100% - 12px); padding-inline: 4px; gap: 4px; }

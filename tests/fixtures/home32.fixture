@@ -1,0 +1,23 @@
+import '../../app/patch17-6-home-recommendation-actions.css';
+import '../../app/patch18-6-3-loading-ux.css';
+import HomePageShell from '@/components/home/HomePageShell';
+import type { Anime } from '@/types/anime';
+
+// Uses the production shell/providers and real interactive components.
+// Only the catalogue/media/API responses are deterministic fixtures.
+export default async function Home32Fixture({ searchParams }: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
+  const items = Array.from({ length: 16 }, (_, i) => ({
+    id: 100 + i,
+    title: { russian: i === 0 ? 'Провожающая в последний путь Фрирен' : `Невероятное путешествие в другом мире: возвращение героя — сезон ${i + 1}` },
+    mobileHeroPosition: { x: 60, y: 18 },
+    genres: ['Adventure', 'Fantasy'], score: 9.1, episodes: 24, format: 'TV',
+    status: 'RELEASING', startDate: { year: 2026 },
+    description: 'Путешествие заканчивается, но для эльфийки Фрирен всё только начинается. Новые встречи помогают ей понять, что значит время, дружба и память.',
+    ...(mode !== 'poster' ? { bannerImage: `https://qa-images.test/banner-${i}.jpg`, mobileHeroImage: `https://qa-images.test/portrait-${i}.jpg` } : {}),
+    coverImage: { extraLarge: `https://qa-images.test/cover-${i}.jpg` },
+  })) as Anime[];
+  return <HomePageShell initialPopular={items} initialOngoing={items.slice(4)} />;
+}

@@ -21,7 +21,7 @@ assert(lobby.includes('requestRef.current?.abort()'), 'hidden requests must be c
 assert(lobby.includes('if (!visibleRef.current || document.hidden)'), 'no background polling');
 assert(lobby.includes("window.location.assign(safeTarget)"), 'secure room join must remain');
 assert(lobby.includes("intent: 'watch_party'"), 'guest login flow remains');
-assert(page.includes("import './patch29-1-home-mobile.css';"), 'home route CSS missing');
+assert(shell.includes("import styles from './HomePageShell.module.css'"), 'home module owner missing');
 assert(css.includes('min-height: clamp(380px, 108vw, 460px) !important'), 'mobile art composition');
 assert(css.includes('min-height: 320px !important'), 'compact narrow mobile hero 320');
 assert(css.includes('min-height: 44px !important'), 'mobile touch targets');

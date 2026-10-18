@@ -106,9 +106,8 @@ const globalScheduleIndex =
 const retentionIndex =
   shell.indexOf('<HomeRetentionSections />');
 const utilityIndex =
-  shell.indexOf('<div className="home-utility-grid">');
-const railIndex =
-  shell.indexOf('<HomeRightRail />');
+  shell.indexOf('<div className={styles.support}>');
+const chatIndex = shell.indexOf('<HomeDeferredChat />');
 
 if (
   !(
@@ -126,12 +125,13 @@ if (
   !(
     globalScheduleIndex >= 0 &&
     retentionIndex > globalScheduleIndex &&
-    utilityIndex > retentionIndex &&
-    railIndex > utilityIndex
+    chatIndex > retentionIndex &&
+    utilityIndex > chatIndex &&
+    !shell.includes('<HomeRightRail />')
   )
 ) {
   failures.push(
-    'Schedule/retention/utility/right-rail order regressed.',
+    'Schedule/retention/community/support order or removed duplicate right rail regressed.',
   );
 }
 

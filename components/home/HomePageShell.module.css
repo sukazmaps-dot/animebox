@@ -1,0 +1,61 @@
+/* Home 32 has one layout owner. Deliberately does not opt into the old
+   home-page/home-grid selector chain; shared cards retain their behavior. */
+.page {
+  --home-canvas: var(--ab-ui-canvas, #141218);
+  min-width: 0;
+  width: 100%;
+  color: var(--ab-ui-text);
+  background: var(--home-canvas);
+}
+.shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 40px; padding: 0 clamp(16px, 3vw, 48px) 40px; }
+.shelves > :first-child { margin-top: 0; }
+.page :global(.section) { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.page :global(.section-head) { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 18px; }
+.page :global(.section-title) { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ab-ui-text); font-size: clamp(20px, 2vw, 28px); font-weight: 650; line-height: 1.25; letter-spacing: -.025em; }
+.page :global(.section-title__icon), .page :global(.smart-section-eyebrow) { display: none; }
+.page :global(.section-link) { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: 44px; color: var(--ab-ui-muted); font-size: 12px; line-height: 1.4; text-decoration: none; }
+.page :global(.section-link):hover { color: var(--ab-ui-text); }
+.page :global(.home-discovery-flow) { display: block; margin: 0; min-width: 0; }
+.page :global(.smart-feed-heading) { min-width: 0; }
+.page :global(.smart-feed) { gap: 28px; }
+.page :global(.smart-feed__rail-heading) { margin-bottom: 12px; }
+.page :global(.smart-feed__rail-heading) h3 { font-size: 17px; font-weight: 600; }
+.page :global(.smart-feed__rail-heading) p { font-size: 12px; color: var(--ab-ui-muted); }
+.page :global(.home-anime-rail__viewport) { grid-auto-columns: calc((100% - 64px) / 5); gap: 16px; scroll-snap-type: x proximity; }
+.page :global(.anime-card), .page :global(.smart-card) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.page :global(.anime-card__image-wrap), .page :global(.smart-card__poster) { overflow: hidden; border-radius: 6px; }
+.page :global(.anime-card__body) { padding: 12px 0 0; }
+.page :global(.anime-card__body) h3 { font-size: 14px; line-height: 1.4; font-weight: 550; }
+.page :global(.anime-card__meta) { margin-top: 6px; font-size: 11px; color: var(--ab-ui-muted); }
+.page :global(.anime-card__shine) { display: none; }
+.page :global(.home-anime-rail__arrow) { min-width: 44px; width: 44px; height: 44px; border-radius: 6px; box-shadow: none; }
+.page :global(.continue-smart-grid) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 0; border: 0; background: transparent; }
+.page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { display: grid; grid-template-columns: 68px minmax(0, 1fr) 20px; grid-column: auto; gap: 14px; min-height: 126px; height: auto; padding: 12px; border: 1px solid var(--ab-ui-border); border-radius: 6px; background: var(--ab-ui-surface); box-shadow: none; }
+.page :global(.continue-smart-card__poster) { width: 68px; height: 102px; border-radius: 4px; }
+.page :global(.continue-smart-card__body) strong { font-size: 14px; line-height: 1.4; }
+.page :global(.continue-smart-card__body) small { font-size: 11px; }
+.page :global(.continue-smart-card__eyebrow) { font-size: 10px; }
+.page :global(.personal-schedule-section) { margin-bottom: 32px; }
+.page :global(.personal-schedule-section) :global(.section-head) p { color: var(--ab-ui-muted); font-size: 12px; }
+.page :global(.schedule__cards) { gap: 10px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px 28px; border-top: 1px solid var(--ab-ui-border); padding-top: 16px; }
+.links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ab-ui-muted); font-size: 13px; }
+.links a:hover { color: var(--ab-ui-text); }
+.support { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+.page a:focus-visible, .page button:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
+@media (min-width: 1600px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: calc((100% - 80px) / 6); } }
+@media (max-width: 1100px) { .page :global(.continue-smart-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1024px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: calc((100% - 36px) / 4); gap: 12px; } }
+@media (max-width: 768px) {
+  .shelves { gap: 32px; padding-inline: 16px; }
+  .page :global(.section-head) { gap: 12px; margin-bottom: 12px; }
+  .page :global(.section-title) { font-size: 21px; }
+  .page :global(.section-link) { font-size: 11px; }
+  .page :global(.home-anime-rail__viewport) { grid-auto-columns: 42%; gap: 10px; }
+  .page :global(.anime-card__body) h3 { font-size: 13px; }
+  .page :global(.continue-smart-grid) { display: flex; overflow-x: auto; gap: 12px; scroll-snap-type: x proximity; overscroll-behavior-inline: contain; padding-bottom: 8px; }
+  .page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { flex: 0 0 min(92%, 380px); min-width: 0; scroll-snap-align: start; grid-template-columns: 62px minmax(0, 1fr) 16px; gap: 10px; }
+  .page :global(.continue-smart-card__poster) { width: 62px; height: 93px; }
+  .support { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .page :global(.home-anime-rail__viewport) { scroll-behavior: auto; } }

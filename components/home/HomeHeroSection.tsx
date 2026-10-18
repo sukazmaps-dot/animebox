@@ -2,6 +2,7 @@
 
 import HomeHeroCarousel from '@/components/HomeHeroCarousel';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
+import styles from './HomeCinematicHero.module.css';
 
 export default function HomeHeroSection() {
   const {
@@ -12,9 +13,9 @@ export default function HomeHeroSection() {
 
   if (heroLoading) {
     return (
-      <section className="page-hero page-hero--empty">
-        <div className="page-hero__content">
-          <span className="pill pill--accent">ANIMEBOX</span>
+      <section className={styles.scene} aria-busy="true">
+        <div className={styles.content}>
+          <span className={styles.eyebrow}>ANIMEBOX</span>
           <h1>Загружаем AnimeBox…</h1>
           <p>Секунду — собираем главную.</p>
         </div>
@@ -26,6 +27,7 @@ export default function HomeHeroSection() {
     <HomeHeroCarousel
       popular={popular}
       ongoing={ongoing}
+      cinematic
     />
   );
 }

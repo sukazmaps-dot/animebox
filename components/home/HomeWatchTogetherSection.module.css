@@ -2,11 +2,11 @@
 .section {
   width: 100%;
   min-width: 0;
-  padding: 16px 20px;
-  margin: 18px 0;
-  border: 1px solid var(--ab-ui-border, #36333f);
-  border-radius: 14px;
-  background: var(--ab-ui-surface, #1c1b22);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--ab-ui-text, #edeaf2);
 }
 .heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 24px; }
@@ -46,7 +46,7 @@
   .heading { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 }
 @media (max-width: 760px) {
-  .section { padding: 14px 16px; margin-block: 14px 18px; border-radius: 12px; }
+  .section { padding: 0; margin: 0; }
   .heading { gap: 14px; }
   .heading h2 { font-size: 19px; margin: 4px 0 5px; }
   .heading p { font-size: 13px; line-height: 1.45; }
