@@ -1350,9 +1350,16 @@ export default function SmartRecommendationFeed({
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
             const displayItems = rail.items.filter(item => !visibleAcrossRails.has(item.anime.id));
-            // Once a sparse rail has exhausted its candidate pool, do not render
-            // an orphan poster with a page-width empty track.
-            if (!showRailSkeleton && !railLoading && displayItems.length > 0 && displayItems.length < 4) return null;
+            // Completed sparse rails must not leave an orphan card or an empty
+            // "retry" heading. Preserve the interleaved personal schedule slot.
+            const hideSparse = !showRailSkeleton && !railLoading &&
+              ((displayItems.length > 0 && displayItems.length < 4) ||
+                (displayItems.length === 0 && (railFailed || !railHasMore)));
+            if (hideSparse) {
+              return railIndex === midFeedInsertAfterIndex && midFeedSlot
+                ? <div key={`${rail.id}:interleave:${rowVersion}`} className="smart-feed__interleave" data-home-composition-slot="personal-schedule">{midFeedSlot}</div>
+                : null;
+            }
             displayItems.forEach(item => visibleAcrossRails.add(item.anime.id));
 
             return (
