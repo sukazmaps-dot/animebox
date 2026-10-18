@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import type { Anime } from '@/types/anime';
 import HomeFeedRuntimeProvider from '@/components/home/HomeFeedRuntimeProvider';
 import HomeScheduleRuntimeProvider from '@/components/home/HomeScheduleRuntimeProvider';
@@ -35,18 +33,12 @@ export default function HomePageShell({
           <HomeHeroSection />
           <div className={styles.shelves}>
             <HomeContinueSection />
+            <HomeScheduleSection />
             <HomeDiscoverySection />
             <HomeCatalogSections />
-            <HomeScheduleSection />
             <HomeWatchTogetherSection />
-            <HomeRetentionSections />
             <HomeDeferredChat />
-            <nav className={styles.links} aria-label="Разделы AnimeBox">
-              <Link href="/search">Каталог</Link>
-              <Link href="/schedule">Расписание</Link>
-              <Link href="/list">Мой список</Link>
-              <Link href="/watch-together">Смотреть вместе</Link>
-            </nav>
+            <HomeRetentionSections />
             <div className={styles.support}>
               <HomeDeferredSupport />
             </div>
