@@ -1352,7 +1352,7 @@ export default function SmartRecommendationFeed({
             const displayItems = rail.items.filter(item => !visibleAcrossRails.has(item.anime.id));
             // Once a sparse rail has exhausted its candidate pool, do not render
             // an orphan poster with a page-width empty track.
-            if (!railHasMore && !railLoading && !railFailed && displayItems.length > 0 && displayItems.length < 4) return null;
+            if (!showRailSkeleton && !railLoading && displayItems.length > 0 && displayItems.length < 4) return null;
             displayItems.forEach(item => visibleAcrossRails.add(item.anime.id));
 
             return (
