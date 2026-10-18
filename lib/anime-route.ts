@@ -33,7 +33,7 @@ const getPersistedAnimeBase = unstable_cache(
 // Keep only authoritative successful AniList results; never cache a missing title.
 const animeBaseCache = createPublicResultCache<Anime | null>({
   ttlMs: 30 * 60_000, staleIfErrorMs: 6 * 60 * 60_000,
-  maxEntries: 1_000, cacheWhen: value => Boolean(value),
+  maxBytes: 8 * 1024 * 1024, maxEntries: 1_000, cacheWhen: value => Boolean(value),
 });
 const getCachedAnimeBase = (id: number) =>
   animeBaseCache(String(id), () => getPersistedAnimeBase(id));

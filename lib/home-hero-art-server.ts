@@ -7,7 +7,7 @@ import type { Anime } from '@/types/anime';
 // One batch per feed cache fill, never one provider request per card.
 const loadArt = createPublicResultCache<Anime[]>({
   ttlMs: 15 * 60_000,
-  maxEntries: 16,
+  maxBytes: 2 * 1024 * 1024, maxEntries: 16,
   cacheWhen: items => items.length > 0,
 });
 

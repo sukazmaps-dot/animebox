@@ -105,7 +105,7 @@ function mapSearchRow(row: Record<string, unknown>): LocalAnimeSearchHit | null 
 }
 
 const cachedLexicalSearch = createPublicResultCache<LocalAnimeSearchHit[]>({
-  ttlMs: 30_000, maxEntries: 128, cacheWhen: rows => rows.length > 0,
+  ttlMs: 30_000, maxBytes: 2 * 1024 * 1024, maxEntries: 128, cacheWhen: rows => rows.length > 0,
 });
 
 async function runLexicalSearch(query: string, matchCount: number) {

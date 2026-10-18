@@ -123,6 +123,8 @@ async function images() {
   const originalFetch = global.fetch;
   let calls = 0, guards = 0;
   const route = load('app/api/image/route.ts', {
+    '@/lib/bounded-work': load('lib/bounded-work.ts'),
+    '@/lib/image-upstream-server': { fetchImageUpstream: (url, init) => fetch(url, {...init, redirect: 'manual'}) },
     'next/server': { NextResponse: Response },
     '@/lib/public-result-cache': publicCache,
     '@/lib/edge-cache-policy': load('lib/edge-cache-policy.ts'),

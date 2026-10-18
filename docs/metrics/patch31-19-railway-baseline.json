@@ -1,0 +1,744 @@
+{
+  "service": {
+    "projectId": "de2a2233-a358-4353-950e-eab59a680d0f",
+    "environmentId": "67f9110d-f728-4ee1-a52d-fd42eda9f40f",
+    "serviceId": "ab09db5d-6d0b-49d0-907d-4d2aea2c5ff3"
+  },
+  "captured": "2026-10-18",
+  "metrics24h": {
+    "service": {
+      "id": "ab09db5d-6d0b-49d0-907d-4d2aea2c5ff3",
+      "name": "animebox"
+    },
+    "environment": {
+      "id": "67f9110d-f728-4ee1-a52d-fd42eda9f40f",
+      "name": "production"
+    },
+    "metrics": [
+      {
+        "measurement": "CPU_USAGE",
+        "current": 0.04379738333333333,
+        "average": 0.08862647196391396,
+        "min": 0.0015748499999999998,
+        "max": 1.2595752166666665,
+        "sampleCount": 1441
+      },
+      {
+        "measurement": "MEMORY_USAGE_GB",
+        "current": 0.257794048,
+        "average": 0.6416631778154056,
+        "min": 0.109154304,
+        "max": 1.019695104,
+        "sampleCount": 1441
+      },
+      {
+        "measurement": "NETWORK_RX_GB",
+        "current": 0.001017529,
+        "average": 0.009054079538514928,
+        "min": 0,
+        "max": 0.336379407,
+        "sampleCount": 1441
+      },
+      {
+        "measurement": "NETWORK_TX_GB",
+        "current": 0.002154804,
+        "average": 0.011514378122137422,
+        "min": 0,
+        "max": 0.358118153,
+        "sampleCount": 1441
+      }
+    ]
+  },
+  "metrics168h": {
+    "service": {
+      "id": "ab09db5d-6d0b-49d0-907d-4d2aea2c5ff3",
+      "name": "animebox"
+    },
+    "environment": {
+      "id": "67f9110d-f728-4ee1-a52d-fd42eda9f40f",
+      "name": "production"
+    },
+    "metrics": [
+      {
+        "measurement": "CPU_USAGE",
+        "current": 0.04379738333333333,
+        "average": 0.03210529561055461,
+        "min": 0,
+        "max": 1.2595752166666665,
+        "sampleCount": 10081
+      },
+      {
+        "measurement": "MEMORY_USAGE_GB",
+        "current": 0.257794048,
+        "average": 0.5588912446072156,
+        "min": 0.073535488,
+        "max": 1.019695104,
+        "sampleCount": 10081
+      },
+      {
+        "measurement": "NETWORK_RX_GB",
+        "current": 0.001017529,
+        "average": 0.001574914903878584,
+        "min": 0,
+        "max": 0.336379407,
+        "sampleCount": 10081
+      },
+      {
+        "measurement": "NETWORK_TX_GB",
+        "current": 0.002154804,
+        "average": 0.002205456210792581,
+        "min": 0,
+        "max": 0.358118153,
+        "sampleCount": 10081
+      }
+    ]
+  },
+  "requests168h": {
+    "2xx": 354165,
+    "3xx": 612,
+    "4xx": 12578,
+    "5xx": 3262,
+    "total": 370617
+  },
+  "latency24h": {
+    "service": {
+      "id": "ab09db5d-6d0b-49d0-907d-4d2aea2c5ff3",
+      "name": "animebox"
+    },
+    "environment": {
+      "id": "67f9110d-f728-4ee1-a52d-fd42eda9f40f",
+      "name": "production"
+    },
+    "window": {
+      "hoursBack": 24,
+      "bucketCount": 5
+    },
+    "slowestBucket": {
+      "ts": 1792216800,
+      "p50": 202,
+      "p90": 1956,
+      "p95": 3677,
+      "p99": 30000
+    },
+    "samples": [
+      {
+        "ts": 1792216800,
+        "p50": 202,
+        "p90": 1956,
+        "p95": 3677,
+        "p99": 30000
+      },
+      {
+        "ts": 1792238400,
+        "p50": 37,
+        "p90": 1034,
+        "p95": 1524,
+        "p99": 4080
+      },
+      {
+        "ts": 1792260000,
+        "p50": 19,
+        "p90": 1499,
+        "p95": 2295,
+        "p99": 30000
+      },
+      {
+        "ts": 1792281600,
+        "p50": 12,
+        "p90": 775,
+        "p95": 980,
+        "p99": 2509
+      },
+      {
+        "ts": 1792303200,
+        "p50": 13,
+        "p90": 861,
+        "p95": 1112,
+        "p99": 2625
+      }
+    ]
+  },
+  "routeCounts": [
+    {
+      "path": "/api/image",
+      "totals": {
+        "2xx": 25535,
+        "3xx": 0,
+        "4xx": 416,
+        "5xx": 1911,
+        "total": 27862
+      }
+    },
+    {
+      "path": "/api/anime",
+      "totals": {
+        "2xx": 824,
+        "3xx": 0,
+        "4xx": 140,
+        "5xx": 140,
+        "total": 1104
+      }
+    },
+    {
+      "path": "/api/recommendations",
+      "totals": {
+        "2xx": 4069,
+        "3xx": 0,
+        "4xx": 303,
+        "5xx": 347,
+        "total": 4719
+      }
+    }
+  ],
+  "deployments": [
+    {
+      "id": "9ee8beda-5bb5-47a0-a1b2-79af0d13797d",
+      "status": "SUCCESS",
+      "createdAt": "2026-10-18T07:21:09.439Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge PR #266 — Patch 31.18 profile inspector and 31.18.1 CI stabilization\n\nCompact editor inspector, corrected profile previews and responsive layout; 31.18.1 updates the legacy four-track geometry regression. GitHub Quality Gate #39106675069 passed. Vercel account deployment status remains blocked and must be resolved separately.",
+        "commitHash": "09957703d09a0a4b5ace80ace441c51ce035f116",
+        "branch": "main"
+      },
+      "regions": [
+        "us-west2"
+      ]
+    },
+    {
+      "id": "8cc4bc89-c890-44c3-8aef-424e84d6358d",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T20:21:03.444Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge PR #265 — Hotfix 31.16 Supabase outage resilience\n\nPrevent public-read retry storms under PostgREST PGRST002, bound registry/saved reads and avoid cacheable empty /api/anime results. Full Quality Gate 39065687295 passed.",
+        "commitHash": "d525e314666584d79d1a4e71ae771e8b6fc3cb77",
+        "branch": "main"
+      },
+      "regions": [
+        "us-west2"
+      ]
+    },
+    {
+      "id": "0bcfa055-f713-4507-ba90-765412db627e",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T19:56:01.234Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge PR #263 — Hotfix 31.15 API stability and Telegram recovery\n\nIsolate public read rate guards from Supabase, bound optional runtime-control lookups and clarify Telegram outage state. Quality Gate #39063442669 passed.",
+        "commitHash": "2b7bc9e0363247cc10034d958c281b31b04dc1b2",
+        "branch": "main"
+      },
+      "regions": [
+        "us-west2"
+      ]
+    },
+    {
+      "id": "05124d0d-2f30-41a5-bba8-ae50bad8d269",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T19:14:08.576Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge PR #262 — Patch 31.13–31.14 Discord-style profile editor\n\nReplace overlapping editor overlay with responsive four-track modal, maintain draft/save/history flows, and pass Quality Gate (39060018732).",
+        "commitHash": "819636703c6212fd431aeaa19c0a1ede6ca0ba4e",
+        "branch": "main"
+      },
+      "regions": [
+        "us-west2"
+      ]
+    },
+    {
+      "id": "dbcfbb78-459d-476d-9109-ab3cbc28f499",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T19:10:19.264Z",
+      "meta": {
+        "reason": "redeploy",
+        "commitMessage": "Merge PR #262 — Patch 31.13–31.14 Discord-style profile editor\n\nReplace overlapping editor overlay with responsive four-track modal, maintain draft/save/history flows, and pass Quality Gate (39060018732).",
+        "commitHash": "819636703c6212fd431aeaa19c0a1ede6ca0ba4e",
+        "branch": "main"
+      },
+      "regions": [
+        "europe-west4-drams3a"
+      ]
+    },
+    {
+      "id": "f82cb785-f3e7-45e0-ba5d-3a9c0afe09f7",
+      "status": "FAILED",
+      "createdAt": "2026-10-17T19:04:33.846Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge PR #262 — Patch 31.13–31.14 Discord-style profile editor\n\nReplace overlapping editor overlay with responsive four-track modal, maintain draft/save/history flows, and pass Quality Gate (39060018732).",
+        "commitHash": "819636703c6212fd431aeaa19c0a1ede6ca0ba4e",
+        "branch": "main"
+      },
+      "regions": []
+    },
+    {
+      "id": "22fefd28-818a-48d5-89e7-574d8f74f29b",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T18:30:21.404Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #261 — Hotfix 31.12.1 profile and Studio loading\n\nBound session and profile loading, provide retry, coalesce account-scoped appearance reads, and hydrate late Studio settings. Quality Gate successful.",
+        "commitHash": "d942b0f4607335590838a351d041be032e430ced",
+        "branch": "main"
+      },
+      "regions": [
+        "europe-west4-drams3a"
+      ]
+    },
+    {
+      "id": "fbbb77ea-5f99-4ae1-946d-91b46b2783fb",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T16:26:39.028Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #261 — Hotfix 31.12.1 profile and Studio loading\n\nBound session and profile loading, provide retry, coalesce account-scoped appearance reads, and hydrate late Studio settings. Quality Gate successful.",
+        "commitHash": "d942b0f4607335590838a351d041be032e430ced",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "a3b59dfd-15a2-4637-b200-114bd88ad3d4",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T16:00:41.324Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #260 — Patch 31.12 compact profile editor\n\nSimplify Discord-inspired profile editor navigation, progressively disclose palette and secondary settings, preserve drafts and fix compact-form anchor selection. Quality Gate passed.",
+        "commitHash": "b4e2ef536722b588686c7ba67dce89971dc5f014",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "96eec9a9-e8d2-402c-b4ff-df99270c7cb9",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T15:21:36.871Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #259 — Hotfix 31.11.1 player controls\n\nFix Kodik duplicate fullscreen overlay and compact responsive episode navigation; unify source status alignment, selectors and regression tests",
+        "commitHash": "775cf046f9f3eafbf42f85c9a9a364054ff2d28e",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "087e9681-f94d-408c-b65f-319cfc1d24c2",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T14:57:09.365Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #258 — Patch 31.11 Profile Integrity\n\nProfile Integrity: synchronous Save lock, ordered per-user IndexedDB draft persistence, stale-write protection, single media cleanup, verified regression suite",
+        "commitHash": "ddbab4a7f8ccea35e60ae295d3eb3fa83a6feb0e",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "608b1bd8-fa21-46f3-b068-6c5b7e2116d8",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T13:53:45.145Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #257 — Hotfix 31.10.4 Kodik opening ownership\n\nHotfix 31.10.4: block competing Kodik automatic opening seeks and late episode-change resets; runtime regression tests",
+        "commitHash": "2fb8d8f63eb8bbb7dc57342ea2a0ea43732805aa",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "01dd4015-cd05-4422-80eb-e618466ceaa0",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T13:53:15.612Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #256 — Hotfix 31.10.3 fullscreen exit overlay\n\nHotfix 31.10.3: auto-hide desktop fullscreen exit overlay on idle; hover reveal and iframe identity regression",
+        "commitHash": "9b10f9e3f61e2f283321e396843589d3f543ab8e",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "19836004-bfe8-46c5-a53d-8ac9e7d92ed7",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T13:52:53.879Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #255 — Hotfix 31.10.2 fixed search topbar stacking\n\nHotfix 31.10.2: keep global search above expanded translation dropdown; browser stacking regression",
+        "commitHash": "89f2070f06065db8ad26f76d839eae7b6f79f8ed",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "be038cdf-2cc7-454e-b9f4-aaf1f8d07148",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T12:40:02.852Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #254 — Hotfix 31.10.1 player dropdown stacking\n\nHotfix 31.10.1 — lift isolated player overlay above episode navigation; regression and theater guard",
+        "commitHash": "6b76ff9949a5e8e82d376091c524a5acd2735164",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "cff23a76-5043-4526-979e-2da71c37f0a3",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T12:10:48.360Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #253 — Patch 31.10 loading budgets\n\nPatch 31.10 — bounded upstream loading, public response dedupe, voice dropdown layering",
+        "commitHash": "17ac4886f7e0f84f575db9f0d10e7aed20e0599a",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "e584cb84-9a7f-4f46-9838-15485123207e",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T11:38:41.456Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #252 — Discord-style profile workspace\n\nPatch 31.9 — Discord-style profile workspace",
+        "commitHash": "39351fb96c26f90516a0b261b0009a447a092fc9",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "364a1c47-49de-46b2-a9b3-e1c32446ab64",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T11:30:17.060Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #251 — unified profile editor\n\nProfile editor phase 2 with phase 1 palette and preview refinements",
+        "commitHash": "4c680c5580fcc7084bcca28f953f189aa6739917",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "9c8ce26c-c318-47e9-a596-2f5a393f6916",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T10:30:21.438Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #251 — unified profile editor\n\nProfile editor phase 2 with phase 1 palette and preview refinements",
+        "commitHash": "4c680c5580fcc7084bcca28f953f189aa6739917",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "51629740-3235-4099-ae9f-2e8c21bf29b3",
+      "status": "REMOVED",
+      "createdAt": "2026-10-17T09:54:21.211Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #250 — Patch 31.8 hero copy stability\n\nPatch 31.8 — clamp long hero titles and stabilize CTA layout",
+        "commitHash": "b3151dc8e2b671f4a93c0ddd3ae60f87b603d52d",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "7dae65be-7e23-4e8e-a6db-3556d3320e82",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T22:16:00.303Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #249 from sukazmaps-dot/fix/mobile-player-controls-avatar\n\nHotfix 31.7.1 — landscape nav avatar and compact player controls",
+        "commitHash": "4df0fc9df753a5217d637933c0d0cb6a0e80f24b",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "9f634ea6-4d5e-4e2c-bf28-120d0d529351",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T21:45:51.806Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #248 from sukazmaps-dot/fix/watch-fullscreen-layout\n\nPatch 31.7 — Telegram player fullscreen and episode layout",
+        "commitHash": "cf2b8c3ab9b066834e4c29653972d943905c2d24",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "d665aa1f-3c1c-44bc-a4d5-c44a4bd773a2",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T20:37:23.914Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #247 from sukazmaps-dot/fix/profile-editor-responsive-layout\n\nPatch 31.6 — responsive profile editor, Premium scroll and recoverable drafts",
+        "commitHash": "25412f196bf5d54ad5bb76c48e064518f918e496",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "dcd8aa63-8d9b-4f6e-89fc-ae107a67fd30",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T18:37:08.780Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #246 from sukazmaps-dot/fix/31-5-anime-detail-alignment\n\nPatch 31.5 — consistent anime detail width and related card alignment",
+        "commitHash": "34017356d4aad37ddcb519e60011a0c1845ee646",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "f3f9a710-76b3-4deb-9bd3-ad4ef410a09e",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T18:36:41.037Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #245 from sukazmaps-dot/fix/31-4-home-hero-art-recovery\n\nPatch 31.4 — home hero artwork quality and image recovery",
+        "commitHash": "735db4ca0cc9e68873cea7c8c5690a695f8bc99a",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "9e2939ef-cbc0-4ef9-b2a3-16098c21e014",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T14:46:57.502Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Merge pull request #244 from sukazmaps-dot/feat/31-3-profile-editor-workspace\n\nPatch 31.3 — Discord-style profile editor workspace (mobile first)",
+        "commitHash": "892977ab76cc716ac5a3036b0ffb5fd213209e97",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "1b11586b-8dd8-4c7e-96c5-b081de43068c",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T12:14:36.120Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Release Patch 31.2 — mobile profile editor & banner fills (#243)\n\n* fix(profile): unify mobile save dock, transient status, seamless banner and touch edit glyph\n\n* feat(profile): add allowlisted banner palette and unexecuted schema proposal\n\n* feat(profile): persist validated banner style and render across public/profile/mini views\n\n* feat(profile): track banner style in editor dirty/reset/save flow\n\n* feat(profile): color/image inspector tabs, free banner swatches, safe HEX and avatar extraction\n\n* test(profile): guard mobile dock and banner palette in prebuild\n\n* test(profile): verify computed fixed dock and final-card clearance at 360/412/768 in both themes\n\n* fix(profile): guarantee banner edit chip contrast on pastel and light themes\n\n* fix(react): isolate controlled HEX draft without setState in effect\n\n* test(profile): adapt banner HEX validation contract to isolated input\n\n* test(profile): retire obsolete sticky 58dvh inspector expectation on compact screens\n\n* fix(profile): keep contextual Premium palette navigation in color inspector\n\n* fix(profile): allow expired Premium profiles to save ordinary fields without upgrading banner fill\n\n* fix(profile): downgrade edited banner fill to free style after Premium expiry\n\n* test(profile): protect Premium expiry and HEX color editor regressions\n\n* fix(profile): degrade Premium-only saved banner styles consistently when entitlement expires\n\n* fix(profile): bring banner inspector into view when tapped on mobile\n\n* fix(profile): use broadly supported reduced-motion scroll behavior\n\n* fix(profile): avoid duplicate saved indicator at tablet width",
+        "commitHash": "c6e815908737a5ab29a0dc671aee5d096a8b8039",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "9f6a473c-4266-4906-bb1f-bb7cc3a5d33b",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T10:31:42.267Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Release Patch 31.1 — integrated home redesign and mobile Hero (#242)\n\n* integrate(30.8): bring full-bleed mobile hero and regression fixtures onto Patch 30.9\n\n* integrate(30.1): desktop hero, moods and compact recommendation controls without mobile CSS conflicts\n\n* test(integration): combine 30.1 interaction and 30.8 mobile browser coverage, preserve 30.9 quality gates\n\n* fix(home): restore real desktop hero facts while keeping compact mobile facts unique\n\n* fix(ts): explicitly narrow optional episode count in desktop Hero\n\n* test(31.1): provide real SEO text helpers to hydrated Hero SSR fixture",
+        "commitHash": "c0c9370b8ec0f687cb8fee4b46727772e3fe512b",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "2e0da21a-31bd-4d8f-93a9-87a93128fa6a",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T09:49:19.911Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Release Patch 30.9 — reliable profile media and mobile crop dialog (#240)\n\n* Patch 30.9: .github/workflows/animebox-quality.yml\n\n* Patch 30.9: app/api/profile/editor/route.ts\n\n* Patch 30.9: app/api/profile/media/upload-url/route.ts\n\n* Patch 30.9: app/patch12-6-6-profile-banner-pipeline.css\n\n* Patch 30.9: app/patch12-6-8-profile-banner-cropper.css\n\n* Patch 30.9: app/premium-profile-v14.css\n\n* Patch 30.9: app/profile/[id]/page.tsx\n\n* Patch 30.9: app/profile/page.tsx\n\n* Patch 30.9: components/premium/PremiumMediaCropEditor.tsx\n\n* Patch 30.9: components/premium/PremiumStudioClient.tsx\n\n* Patch 30.9: components/profile/ProfileDirectEditSurface.tsx\n\n* Patch 30.9: components/profile/ProfileEditorClient.tsx\n\n* Patch 30.9: components/profile/ProfilePreview.tsx\n\n* Patch 30.9: lib/profile-appearance.ts\n\n* Patch 30.9: lib/profile-media-crop-client.ts\n\n* Patch 30.9: lib/profile-media-normalize-client.ts\n\n* Patch 30.9: lib/profile-media-publish-server.ts\n\n* Patch 30.9: lib/profile-media-upload-client.ts\n\n* Patch 30.9: lib/profile-preview-server.ts\n\n* Patch 30.9: lib/public-profile-server.ts\n\n* Patch 30.9: package.json\n\n* Patch 30.9: components/profile/ProfileMediaModal.tsx\n\n* Patch 30.9: docs/patches/PATCH-30-9-PROFILE-MEDIA.md\n\n* Patch 30.9: docs/sql/PROFILE-MEDIA-RLS-REFERENCE.sql\n\n* Patch 30.9: scripts/profile-media-browser-smoke.cjs\n\n* Patch 30.9: supabase/migrations/20261016085920_profile_media_banner_color_v1.sql\n\n* Patch 30.9: tests/fixtures/profile-media-sample.heic.base64\n\n* Patch 30.9: tests/fixtures/profile-media-v309.fixture\n\n* Patch 30.9: tests/profile-media-v309.cjs\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders\n\n* fix(profile): keep saved banner colors above legacy placeholders",
+        "commitHash": "013ef7e23bad8c5131e8714965ac704ecacd4cef",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    },
+    {
+      "id": "3387210e-0b83-49c4-9730-5bab35f73329",
+      "status": "REMOVED",
+      "createdAt": "2026-10-16T08:18:17.399Z",
+      "meta": {
+        "reason": "deploy",
+        "commitMessage": "Release Patch 30.7 — intent-based anime prefetch (#238)\n\n* Patch 30.7: .github/workflows/animebox-quality.yml\n\n* Patch 30.7: components/AnimeCard.tsx\n\n* Patch 30.7: components/AnimeIntentLink.tsx\n\n* Patch 30.7: components/SmartRecommendationCard.tsx\n\n* Patch 30.7: components/TopAnimeItem.tsx\n\n* Patch 30.7: docs/patches/PATCH-30-7-INTENT-PREFETCH.md\n\n* Patch 30.7: package.json\n\n* Patch 30.7: scripts/patch-18-6-4-ux-friction-check.mjs\n\n* Patch 30.7: tests/anime-intent-link.cjs\n\n* test(cards): isolate renderer development mode during production prebuild\n\n* test(layout): render intent-aware anime links in existing geometry fixtures\n\n* test(layout): render intent-aware anime links in existing geometry fixtures",
+        "commitHash": "07d2aefe4195b8baa3dff71193d92c6082f78b8f",
+        "branch": "main"
+      },
+      "regions": [
+        "sfo"
+      ]
+    }
+  ],
+  "limitations": [
+    "No Billing or Cloudflare analytics access",
+    "Network metric sample averages are not invoices or verified billable egress",
+    "UA claims do not verify crawlers",
+    "Latest 501 HTTP rows are a biased sample, not a weekly TOP20"
+  ],
+  "httpSample": {
+    "size": 501,
+    "top20": [
+      {
+        "path": "/api/image",
+        "requests": 41,
+        "errors5xx": 0,
+        "p95ms": 64
+      },
+      {
+        "path": "/",
+        "requests": 31,
+        "errors5xx": 0,
+        "p95ms": 20
+      },
+      {
+        "path": "/search",
+        "requests": 29,
+        "errors5xx": 0,
+        "p95ms": 40
+      },
+      {
+        "path": "/anime/[slug]",
+        "requests": 29,
+        "errors5xx": 0,
+        "p95ms": 1951
+      },
+      {
+        "path": "/list",
+        "requests": 28,
+        "errors5xx": 0,
+        "p95ms": 13
+      },
+      {
+        "path": "/premium",
+        "requests": 27,
+        "errors5xx": 0,
+        "p95ms": 12
+      },
+      {
+        "path": "/watch-together",
+        "requests": 27,
+        "errors5xx": 0,
+        "p95ms": 19
+      },
+      {
+        "path": "/login",
+        "requests": 26,
+        "errors5xx": 0,
+        "p95ms": 15
+      },
+      {
+        "path": "/copyright",
+        "requests": 26,
+        "errors5xx": 0,
+        "p95ms": 12
+      },
+      {
+        "path": "/about",
+        "requests": 26,
+        "errors5xx": 0,
+        "p95ms": 13
+      },
+      {
+        "path": "/terms",
+        "requests": 24,
+        "errors5xx": 0,
+        "p95ms": 13
+      },
+      {
+        "path": "/schedule",
+        "requests": 23,
+        "errors5xx": 0,
+        "p95ms": 13
+      },
+      {
+        "path": "/chat",
+        "requests": 23,
+        "errors5xx": 0,
+        "p95ms": 971
+      },
+      {
+        "path": "/leaderboard",
+        "requests": 22,
+        "errors5xx": 0,
+        "p95ms": 14
+      },
+      {
+        "path": "/support",
+        "requests": 22,
+        "errors5xx": 0,
+        "p95ms": 15
+      },
+      {
+        "path": "/register",
+        "requests": 22,
+        "errors5xx": 0,
+        "p95ms": 14
+      },
+      {
+        "path": "/settings",
+        "requests": 21,
+        "errors5xx": 0,
+        "p95ms": 14
+      },
+      {
+        "path": "/anime/[slug]/watch",
+        "requests": 10,
+        "errors5xx": 0,
+        "p95ms": 24
+      },
+      {
+        "path": "/anime/[slug]/episode/7",
+        "requests": 7,
+        "errors5xx": 0,
+        "p95ms": 792
+      },
+      {
+        "path": "/anime/[slug]/episode/6",
+        "requests": 4,
+        "errors5xx": 0,
+        "p95ms": 582
+      }
+    ]
+  }
+}
