@@ -81,6 +81,8 @@ export default function HomeChatTeaser() {
       if (idleHandle !== null) idleWindow.cancelIdleCallback?.(idleHandle);
     };
   }, []);
+  const recentMessages = messages.filter(message => !message.deleted_at && message.body?.trim()).slice(0, 3);
+
   return (
     <>
     <section className={styles.card} aria-labelledby="home-chat-title">
@@ -96,9 +98,9 @@ export default function HomeChatTeaser() {
         </Link>
       </div>
 
-      {messages.length ? (
+      {recentMessages.length ? (
         <div className={styles.messages}>
-          {messages.map((message) => {
+          {recentMessages.map((message) => {
             const badge = badgeFor(message);
             return (
               <Link key={message.id} href="/chat" className={styles.message}>
@@ -116,7 +118,7 @@ export default function HomeChatTeaser() {
                     <small>{relativeTime(message.created_at)}</small>
                   </span>
                   <span className={styles.body}>
-                    {message.deleted_at ? 'Сообщение удалено.' : message.body}
+                    {message.body}
                   </span>
                 </span>
               </Link>
