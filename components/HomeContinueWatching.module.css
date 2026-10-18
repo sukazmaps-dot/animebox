@@ -43,5 +43,18 @@
 .section :global(.continue-smart-card__progress) { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; margin: 0; background: var(--ab-ui-border); }
 .section :global(.continue-smart-card__progress) i { display: block; height: 100%; }
 .section :global(.continue-smart-card__arrow) { display: none; }
-@media (max-width: 768px) { .section :global(.continue-smart-card) { flex-basis: min(86vw, 320px); width: min(86vw, 320px); } }
+@media (max-width: 768px) {
+  .section :global(.continue-smart-card) { flex-basis: min(86vw, 320px); width: min(86vw, 320px); }
+
+  /* The Patch 30 legacy fixture still wraps these cards in .home-page.
+     Patch 14.3 gave that old layout a borderless, square table treatment
+     with !important; restore the component-owned card surface instead.
+     No legacy rule is applied to the cinematic production root. */
+  :global(.home-page) .section .card,
+  :global(.home-page) .section .card:first-child {
+    border: 1px solid var(--ab-ui-border) !important;
+    border-radius: 12px !important;
+    background: var(--ab-ui-surface) !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) { .section :global(.continue-smart-grid) { scroll-behavior: auto; } }
