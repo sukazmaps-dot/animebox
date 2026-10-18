@@ -7,4 +7,4 @@
 .link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--ab-ui-muted); font-size: 13px; line-height: 1.4; text-decoration: none; white-space: nowrap; }
 .link:hover { color: var(--ab-ui-text); }
 .link:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
-@media (max-width: 600px) { .root { align-items: flex-start; gap: 8px; } .title { font-size: 20px; } .actions { flex-wrap: wrap; justify-content: flex-end; } .link { font-size: 13px; } }
+@media (max-width: 600px) { .root { align-items: flex-start; flex-wrap: wrap; gap: 8px; } .copy { flex-basis: 100%; } .title { font-size: 20px; } .actions { width: 100%; flex: 1 1 100%; justify-content: flex-start; gap: 8px; } .link { font-size: 13px; } }
