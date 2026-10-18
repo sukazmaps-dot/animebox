@@ -51,7 +51,7 @@
 .page :global(.home-anime-rail__viewport) { min-height: 0; }
 .page :global(.home-anime-rail__arrow) { min-width: 44px; width: 44px; height: 44px; border-radius: 6px; box-shadow: none; }
 .page :global(.continue-smart-grid) { display: flex; gap: 12px; padding: 2px 0 10px; border: 0; background: transparent; }
-.page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { flex: 0 0 320px; width: 320px; max-width: 100%; min-height: 112px; box-shadow: none; }
+.page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px; box-sizing: border-box; flex: 0 0 320px; width: 320px; max-width: 100%; min-height: 112px; box-shadow: none; }
 .page :global(.continue-smart-card__poster) { width: 62px; height: 92px; border-radius: 4px; }
 .page :global(.continue-smart-card__body) strong { font-size: 14px; line-height: 1.4; }
 .page :global(.continue-smart-card__body) small { font-size: 11px; }
