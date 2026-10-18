@@ -32,6 +32,12 @@
 .page :global(.smart-card__meta) { font-size: 11px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page :global(.smart-card__rating) { display: none; }
 .page :global(.smart-feed__rail) { min-width: 0; }
+/* Root cause of the 28px dark strip in the user screenshot: legacy
+   patch12-4-5-identity-foundation.css adds a fixed ::after fade over cards.
+   The former .home-page override no longer matches the cinematic route.
+   The next poster itself is the scroll affordance; don't obscure it. */
+.page :global(.smart-feed__rail::after) { display: none; }
+
 .page :global(.smart-feed__rail [role="region"]) { scroll-padding-inline: 2px; }
 
 .page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; gap: 16px; scroll-snap-type: x proximity; }
