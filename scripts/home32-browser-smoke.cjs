@@ -135,8 +135,15 @@ fs.mkdirSync(output, { recursive: true });
         assert(aligned && aligned.left <= 1 && aligned.right <= 1, name + ' hero/schedule gutter alignment');
         const compact = await page.evaluate(() => {
           const box = el => el.getBoundingClientRect();
-          const cards = [...document.querySelectorAll('.smart-feed__slide:not(.smart-feed__slide--skeleton) .smart-card')];
+          // Sparse rows retain DOM identity for recommendation-order stability,
+          // but are hidden with display:none. Do not measure their 0x0 posters.
+          const cards = [...document.querySelectorAll('.smart-feed__slide:not(.smart-feed__slide--skeleton) .smart-card')]
+            .filter(card => card.getClientRects().length > 0);
           const errors = [];
+          const hiddenRails = [...document.querySelectorAll('.smart-feed__personal-rail[hidden]')];
+          for (const rail of hiddenRails) {
+            if (rail.getClientRects().length > 0) errors.push('hidden sparse rail occupies layout');
+          }
           for (const card of cards.slice(0, 8)) {
             const poster = card.querySelector('.smart-card__poster');
             const actions = card.querySelector('.smart-card__actions');
