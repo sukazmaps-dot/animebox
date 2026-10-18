@@ -164,6 +164,7 @@ export function HomeRetentionSections() {
     hasPersonalHistory,
     hasWatchHistory,
     continueWatchingItems,
+    userId,
   } = useHomeFeedRuntime();
 
   const {
@@ -198,7 +199,7 @@ export function HomeRetentionSections() {
         </DeferredMount>
       )}
 
-      <DeferredMount
+      {userId && <DeferredMount
         className="home-deferred home-deferred--activation"
         minHeight={150}
         rootMargin="420px 0px"
@@ -208,7 +209,7 @@ export function HomeRetentionSections() {
           hasHistory={hasWatchHistory}
           hasContinue={continueWatchingItems.length > 0}
         />
-      </DeferredMount>
+      </DeferredMount>}
     </>
   );
 }
