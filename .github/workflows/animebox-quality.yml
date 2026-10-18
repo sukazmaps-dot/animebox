@@ -40,6 +40,9 @@ jobs:
       - name: Poster sources, bounded relay compression and no-storage defaults
         run: npm run poster-reliability:check
 
+      - name: Patch 32.1.1 recommended poster consumers and presence lint
+        run: npx eslint app/api/recommendations/route.ts app/api/discovery/route.ts components/RelatedAnime.tsx components/social/SocialPresenceHeartbeat.tsx lib/social-presence-retry.ts
+
       - name: Hotfix 31.15 independent API protection and Telegram outage tests
         run: npm run hotfix31-15:check
 

@@ -3,6 +3,7 @@ import { after } from 'next/server';
 
 import HomeAnimeRail from '@/components/HomeAnimeRail';
 import { getAnimeRecommendationsById } from '@/lib/anilist';
+import { enrichAnimePosterSources } from '@/lib/anime-poster-metadata-server';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import { findAnimeGenre, findAnimeTag } from '@/lib/anime-taxonomy';
 import type { Anime } from '@/types/anime';
@@ -138,7 +139,7 @@ async function loadRelatedAnime(
         await refreshCatalogAvailabilityBatch(availability.refreshTargets, { limit: 4 });
       });
     }
-    return availability.items.slice(0, 12);
+    return await enrichAnimePosterSources(availability.items.slice(0, 12));
   } catch (error) {
     console.warn('Related anime availability failed:', error);
     // Fail closed for availability, not over to an unrelated global ranking.

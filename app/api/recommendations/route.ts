@@ -1,4 +1,5 @@
 import {getSavedCatalogPage} from '@/lib/saved-catalog-server';
+import { enrichAnimePosterSources } from '@/lib/anime-poster-metadata-server';
 import { after, NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
@@ -481,6 +482,10 @@ async function observedGET(request: NextRequest) {
       });
     }
 
+    // Preserve the candidate order and cursor. An optional bounded cached MAL-ID lookup
+    // adds distinct poster origins without making recommendation availability depend on Supabase.
+    const posterItems = await enrichAnimePosterSources(availability.items);
+
     // Short filtered pages and empty narrow-source pages are not EOF. The
     // client already performs bounded empty-page hops, so a page containing
     // only confirmed unavailable titles simply advances to the next cursor.
@@ -491,7 +496,7 @@ async function observedGET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        items: availability.items,
+        items: posterItems,
         page,
         nextPage,
         nextCursor,
