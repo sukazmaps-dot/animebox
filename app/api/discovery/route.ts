@@ -2,6 +2,7 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { unstable_cache } from 'next/cache';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
+import { enrichAnimePosterSources } from '@/lib/anime-poster-metadata-server';
 import { getAnimeRecommendationsById } from '@/lib/anilist';
 import {
   discoveryGenreForProvider,
@@ -224,10 +225,13 @@ async function observedGET(request: NextRequest) {
     }
 
     void indexAnimeSearchDocuments(candidates.slice(0, 40)).catch(() => undefined);
+    // The final visible set alone needs poster enrichment; do not enrich
+    // every upstream candidate or modify semantic ranking/deduplication.
+    const visibleItems = await enrichAnimePosterSources(ranked.slice(0, limit));
 
     return NextResponse.json(
       {
-        items: ranked.slice(0, limit),
+        items: visibleItems,
         seed: compactSeed(seed),
         intent,
         meta: {
