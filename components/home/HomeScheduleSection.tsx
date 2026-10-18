@@ -90,10 +90,7 @@ export default function HomeScheduleSection() {
           <span>{scheduleError}</span>
         </div>
       ) : visibleScheduleItems.length === 0 ? (
-        <div className="empty-state">
-          <strong>На этот день серий нет</strong>
-          <span>Попробуй выбрать соседний день.</span>
-        </div>
+        <p className={styles.empty}>На этот день серий нет · выбери соседний день.</p>
       ) : (
         <div className="schedule__cards">
           {visibleScheduleItems
