@@ -1,5 +1,5 @@
 'use client';
-import { useState, type CSSProperties } from 'react';
+import { useId, useState, type CSSProperties } from 'react';
 import { premiumStudioCssVariables, type PremiumStudioSettings } from '@/lib/premium-studio';
 import ProfileFrameOverlay from '@/components/profile/ProfileFrameOverlay';
 import { bannerStyleBackground, visibleBannerStyle, type BannerStyle } from '@/lib/profile-banner-style';
@@ -21,12 +21,14 @@ export default function ProfileEditorLivePreview({
   full=false, createdAt, appearance, expanded=false, username, bio, avatarUrl, bannerUrl, bannerColor, bannerStyle,
   premiumActive, frameKey, previewPremiumFill=false, onNavigate, onUsernameChange, onBioChange,
 }: Props) {
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const avatarMenuId = useId();
   const [editingName, setEditingName] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const background = bannerStyleBackground(bannerColor, previewPremiumFill ? bannerStyle : visibleBannerStyle(bannerStyle, premiumActive));
   const joined = createdAt && Number.isFinite(Date.parse(createdAt))
     ? new Intl.DateTimeFormat('ru-RU', { day:'numeric', month:'long', year:'numeric', timeZone:'UTC' }).format(new Date(createdAt)) : null;
-  const theme = premiumActive && appearance ? {
+  const theme = appearance ? {
     ...premiumStudioCssVariables(appearance), '--preview-surface':appearance.primaryColor,
     '--preview-text':'var(--ab-premium-text)', '--preview-muted':'var(--ab-premium-text)',
   } as CSSProperties : undefined;
@@ -39,14 +41,20 @@ export default function ProfileEditorLivePreview({
         <span className={styles.editBanner}>✎ Баннер</span>
       </button>
       <div className={styles.identity}>
-        <button type="button" className={styles.avatar} onClick={() => onNavigate('avatar')} aria-controls="profile-editor-avatar" aria-label="Настроить аватар">
-          <img src={avatarUrl} alt="" />
-          <ProfileFrameOverlay frameKey={frameKey ?? null} premium={premiumActive} />
+        <button type="button" className={styles.avatar} data-has-frame={frameKey ? 'true' : 'false'} onClick={() => setAvatarMenuOpen(open => !open)} aria-haspopup="menu" aria-expanded={avatarMenuOpen} aria-controls={avatarMenuId} aria-label="Настроить аватар">
+          <span className={styles.avatarImage}><img src={avatarUrl} alt="" /></span>
+          <ProfileFrameOverlay frameKey={frameKey ?? null} premium={premiumActive} className={styles.avatarFrame} />
           <span className={styles.editAvatar} aria-hidden="true">✎</span>
         </button>
+        {avatarMenuOpen && <div className={styles.avatarMenu} id={avatarMenuId} role="menu"
+          onKeyDown={event => {if(event.key==='Escape'){event.stopPropagation();setAvatarMenuOpen(false);}}}
+          onBlur={event => {if(!event.currentTarget.contains(event.relatedTarget))setAvatarMenuOpen(false);}}>
+          <button type="button" role="menuitem" onClick={() => {setAvatarMenuOpen(false);onNavigate('avatar');}}>Загрузить аватар</button>
+          <button type="button" role="menuitem" onClick={() => {setAvatarMenuOpen(false);onNavigate('frame');}}>Рамка аватара</button>
+        </div>}
         <div className={styles.copy}>
           {editingName && onUsernameChange ? <input
-            className={styles.inlineName} aria-label="Имя пользователя" autoFocus
+            className={styles.inlineName} aria-label="Имя пользователя"
             value={username} maxLength={24} onChange={event => onUsernameChange(event.target.value)}
             onBlur={() => setEditingName(false)}
             onKeyDown={event => {if (event.key === 'Enter' || event.key === 'Escape') event.currentTarget.blur();}}
@@ -59,10 +67,9 @@ export default function ProfileEditorLivePreview({
       {(full || expanded) && <div className={styles.details}>
         <div className={styles.badges}>
           <span>AnimeBox</span>{premiumActive && <span>✦ Premium</span>}
-          {frameKey && <button type="button" onClick={() => onNavigate('frame')} aria-controls="profile-editor-frame">Изменить рамку</button>}
         </div>
         <section className={styles.about}><h3>Обо мне</h3>
-          {editingBio && onBioChange ? <textarea className={styles.inlineBio} autoFocus aria-label="Обо мне"
+          {editingBio && onBioChange ? <textarea className={styles.inlineBio} aria-label="Обо мне"
             value={bio} maxLength={300} rows={4} onChange={event => onBioChange(event.target.value)}
             onBlur={() => setEditingBio(false)}
             onKeyDown={event => {if (event.key === 'Escape') event.currentTarget.blur();}}

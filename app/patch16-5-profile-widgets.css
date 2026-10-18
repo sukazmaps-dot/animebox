@@ -614,7 +614,7 @@
 .profile-widgets-editor__layout-row {
   min-width: 0;
   display: grid;
-  grid-template-columns: 30px minmax(0,1fr) auto;
+  grid-template-columns: 30px minmax(0,1fr) auto auto;
   align-items: center;
   gap: 9px;
   min-height: 52px;
@@ -672,8 +672,10 @@
   cursor: default;
 }
 
-.profile-widgets-editor__row-actions .profile-widgets-editor__visibility {
-  min-width: 86px;
+.profile-widgets-editor__visibility {
+  min-width:58px;min-height:36px;padding:5px 8px;
+  border:1px solid var(--ab-ui-border);border-radius:8px;
+  background:transparent;color:var(--ab-ui-muted);font-size:12px;cursor:pointer;
 }
 
 .profile-widgets-editor__visibility[data-on='true'] {

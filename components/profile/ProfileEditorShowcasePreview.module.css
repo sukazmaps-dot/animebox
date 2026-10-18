@@ -20,3 +20,11 @@
 .genres { display:flex; flex-wrap:wrap; gap:8px; }
 .genres span { padding:4px 8px; border:1px solid var(--ab-ui-border); border-radius:6px; font-size:12px; }
 @media(max-width:430px) { .posters { gap:8px; } .widget { padding:12px; } }
+
+
+/* Expanded board renders the real reusable widget blocks at desktop density. */
+.board[data-expanded='true'] .posters{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
+.board[data-expanded='true'] .poster{min-width:0;}
+.board[data-expanded='true'] .poster > span:last-child{-webkit-line-clamp:2;display:-webkit-box;overflow:hidden;font-size:12px;line-height:1.4;}
+.board[data-expanded='true'] .widget{padding:16px;}
+@container (max-width:430px){.board[data-expanded='true'] .posters{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));}}

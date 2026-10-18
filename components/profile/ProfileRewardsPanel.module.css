@@ -55,3 +55,19 @@
  .historyList b {grid-column:2;}
  .sectionHeading {align-items:flex-start;flex-wrap:wrap;}
 }
+
+
+@container inspector (max-width:380px) {
+ .root{gap:12px;}
+ .intro,.pending{display:flex;flex-direction:column;gap:10px;padding:12px;align-items:stretch;}
+ .intro > div,.pending > div{min-width:0;}
+ .intro h2{font-size:15px;}
+ .intro p,.intro span,.pending span,.pending strong,.sectionHeading span{font-size:12px;line-height:1.5;letter-spacing:normal;}
+ .summary{min-width:0;width:100%;text-align:left;}.summary span{font-size:12px;}
+ .frames,.history{padding:12px;}.frameGrid{grid-template-columns:minmax(0,1fr);}
+ .frameGrid > article{grid-template-columns:72px minmax(0,1fr);gap:8px;}
+ .frameGrid :is(strong,small),.historyList :is(strong,span,small,b){font-size:12px;line-height:1.4;}
+ .historyList article{grid-template-columns:48px minmax(0,1fr);}.historyList b{grid-column:2;}
+ .pending button,.sectionHeading button,.sectionHeading a{min-height:36px;font-size:12px;}
+ .empty,.state,.message,.errorText{font-size:12px;}
+}

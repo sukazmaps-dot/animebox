@@ -1033,6 +1033,28 @@ const PremiumStudioClient = forwardRef<PremiumStudioHandle, PremiumStudioClientP
     return embedded ? <div className="premium-studio premium-studio-v12 is-embedded">{state}</div> : <main className="premium-studio premium-studio-v12">{state}</main>;
   }
 
+  if (!allowed && embedded) {
+    // Narrow inspector: scene swatches update the shared centre preview;
+    // no embedded second profile or giant marketing hero.
+    return <div className="premium-studio premium-studio-v12 is-embedded">
+      <section className="premium-studio-v23__demo" aria-label="Premium темы">
+        <div className="premium-studio-v23__demo-scenes">
+          {PREMIUM_SCENE_PRESETS.map(scene => {
+            const meta = PREMIUM_SCENE_PRESET_META[scene];
+            return <button type="button" key={scene}
+              onClick={() => {setSelectedDemoScene(scene);applyScenePreset(scene);}}
+              aria-pressed={selectedDemoScene === scene}>
+              <i style={{background:`linear-gradient(135deg, ${meta.primaryColor}, ${meta.accentColor})`}} />
+              <span><strong>{meta.label}</strong></span>
+            </button>;
+          })}
+        </div>
+        <p className="profile-editor-v40__premium-info">✦ Premium — сохранение темы и анимаций. Выбранный стиль виден на центральной карточке.</p>
+        <Link href="/premium#premium-plans" className="premium-cta premium-cta--primary">Открыть Premium ↗</Link>
+      </section>
+    </div>;
+  }
+
   if (!allowed) {
     const locked = (
       <section className="premium-studio-v23__demo">

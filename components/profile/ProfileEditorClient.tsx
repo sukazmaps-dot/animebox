@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TextAa as Type, UserCircle as CircleUserRound, Image as ImageIcon, FrameCorners as Frame, Palette, SquaresFour as LayoutGrid, Trophy, Link as Link2 } from '@phosphor-icons/react';
 import modalStyles from './ProfileEditorModal.module.css';
+import expandedStyles from './ProfileEditorExpandedPreview.module.css';
 
 import type { ProfileEditorAnchor } from '@/lib/profile-editor-navigation';
 import { useProfileEditorHistory } from '@/hooks/useProfileEditorHistory';
@@ -15,6 +16,7 @@ import { useAuthState } from '@/components/AuthStateProvider';
 import { withLoadDeadline } from '@/lib/load-deadline';
 import { readProfileEditorAppearance } from '@/lib/profile-editor-read-client';
 import PremiumStudioClient, { type PremiumStudioHandle } from '@/components/premium/PremiumStudioClient';
+import PremiumStudioLivePreview from '@/components/premium/PremiumStudioLivePreview';
 import ProfileEditorViewport from '@/components/profile/ProfileEditorViewport';
 import ProfileEditorShowcasePreview from '@/components/profile/ProfileEditorShowcasePreview';
 import ProfileMediaModal from '@/components/profile/ProfileMediaModal';
@@ -162,6 +164,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
   const [premiumDraft, setPremiumDraft] = useState<PremiumStudioSettings | null>(null);
   const [comparing, setComparing] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContext, setPreviewContext] = useState<'profile'|'mini'|'comment'|'watch-party'>('profile');
+  const [previewDevice, setPreviewDevice] = useState<'desktop'|'mobile'>('desktop');
   const [premiumActive, setPremiumActive] = useState(false);
   const premiumStudioRef = useRef<PremiumStudioHandle | null>(null);
   const [premiumDirty, setPremiumDirty] = useState(false);
@@ -922,6 +926,19 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
     );
   }
 
+  const previewAppearance = comparing ? premiumSettings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS : premiumDraft ?? premiumSettings ?? DEFAULT_PREMIUM_STUDIO_SETTINGS;
+  const scene = (context: 'mini'|'comment'|'watch-party') => <PremiumStudioLivePreview
+    settings={previewAppearance} avatarUrl={resolvedAvatarPreview} bannerUrl={resolvedBannerPreview}
+    avatarTransform={{x:previewAppearance.avatarPositionX,y:previewAppearance.avatarPositionY,zoom:previewAppearance.avatarZoom}}
+    bannerTransform={{x:previewAppearance.bannerPositionX,y:previewAppearance.bannerPositionY,zoom:previewAppearance.bannerZoom}}
+    username={username} bio={bio} profileFrameKey={selectedFrame} context={context}
+  />;
+  const previewSegments = (label: string) => <div className={expandedStyles.segments} role="tablist" aria-label={label}>
+    {([['profile','Профиль'],['mini','Мини'],['comment','Комментарий'],['watch-party','Комната']] as const).map(([id,title]) =>
+      <button type="button" role="tab" key={id} aria-selected={previewContext===id}
+        className={previewContext===id?expandedStyles.active:undefined} onClick={()=>setPreviewContext(id)}>{title}</button>)}
+  </div>;
+
   return (
     <main className={`profile-editor-v13 ${modalStyles.modal}`} data-editor-tab={activeTab} data-editor-layout="modal">
       <section className="profile-editor-v13__shell profile-editor-v40__shell" role="dialog" aria-modal="true" aria-label="Редактор профиля">
@@ -982,7 +999,8 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
               <span>ТВОЙ ПРОФИЛЬ</span>
               <div className="profile-editor-v40__stage-actions"><button type="button" className="profile-editor-v40__collapse" aria-expanded={!previewCollapsed} onClick={() => setPreviewCollapsed(v=>!v)}>{previewCollapsed ? "Показать" : "Свернуть"}</button><button type="button" onClick={() => setPreviewOpen(true)}>Развернуть ↗</button></div>
             </div>
-            <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
+            <div className={expandedStyles.stageSegments}>{previewSegments('Вид живого предпросмотра')}</div>
+            {previewContext === 'profile' ? <ProfileEditorLivePreview full createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings}
             username={comparing ? profile.username ?? '' : username} bio={comparing ? profile.bio ?? '' : bio} avatarUrl={comparing ? displayedAvatar : resolvedAvatarPreview}
             bannerUrl={comparing ? displayedBanner : resolvedBannerPreview} bannerColor={comparing ? profile.banner_color ?? '#70618c' : bannerColor}
             bannerStyle={comparing ? normalizeBannerStyle(profile.banner_style) : bannerStyle} premiumActive={premiumActive}
@@ -990,7 +1008,7 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
             onUsernameChange={value => {setUsername(value);setSaved('');}}
             onBioChange={value => {setBio(value);setSaved('');}}
             previewPremiumFill={bannerFillUpgradeRequired}
-          />
+          /> : <div className={expandedStyles.sceneInStage}>{scene(previewContext)}</div>}
             <p className="profile-editor-v40__hint">Нажми на имя, аватар или баннер, чтобы изменить их.</p>
           </section>
           <aside className="profile-editor-v40__board" aria-label="Витрина профиля">
@@ -1135,16 +1153,35 @@ function ProfileEditorWorkspace({ initialTab = 'profile', initialAnchor }: Props
         </div>}
       </section>
 
-      {previewOpen && <ProfileMediaModal busy={false} onClose={()=>setPreviewOpen(false)} labelledBy="profile-expanded-preview-title">
-        <section className="profile-editor-v31__preview-dialog">
-          <header><h2 id="profile-expanded-preview-title">Предпросмотр профиля</h2><button type="button" onClick={()=>setPreviewOpen(false)}>Закрыть</button></header>
-          <ProfileEditorLivePreview expanded createdAt={profile.created_at} appearance={comparing ? premiumSettings : premiumDraft ?? premiumSettings} username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
-            bannerUrl={resolvedBannerPreview} bannerColor={bannerColor} bannerStyle={bannerStyle}
-            premiumActive={premiumActive} frameKey={selectedFrame} previewPremiumFill={bannerFillUpgradeRequired}
-            onNavigate={section=>{setPreviewOpen(false);navigatePreview(section);}} />
-          <ProfileEditorShowcasePreview data={showcase} loading={showcaseLoading || (!showcase && !showcaseError)} error={showcaseError}
-            onConfigure={() => { setPreviewOpen(false); switchTab('showcase'); }}
-            onRetry={() => { setShowcaseError(''); setShowcaseReloadKey(value => value + 1); }} />
+      {previewOpen && <ProfileMediaModal busy={false} onClose={()=>setPreviewOpen(false)} labelledBy="profile-expanded-preview-title" className={expandedStyles.overlay}>
+        <section className={expandedStyles.dialog} aria-label="Развёрнутый предпросмотр">
+          <header className={expandedStyles.header}>
+            <h2 id="profile-expanded-preview-title">Предпросмотр профиля</h2>
+            {previewSegments('Вид предпросмотра профиля')}
+            <div className={expandedStyles.controls} role="group" aria-label="Размер экрана">
+              <button type="button" aria-pressed={previewDevice==='desktop'} onClick={()=>setPreviewDevice('desktop')}>ПК</button>
+              <button type="button" aria-pressed={previewDevice==='mobile'} onClick={()=>setPreviewDevice('mobile')}>Телефон</button>
+            </div>
+            <button type="button" className={expandedStyles.close} onClick={()=>setPreviewOpen(false)} aria-label="Закрыть">×</button>
+          </header>
+          <div className={expandedStyles.scrollBody} data-device={previewDevice}>
+            <div className={expandedStyles.columns} data-context={previewContext}>
+              <div className={expandedStyles.previewCard}>
+                {previewContext === 'profile'
+                ? <ProfileEditorLivePreview expanded createdAt={profile.created_at} appearance={previewAppearance}
+                    username={username} bio={bio} avatarUrl={resolvedAvatarPreview}
+                    bannerUrl={resolvedBannerPreview} bannerColor={bannerColor} bannerStyle={bannerStyle}
+                    premiumActive={premiumActive} frameKey={selectedFrame} previewPremiumFill={bannerFillUpgradeRequired}
+                    onNavigate={section=>{setPreviewOpen(false);navigatePreview(section);}} />
+                : scene(previewContext)}
+              </div>
+              {previewContext === 'profile' && <div className={expandedStyles.previewBoard}>
+                <ProfileEditorShowcasePreview data={showcase} loading={showcaseLoading || (!showcase && !showcaseError)} error={showcaseError}
+                  expanded onConfigure={() => { setPreviewOpen(false); switchTab('showcase'); }}
+                  onRetry={() => { setShowcaseError(''); setShowcaseReloadKey(value => value + 1); }} />
+              </div>}
+            </div>
+          </div>
         </section>
       </ProfileMediaModal>}
 

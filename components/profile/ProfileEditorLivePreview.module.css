@@ -174,3 +174,32 @@
  :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .name {font-size:18px;min-height:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;}
  :global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .details {display:none;}
 }
+
+
+/* Framed avatar extends beyond the photo aperture; only the banner is clipped. */
+.preview {overflow:visible;}
+.banner {border-radius:17px 17px 0 0;overflow:clip;}
+.identity {--av:80px;--frame-overflow:calc(var(--av) * .11);}
+.avatar {overflow:visible;box-shadow:none;}
+.avatar[data-has-frame='true'] {padding:0;border:0;border-radius:0;background:transparent;}
+.avatarImage {display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;}
+.avatarImage img {display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.avatarFrame {position:absolute;inset:calc(var(--frame-overflow) * -1);width:auto;height:auto;pointer-events:none;overflow:visible;}
+.avatar[data-has-frame='true'] .avatarImage {box-shadow:none;border:0;}
+.preview.expanded .identity {--av:96px;}
+:global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .identity {--av:90px;}
+@media(max-width:430px){:global(.profile-editor-v13[data-editor-layout='modal']) .preview[data-full=true]:not(.expanded) .identity {--av:74px;}}
+
+/* Higher specificity than the reusable level/season overlay root. */
+.avatar .avatarFrame{position:absolute;inset:calc(var(--frame-overflow) * -1);width:auto;height:auto;overflow:visible;}
+
+
+/* Local avatar actions anchored to the unclipped identity layer. */
+.avatarMenu {
+  position:absolute;top:calc(var(--av,90px) + 6px);left:16px;z-index:50;
+  display:grid;gap:3px;width:min(240px,calc(100% - 32px));min-width:0;
+  padding:6px;border:1px solid var(--ab-ui-border);border-radius:12px;
+  background:var(--ab-ui-raised);box-shadow:0 16px 42px rgba(0,0,0,.55);
+}
+.avatarMenu button {min-height:40px;padding:9px 10px;border:0;border-radius:8px;text-align:left;background:transparent;color:var(--ab-ui-text);font-size:13px;cursor:pointer;}
+.avatarMenu button:hover,.avatarMenu button:focus-visible {background:color-mix(in srgb,var(--ab-ui-accent) 12%,var(--ab-ui-raised));}

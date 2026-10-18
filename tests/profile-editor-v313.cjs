@@ -27,7 +27,14 @@ assert(root.includes('BackButton'),'Telegram native back handler needed');
 assert(/position:\s*fixed/.test(modalCss) && root.includes('--ab-editor-keyboard-inset'));
 assert(modalCss.includes('.profile-editor-v40__savebar') && modalCss.includes('.profile-editor-v40__popover'));
 assert(!baseCss.includes('position:absolute;left:88px'),'Legacy overlay geometry must be removed');
-assert(modalCss.includes('72px 300px minmax(360px,1fr) 340px'),'Desktop inspector needs its own grid track');
+// The modal CSS module owns desktop geometry. Keep this legacy contract in
+// sync with the active 31.18 four-track layout, including the collapsed state.
+const workbenchRule = modalCss.match(/\.modal :global\(\.profile-editor-v40__workbench\)\s*\{([^}]*)\}/)?.[1] ?? '';
+const closedWorkbenchRule = modalCss.match(/\.modal :global\(\.profile-editor-v40__workbench\[data-panel-open='false'\]\)\s*\{([^}]*)\}/)?.[1] ?? '';
+assert.match(workbenchRule, /grid-template-columns:\s*72px\s+340px\s+minmax\(360px,1fr\)\s+320px\s*;/, 'Desktop inspector needs its own grid track');
+assert.match(closedWorkbenchRule, /grid-template-columns:\s*72px\s+0\s+minmax\(360px,1fr\)\s+320px\s*;/, 'Closing inspector must release its grid track');
+assert(modalCss.includes('@media (min-width:1100px) and (max-width:1279px)'), 'Intermediate desktop breakpoint must remain');
+assert(modalCss.includes('.modal :global(.profile-editor-v40__board) {display:none;}'), 'Intermediate desktop must hide showcase board');
 assert(root.includes('data-panel-open={panelOpen}') && root.includes('modalStyles.modal'));
 assert(root.includes('accountPanel') && root.includes('<TelegramAccountLinkCard />'));
 assert(root.includes("['style','Тема',Palette]"));
