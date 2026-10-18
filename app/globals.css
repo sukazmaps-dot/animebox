@@ -310,6 +310,9 @@ button { cursor: pointer; }
 }
 
 @media (max-width: 720px) {
+  /* Home-only: the fixed search header would cover anchored sections as users scroll.
+     Leave every other route's topbar positioning unchanged. */
+  .topbar.topbar--home { position: absolute; top: 0; }
   .page-content, .main-column, .home-grid, .anime-grid, .continue-grid, .anime-card { min-width: 0; max-width: 100%; }
   .topbar { left: 0; right: 0; width: 100%; max-width: 100vw; gap: 8px; padding: 0 10px; }
   .topbar__search { min-width: 0; width: 100%; }
