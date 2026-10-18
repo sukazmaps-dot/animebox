@@ -1,4 +1,4 @@
-const MEDIA_WORKER_VERSION = 'media-shield-v6-origin-relay';
+const MEDIA_WORKER_VERSION = 'media-shield-v7-no-storage-default';
 const ORIGIN_RELAY_TIMEOUT_MS = 2_000;
 const ORIGIN_RELAY_CACHE_TTL_SECONDS = 600;
 const CANONICAL_IMAGE_RELAY = 'https://youranimebox.com/api/image';
@@ -337,6 +337,7 @@ async function fetchCanonicalRelay(source, signal) {
   if (!allowed) return { response: null, error: 'relay-source-forbidden' };
   const target = new URL(CANONICAL_IMAGE_RELAY);
   target.searchParams.set('url', allowed.href);
+  target.searchParams.set('optimize', 'webp');
   const response = await fetch(target, {
     method: 'GET', redirect: 'manual', signal,
     headers: { Accept: 'image/webp,image/avif,image/jpeg,image/png,image/gif' },
@@ -359,7 +360,7 @@ async function fetchCanonicalRelay(source, signal) {
 }
 
 function relayCacheKey(requestUrl, hash) {
-  return new Request(`${requestUrl.origin}/cache/origin-relay/v1/${hash}`, { method: 'GET' });
+  return new Request(`${requestUrl.origin}/cache/origin-relay/v2/${hash}`, { method: 'GET' });
 }
 
 function relayHeaders(contentType, source, variant, state) {
@@ -776,6 +777,7 @@ async function handleRequest(request, env, ctx) {
         version: MEDIA_WORKER_VERSION,
         softFail: true,
         r2: Boolean(env.MEDIA_BUCKET),
+        r2WritesEnabled: env.MEDIA_R2_WRITES_ENABLED === 'true',
         originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS,
         transformTimeoutMs: TRANSFORM_FETCH_TIMEOUT_MS,
         rawTimeoutMs: RAW_FETCH_TIMEOUT_MS,
@@ -979,7 +981,9 @@ async function handleRequest(request, env, ctx) {
     );
     if (etag) headers.set('ETag', etag);
 
-    if (env.MEDIA_BUCKET) {
+    // Existing objects remain readable. Attached buckets must not implicitly
+    // enable paid object storage; writes require an explicit operator opt-in.
+    if (env.MEDIA_BUCKET && env.MEDIA_R2_WRITES_ENABLED === 'true') {
       ctx.waitUntil(
         env.MEDIA_BUCKET.put(key, bytes, {
           httpMetadata: {

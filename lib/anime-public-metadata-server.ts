@@ -6,6 +6,7 @@ import { getAnimesByIds } from '@/lib/anilist';
 import { normalizedAnimeScore } from '@/lib/anime-score';
 import { tryAcquireRuntimeRefreshLease, releaseRuntimeRefreshLease } from '@/lib/runtime-refresh-lease-server';
 import type { Anime } from '@/types/anime';
+import { enrichAnimePosterSources } from '@/lib/anime-poster-metadata-server';
 
 const TABLE = 'anime_public_metadata_cache';
 const READ_TIMEOUT_MS = 1200;
@@ -129,8 +130,11 @@ export function applyAnimeMetadataSnapshots(
 
 export async function enrichSavedAnimeMetadata(animes: Anime[]): Promise<Anime[]> {
   if (!animes.length) return animes;
-  const snapshots = await readFreshAnimeMetadata(uniqueIds(animes, MAX_READ_IDS));
-  return applyAnimeMetadataSnapshots(animes, snapshots);
+  const [snapshots, withPosters] = await Promise.all([
+    readFreshAnimeMetadata(uniqueIds(animes, MAX_READ_IDS)),
+    enrichAnimePosterSources(animes),
+  ]);
+  return applyAnimeMetadataSnapshots(withPosters, snapshots);
 }
 
 function isReleasing(status: string | null | undefined) {

@@ -37,6 +37,9 @@ jobs:
       - name: Railway cost optimization lint
         run: npx eslint lib/public-result-cache.ts lib/bounded-work.ts lib/image-upstream-server.ts app/api/image/route.ts app/api/jikan/anime/route.ts
 
+      - name: Poster sources, bounded relay compression and no-storage defaults
+        run: npm run poster-reliability:check
+
       - name: Hotfix 31.15 independent API protection and Telegram outage tests
         run: npm run hotfix31-15:check
 

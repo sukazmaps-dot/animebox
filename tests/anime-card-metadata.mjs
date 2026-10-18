@@ -30,6 +30,8 @@ const fixture=globalThis.cardFixture={reads:0,fail:false,seen:[],rows:[{
  anime_id:1,mal_id:20,title:'Наруто',slug:'naruto-1',aliases:['Naruto'],description:'Описание',genres:['Экшен'],tags:[],poster_url:'poster',studios:['Pierrot'],format:'ТВ',start_year:2002,start_month:10,total_episodes:220,finished:true,provider_status:'released',provider_score:8.1,episodes_aired:220,provider_romaji:'Naruto'
 }]};
 const modules={
+ '@/lib/anime-public-metadata-server':'export const enrichSavedAnimeMetadata=async rows=>rows;',
+ '@/lib/saved-catalog-compat-server':'export const getCompatibleSavedDocuments=async()=>{throw Error("unexpected compatibility read")};',
  'next/server':`export const after=()=>{};export class NextResponse{static json(value,init={}){return Response.json(value,init)}}`,
  '@/lib/supabase/admin':`export function createSupabaseAdmin(){return {from(name){if(name!=='anime_saved_playable_catalog')throw Error(name);return {select(){return this},in(_,ids){this.ids=ids;return this},abortSignal(signal){const f=globalThis.cardFixture;f.reads++;f.seen.push(this.ids);if(!(signal instanceof AbortSignal))throw Error('missing timeout');return Promise.resolve(f.fail?{data:null,error:{message:'timeout'}}:{data:f.rows.filter(r=>this.ids.includes(r.anime_id)),error:null})}}}}}`,
  '@/lib/anime-taxonomy':'export const findAnimeGenre=()=>null;export const findAnimeTag=()=>null;',
@@ -44,7 +46,7 @@ const modules={
 try{
  const plugins=[{name:'metadata-fixture',setup(b){
   b.onResolve({filter:/^(server-only|@\/|next\/server)/},a=>{
-   if(['@/lib/saved-catalog-server','@/lib/public-result-cache','@/lib/anime-metadata-merge'].includes(a.path))return {path:resolve(a.path.replace('@/','')+'.ts')};
+   if(['@/lib/saved-catalog-server','@/lib/public-result-cache','@/lib/public-read-circuit','@/lib/catalog-provider-budget','@/lib/anime-metadata-merge'].includes(a.path))return {path:resolve(a.path.replace('@/','')+'.ts')};
    return {path:a.path,namespace:'fixture'};
   });
   b.onLoad({filter:/.*/,namespace:'fixture'},a=>({loader:'js',contents:a.path==='server-only'?'':modules[a.path]??(()=>{throw Error('unexpected import '+a.path)})()}));

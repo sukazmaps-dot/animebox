@@ -15,13 +15,19 @@ function mergeDate(primary: AnimeDate | null | undefined, fallback: AnimeDate | 
   };
 }
 
-function mergeImage(primary: AnimeImage | null | undefined, fallback: AnimeImage | null | undefined) {
+export function mergeAnimeImageSources(primary: AnimeImage | null | undefined, fallback: AnimeImage | null | undefined) {
   if (!primary) return fallback ?? null;
   if (!fallback) return primary;
   const result = {...primary};
   for (const key of ['extraLarge','large','medium','original','preview','color'] as const) {
     if (!text(result[key]) && text(fallback[key])) result[key] = fallback[key];
   }
+  const primaryUrls = new Set([primary.extraLarge, primary.large, primary.medium, primary.original, primary.preview]);
+  result.fallbackUrls = [...new Set([
+    ...(primary.fallbackUrls ?? []),
+    fallback.extraLarge, fallback.large, fallback.medium, fallback.original, fallback.preview,
+    ...(fallback.fallbackUrls ?? []),
+  ].filter((url): url is string => text(url) && !primaryUrls.has(url)))].slice(0, 6);
   return result;
 }
 
@@ -61,8 +67,8 @@ export function mergeAnimeMetadata(primary: Anime, fallback: Anime | undefined):
   result.synonyms = [...new Set([...(primary.synonyms ?? []), ...(fallback.synonyms ?? [])])];
   result.startDate = mergeDate(primary.startDate, fallback.startDate);
   result.endDate = mergeDate(primary.endDate, fallback.endDate);
-  result.coverImage = mergeImage(primary.coverImage, fallback.coverImage);
-  result.image = mergeImage(primary.image, fallback.image);
+  result.coverImage = mergeAnimeImageSources(primary.coverImage, fallback.coverImage);
+  result.image = mergeAnimeImageSources(primary.image, fallback.image);
   return result;
 }
 

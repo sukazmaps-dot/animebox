@@ -57,7 +57,8 @@ for (const needle of [
   'status === 425',
   'status === 429',
   'status >= 500 && status <= 599',
-  "const MEDIA_WORKER_VERSION = 'media-shield-v6-origin-relay'",
+  // Patch 32.1 retains the reliability shield and defaults R2 writes to off.
+  "const MEDIA_WORKER_VERSION = 'media-shield-v7-no-storage-default'",
   'reliability: MEDIA_WORKER_VERSION',
   'originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS',
   'sourceNegativeCacheTtlSeconds: SOURCE_NEGATIVE_CACHE_TTL_SECONDS',

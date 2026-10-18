@@ -1,6 +1,7 @@
 import 'server-only';
 import {createSupabaseAdmin} from '@/lib/supabase/admin';
 import type {Anime} from '@/types/anime';
+import {mergeAnimeImageSources} from '@/lib/anime-metadata-merge';
 export type ShikimoriMetadata = {
   mal_id:number; title_ru:string|null;title_romaji:string|null;description:string|null;poster_url:string|null;
   format:string|null;status:string|null;start_year:number|null;start_month:number|null;
@@ -30,6 +31,6 @@ export function mergeShikimoriMetadata(anime:Anime,row:ShikimoriMetadata|undefin
     score:anime.score??(row.score==null?null:Number(row.score)),
     genres:anime.genres?.length?anime.genres:row.genres,
     studios:anime.studios?.length?anime.studios:row.studios.map(name=>({name})),
-    coverImage:anime.coverImage|| (row.poster_url?{large:row.poster_url,extraLarge:row.poster_url}:null),
+    coverImage:mergeAnimeImageSources(anime.coverImage, row.poster_url?{large:row.poster_url,extraLarge:row.poster_url}:null),
   };
 }

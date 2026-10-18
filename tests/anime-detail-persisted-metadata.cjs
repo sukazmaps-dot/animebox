@@ -4,7 +4,7 @@ const ts=require('typescript');
 function load(file,imports){const mod={exports:{}};const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(name=>{if(name==='server-only')return{};if(!(name in imports))throw Error(name);return imports[name]},mod,mod.exports);return mod.exports;}
 let description=null,providerCalls=0;
 const row={mal_id:5114,title_ru:'Стальной алхимик',title_romaji:'Fullmetal Alchemist',description:'Сохранённое подробное описание',format:'TV',status:'released',start_year:2009,start_month:4,episodes:64,episodes_aired:64,score:9.1,genres:['Приключения'],studios:['Bones'],poster_url:null};
-const shiki=load('lib/shikimori-metadata-server.ts',{'@/lib/supabase/admin':{}});
+const shiki=load('lib/shikimori-metadata-server.ts',{'@/lib/supabase/admin':{},'@/lib/anime-metadata-merge':load('lib/anime-metadata-merge.ts',{})});
 const admin={from(table){const query={select(){return query},eq(){return query},abortSignal(){return query},async maybeSingle(){return {error:null,data:table==='anime_search_documents'?{title:'Стальной алхимик',aliases:[],description}:table==='anime_availability'?{mal_id:5114}:null}}};return query}};
 const localize=load('lib/anime-localization-server.ts',{
  '@/lib/public-result-cache':load('lib/public-result-cache.ts',{}),
