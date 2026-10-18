@@ -554,7 +554,6 @@ export default function SmartRecommendationFeed({
   const sparseRailSectionRefs = useRef<Map<RecommendationRailId, HTMLElement>>(new Map());
   const sparseRailPrimedRef = useRef<Set<RecommendationRailId>>(new Set());
   const sparseRailPrimedTargetRef = useRef<Map<RecommendationRailId, number>>(new Map());
-  const [railViewportRevision, setRailViewportRevision] = useState(0);
   const consumedPointerKeysRef = useRef<Set<string>>(new Set());
 
   const [sessionId, setSessionId] = useState(() => createSessionId());
@@ -589,6 +588,8 @@ export default function SmartRecommendationFeed({
     () => readCachedTasteGraph(),
   );
   const latestTasteGraphRef = useRef<TasteGraph | null>(tasteGraph);
+  // Keep existing state-hook ordering intact for mounted rail/session recovery.
+  const [railViewportRevision, setRailViewportRevision] = useState(0);
 
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
