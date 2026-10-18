@@ -63,6 +63,8 @@ fs.mkdirSync(output, { recursive: true });
         await page.waitForFunction(theme => document.documentElement.dataset.animeboxTheme === theme, c.theme);
         await page.waitForFunction(() => document.querySelector('[data-home-hero] img')?.naturalWidth > 0);
         await page.waitForSelector('[role="radiogroup"]');
+        await page.waitForSelector('.smart-card', { timeout: 60000 });
+        await page.waitForSelector('.smart-feed__stage[aria-busy="false"]');
         if (history) await page.waitForSelector('.continue-smart-card');
         const geometry = await page.evaluate(() => {
           const rect = e => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom }; };
@@ -101,11 +103,27 @@ fs.mkdirSync(output, { recursive: true });
           await page.waitForFunction(() => document.querySelector('.home-anime-rail__viewport').scrollLeft > 0);
           assert(await rail.evaluate(e => e.scrollLeft > 0), 'Rail navigation');
         }
+        if ([390, 1366, 1920].includes(c.width)) await page.screenshot({ path: path.join(output, name + '-initial.png'), fullPage: true });
+        if (c.width === 1366 && c.mode === 'normal') {
+          const menu = page.locator('.smart-card__dismiss').first();
+          await menu.click();
+          const dialog = page.locator('.smart-card__feedback-dialog[open]');
+          await dialog.waitFor();
+          const targets = await dialog.locator('.smart-card__dialog-quick-actions button').evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect().height));
+          assert(targets.every(height => height >= 44), 'Taste feedback touch targets');
+          await dialog.getByRole('button', { name: /^Не сейчас/ }).click();
+          await page.locator('.smart-feed__feedback-undo').waitFor();
+          await page.locator('.smart-feed__feedback-undo button').click();
+          await page.waitForFunction(() => !document.querySelector('.smart-feed__feedback-undo'));
+        }
         const moods = page.getByRole('radio');
         await moods.nth(1).click();
         await page.waitForFunction(() => document.querySelectorAll('[role="radio"]')[1]?.getAttribute('aria-checked') === 'true');
         await moods.nth(1).press('End');
         assert.equal(await moods.last().getAttribute('aria-checked'), 'true', 'Mood keyboard selection');
+        await page.waitForSelector('section[aria-labelledby="mood-picker-title"][aria-busy="false"]');
+        await page.waitForSelector('.smart-feed__stage[aria-busy="false"]');
+        await page.waitForSelector('.smart-card');
         assert.equal(await page.locator('[role="radiogroup"] img').count(), 0, 'Compact moods request no artwork');
         const position = page.getByRole('button', { name: /^Показать:/ }).nth(1);
         const title = (await position.getAttribute('aria-label')).replace('Показать: ', '');
@@ -117,6 +135,7 @@ fs.mkdirSync(output, { recursive: true });
         assert.deepEqual(errors, [], name + ' browser errors');
         console.log('PASS', name);
       } finally {
+        await page.evaluate(() => scrollTo(0, 0));
         if ([390, 1366, 1920].includes(c.width) || errors.length) await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true });
         await page.close();
       }

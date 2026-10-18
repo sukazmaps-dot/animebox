@@ -1,6 +1,7 @@
 /* Home 32 has one layout owner. Deliberately does not opt into the old
    home-page/home-grid selector chain; shared cards retain their behavior. */
 .page {
+  --ab-ui-radius: 6px;
   --home-canvas: var(--ab-ui-canvas, #141218);
   min-width: 0;
   width: 100%;
@@ -15,7 +16,7 @@
 .page :global(.section-title__icon), .page :global(.smart-section-eyebrow) { display: none; }
 .page :global(.section-link) { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: 44px; color: var(--ab-ui-muted); font-size: 12px; line-height: 1.4; text-decoration: none; }
 .page :global(.section-link):hover { color: var(--ab-ui-text); }
-.page :global(.home-discovery-flow) { display: block; margin: 0; min-width: 0; }
+.discovery { display: block; margin: 0; min-width: 0; }
 .page :global(.smart-feed-heading) { min-width: 0; }
 .page :global(.smart-feed) { gap: 28px; }
 .page :global(.smart-feed__rail-heading) { margin-bottom: 12px; }

@@ -65,7 +65,7 @@ if (
 for (const [label, needle] of [
   [
     'discovery scene wrapper',
-    'className="home-discovery-flow"',
+    'className={styles.discovery}',
   ],
   ['mood control in scene', '<HomeMoodPicker'],
   ['smart feed in scene', 'id="animebox-for-you"'],

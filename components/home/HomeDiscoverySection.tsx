@@ -3,6 +3,8 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
+import styles from './HomePageShell.module.css';
+
 import HomeMoodPicker from '@/components/HomeMoodPicker';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 import { RecommendationFeedSkeleton } from '@/components/home/HomeLoadingSkeletons';
@@ -43,7 +45,7 @@ export default function HomeDiscoverySection() {
     <>
       <HomePersonalScheduleSection />
 
-      <div className="home-discovery-flow">
+      <div className={styles.discovery}>
         <section
           id="animebox-for-you"
           className="section smart-feed-section"

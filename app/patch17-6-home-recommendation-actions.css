@@ -425,3 +425,40 @@ html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__fe
     justify-content: space-between;
   }
 }
+
+/* Home 32 reuses this action/dialog owner. The card has two inline actions;
+   taste controls remain in the existing native dialog, including undo. */
+[data-home-layout="cinematic"] .smart-card .smart-card__actions {
+  grid-template-columns: minmax(0, 1fr) 44px !important;
+  grid-template-areas: "plan dismiss" !important;
+  margin-top: auto !important;
+  padding-top: 6px !important;
+  border: 0 !important;
+}
+[data-home-layout="cinematic"] .smart-card .smart-card__plan,
+[data-home-layout="cinematic"] .smart-card .smart-card__dismiss {
+  height: 44px !important;
+  min-height: 44px !important;
+  border-radius: 6px !important;
+}
+[data-home-layout="cinematic"] .smart-card .smart-card__dismiss {
+  grid-area: dismiss !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+[data-home-layout="cinematic"] .smart-card__body { min-height: 0; gap: 6px; }
+[data-home-layout="cinematic"] .smart-card__reason { min-height: 0; margin: 0; -webkit-line-clamp: 2; }
+[data-home-layout="cinematic"] .smart-card__dialog-quick-actions { display: grid; gap: 8px; margin-bottom: 14px; }
+[data-home-layout="cinematic"] .smart-card .smart-card__dialog-quick-actions .smart-card__feedback {
+  display: flex !important;
+  justify-content: flex-start !important;
+  gap: 10px;
+  height: auto !important;
+  min-height: 46px !important;
+  padding: 12px !important;
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
+  grid-area: auto !important;
+  white-space: normal;
+  text-align: left;
+}

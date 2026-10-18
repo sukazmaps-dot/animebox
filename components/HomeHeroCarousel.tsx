@@ -766,7 +766,7 @@ export default function HomeHeroCarousel({
         ['--hero-mobile-position' as string]: mobileHeroObjectPosition(anime),
       }}
       onPointerDown={handleSwipePointerDown}
-      onPointerMove={handlePointerMove}
+      onPointerMove={cinematic ? undefined : handlePointerMove}
       onPointerUp={(event) => finishSwipeGesture(event)}
       onPointerCancel={(event) => finishSwipeGesture(event, true)}
       onPointerLeave={(event) => {

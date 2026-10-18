@@ -74,7 +74,7 @@ if (
   !continueSection.includes('<HomeContinueWatching items={continueWatchingItems} />') ||
   !continueSection.includes('useHomeFeedRuntime()') ||
   discovery.includes('<HomeContinueWatching') ||
-  !discovery.includes('className="home-discovery-flow"') ||
+  !discovery.includes('className={styles.discovery}') ||
   !personal.includes(
     'export function HomePersonalScheduleSection',
   )

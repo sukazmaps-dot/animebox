@@ -55,7 +55,10 @@ jobs:
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
           HOME32_SCREENSHOT_DIR: artifacts/home32
-        run: npm run home32:check && npm run home32:browser
+        run: |
+          npm run home32:check
+          npx eslint app/page.tsx components/home/HomePageShell.tsx components/home/HomeHeroSection.tsx components/home/HomeDiscoverySection.tsx components/home/HomeWatchTogetherSection.tsx components/HomeHeroCarousel.tsx components/HomeHeroPagination.tsx components/HomeMoodPicker.tsx
+          npm run home32:browser
 
       - name: Home 32 visual review artifacts
         if: always()
