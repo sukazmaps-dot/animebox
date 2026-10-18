@@ -123,7 +123,7 @@ export default function AnimeCard({
       </div>
       }>
       <div className="anime-card__body flex min-w-0 flex-1 flex-col">
-        <h3 className="line-clamp-2" title={title}>
+        <h3 className="line-clamp-2">
           {displayTitle || title}
         </h3>
 
