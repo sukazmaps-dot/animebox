@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import SectionHeader from '@/components/home/SectionHeader';
 import styles from './HomeContinueWatching.module.css';
 import { useVisibleHomeImpression } from '@/components/home/useVisibleHomeImpression';
