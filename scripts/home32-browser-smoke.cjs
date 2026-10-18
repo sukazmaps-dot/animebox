@@ -18,13 +18,25 @@ fs.copyFileSync('tests/fixtures/home32.fixture', fixture + '/page.tsx');
 fs.mkdirSync(output, { recursive: true });
 (async () => {
   const log = fs.openSync(logPath, 'w');
-  const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--webpack', '--hostname', '127.0.0.1', '--port', String(port)], {
-    env: { ...process.env, NEXT_PUBLIC_MEDIA_ORIGIN: 'https://media.youranimebox.com' },
-    stdio: ['ignore', log, log],
-  });
+  const environment = { ...process.env, NEXT_PUBLIC_MEDIA_ORIGIN: 'https://media.youranimebox.com' };
+  let builder;
+  let server;
   let browser;
   const results = [];
   try {
+    // Test production hydration. Dev/HMR can dispatch a refresh before the
+    // router initializes when many fresh browser contexts attach in a row.
+    // Keep every pageerror assertion; do not filter framework exceptions.
+    await new Promise((resolve, reject) => {
+      builder = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'build'], {
+        env: environment, stdio: ['ignore', log, log],
+      });
+      builder.once('error', reject);
+      builder.once('exit', code => code === 0 ? resolve() : reject(Error('Fixture production build failed: ' + fs.readFileSync(logPath, 'utf8'))));
+    });
+    server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], {
+      env: environment, stdio: ['ignore', log, log],
+    });
     let ready = false;
     for (let n = 0; n < 120; n++) {
       if (fs.readFileSync(logPath, 'utf8').includes('Ready in')) { ready = true; break; }
@@ -38,7 +50,7 @@ fs.mkdirSync(output, { recursive: true });
     for (const c of cases) {
       const page = await browser.newPage({ viewport: { width: c.width, height: c.height }, reducedMotion: 'reduce' });
       const errors = [];
-      page.on('pageerror', error => errors.push(error.message));
+      page.on('pageerror', error => errors.push(error.stack || error.message));
       const history = c.width === 390 || c.width === 1366;
       await page.addInitScript(({ theme, history }) => {
         localStorage.setItem('animebox:user-preferences:v1', JSON.stringify({ theme, reduceMotion: true, autoNextEpisode: true }));
@@ -143,10 +155,12 @@ fs.mkdirSync(output, { recursive: true });
     console.log(`PASS ${results.length} Home 32 production-shell geometry cases; screenshots: ${output}`);
   } finally {
     if (browser) await browser.close();
-    server.kill('SIGTERM');
-    if (server.exitCode === null && server.signalCode === null) await new Promise(resolve => server.once('exit', resolve));
+    builder?.kill('SIGTERM');
+    server?.kill('SIGTERM');
+    if (server && server.exitCode === null && server.signalCode === null) await new Promise(resolve => server.once('exit', resolve));
     fs.rmSync(fixture, { recursive: true, force: true });
     fs.rmSync('.next/dev/types', { recursive: true, force: true });
+    fs.rmSync('.next/types', { recursive: true, force: true });
     fs.closeSync(log);
   }
 })().catch(error => { console.error(error); console.error('Next log:', logPath); process.exitCode = 1; });

@@ -53,6 +53,7 @@
   .content { width: 100%; padding: 180px 20px 92px; }
   .eyebrow { margin-bottom: 12px; font-size: 10px; }
   .content h1, .content h1:global(.is-long-title) { max-width: 560px; font-size: clamp(32px, 6.8vw, 48px); line-height: 1.08; -webkit-line-clamp: 3; }
+  .content h1:global(.is-long-title) { font-size: clamp(28px, 6.5vw, 40px); }
   .facts { margin-top: 14px; gap: 6px 10px; font-size: 12px; }
   .summary { display: none; }
   .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; max-width: 420px; }
