@@ -23,13 +23,16 @@ for (const file of ['components/home/HomePageShell.module.css', 'components/home
   css.walkDecls(decl => assert(!decl.important, file + ' introduces !important'));
   assert(Buffer.byteLength(read(file)) < 16000, 'CSS module budget');
 }
+const loaded = new Map();
 // Render the actual compact picker. Decorative image paths must not enter SSR.
 function load(file, imports) {
+  if (loaded.has(file)) return loaded.get(file).exports;
   const module = { exports: {} };
+  loaded.set(file, module);
   const code = ts.transpileModule(read(file), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   new Function('module', 'exports', 'require', code)(module, module.exports, name => {
     if (name in imports) return imports[name];
-    if (name.endsWith('.module.css')) return { default: {} };
+    if (name.endsWith('.css')) return { default: {} };
     if (name.startsWith('@/lib/')) return load(name.replace('@/', '') + '.ts', {});
     return require(name);
   });
@@ -55,3 +58,36 @@ actions.walkRules(rule => {
   if (rule.selector.includes('.home-page')) assert(rule.selector.includes('[data-home-layout="cinematic"]'), 'Action/dialog ownership not migrated: ' + rule.selector);
 });
 console.log('PASS Home 32: production composition, CSS ownership/budget, ISR/SEO, all SSR mood states and shared feedback styling');
+
+// A visual fixture must produce real cards, including when resume history
+// excludes the first title. Otherwise a skeleton-only screenshot can pass.
+(async () => {
+  const Fixture = load('tests/fixtures/home32.fixture', {
+    '@/components/home/HomePageShell': { default: () => null },
+  }).default;
+  const element = await Fixture({ searchParams: Promise.resolve({}) });
+  const candidates = element.props.initialPopular;
+  const data = new Map();
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const storage = { getItem: key => data.get(key) || null, setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: { localStorage: storage } });
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage });
+  try {
+    const { getPersonalizedRecommendations } = load('lib/recommendations.ts', {});
+    for (const history of [false, true]) {
+      if (history) storage.setItem('anime_watch_history', JSON.stringify([{ ...candidates[0], lastViewedAt: Date.now(), viewCount: 1 }]));
+      for (const mood of ['any', 'adventure']) {
+        const ranked = getPersonalizedRecommendations(candidates, { mood, limit: 24 });
+        assert(ranked.length >= 8, 'Fixture must fill real recommendation shelves');
+        if (history) assert(!ranked.some(item => item.anime.id === candidates[0].id), 'History exclusion must remain real');
+      }
+    }
+  } finally {
+    for (const [key, descriptor] of [['window', originalWindow], ['localStorage', originalStorage]]) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+  console.log('PASS Home 32 fixture: real ranking produces cards for guests/history and mood changes');
+})().catch(error => { console.error(error); process.exitCode = 1; });

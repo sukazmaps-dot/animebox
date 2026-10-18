@@ -9,9 +9,15 @@ export default async function Home32Fixture({ searchParams }: {
   searchParams: Promise<{ mode?: string }>;
 }) {
   const { mode } = await searchParams;
+  const titles = ['Провожающая в последний путь Фрирен',
+    'Путешественники между мирами: удивительная история о дружбе, времени и дороге домой',
+    'Город над облаками', 'Дом у моря', 'Лес светлячков', 'Звёздный экспресс',
+    'Летний дождь', 'Стражи рассвета', 'Тихий океан', 'Сад воспоминаний',
+    'Письма из будущего', 'Музыка ветра', 'Серебряный маяк', 'Крылья надежды',
+    'Снежный перевал', 'Лунная библиотека'];
   const items = Array.from({ length: 16 }, (_, i) => ({
     id: 100 + i,
-    title: { russian: i === 0 ? 'Провожающая в последний путь Фрирен' : `Невероятное путешествие в другом мире: возвращение героя — сезон ${i + 1}` },
+    title: { russian: titles[i] },
     mobileHeroPosition: { x: 60, y: 18 },
     genres: ['Adventure', 'Fantasy'], score: 9.1, episodes: 24, format: 'TV',
     status: 'RELEASING', startDate: { year: 2026 },
