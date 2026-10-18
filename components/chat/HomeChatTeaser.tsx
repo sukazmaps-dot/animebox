@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import SectionHeader from '@/components/home/SectionHeader';
+
 import type { HomeChatTeaserMessage } from '@/types/chat';
 import { premiumMediaStyle } from '@/lib/premium-studio';
 import styles from './HomeChatTeaser.module.css';
@@ -88,16 +90,13 @@ export default function HomeChatTeaser() {
     <>
     <section className={styles.card} aria-labelledby="home-chat-title">
       <div className={styles.glow} aria-hidden="true" />
-      <div className={styles.head}>
-        <div>
-          <span className={styles.eyebrow}>ANIMEBOX CHAT</span>
-          <h2 id="home-chat-title">Общий чат</h2>
-          <p>Флудилка, онгоинги и компания для совместного просмотра.</p>
-        </div>
-        <Link href="/chat" className={styles.openLink}>
-          Открыть чат <span aria-hidden="true">→</span>
-        </Link>
-      </div>
+      <SectionHeader
+        title="Общий чат"
+        id="home-chat-title"
+        subtitle="Онгоинги, общение и компания для совместного просмотра."
+        href="/chat"
+        linkLabel="Открыть чат"
+      />
 
       {recentMessages.length ? (
         <div className={styles.messages}>
