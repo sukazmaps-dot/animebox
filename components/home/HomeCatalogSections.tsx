@@ -1,7 +1,6 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
+import SectionHeader from '@/components/home/SectionHeader';
 
 import HomeAnimeRail from '@/components/HomeAnimeRail';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
@@ -20,30 +19,7 @@ export default function HomeCatalogSections() {
   return (
     <>
       <section className="section home-catalog-section home-catalog-section--popular">
-        <div className="section-head">
-          <h2 className="section-title">
-            <span
-              className="section-title__icon section-title__icon--asset"
-              aria-hidden="true"
-            >
-              <Image
-                src="/brand/icons/sections/popular.svg"
-                alt=""
-                width={16}
-                height={16}
-                sizes="16px"
-              />
-            </span>
-            Популярные аниме
-          </h2>
-
-          <Link
-            className="section-link"
-            href="/search"
-          >
-            Смотреть все →
-          </Link>
-        </div>
+        <SectionHeader title="Популярные аниме" href="/search" linkLabel="Смотреть все" />
 
         {popularLoading ? (
           <div className="loading-grid">
@@ -69,30 +45,7 @@ export default function HomeCatalogSections() {
       </section>
 
       <section className="section home-catalog-section home-catalog-section--ongoing">
-        <div className="section-head">
-          <h2 className="section-title">
-            <span
-              className="section-title__icon section-title__icon--asset"
-              aria-hidden="true"
-            >
-              <Image
-                src="/brand/icons/sections/ongoing.svg"
-                alt=""
-                width={16}
-                height={16}
-                sizes="16px"
-              />
-            </span>
-            Продолжающиеся
-          </h2>
-
-          <Link
-            className="section-link"
-            href="/schedule"
-          >
-            Расписание →
-          </Link>
-        </div>
+        <SectionHeader title="Продолжающиеся" href="/schedule" linkLabel="Расписание" />
 
         {ongoingLoading && fallbackItems.length === 0 ? (
           <div className="loading-grid">
