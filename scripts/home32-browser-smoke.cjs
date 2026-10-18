@@ -146,7 +146,16 @@ fs.mkdirSync(output, { recursive: true });
         assert.deepEqual(compact.errors, [], name + ' compact mobile/desktop recommendation geometry');
 
         assert.equal(await page.locator('.continue-smart-card').count(), history ? 1 : 0, name + ' real history only');
-        if (history) assert((await page.locator('.continue-smart-card').getAttribute('href')).includes('ep=7'), 'Resume episode');
+        if (history) {
+          assert((await page.locator('.continue-smart-card').getAttribute('href')).includes('ep=7'), 'Resume episode');
+          const resumeGeometry = await page.locator('.continue-smart-card').first().evaluate(card => {
+            const poster = card.querySelector('.continue-smart-card__poster')?.getBoundingClientRect();
+            const body = card.querySelector('.continue-smart-card__body')?.getBoundingClientRect();
+            return { posterRight: poster?.right ?? 0, bodyLeft: body?.left ?? 0, cardWidth: card.getBoundingClientRect().width };
+          });
+          assert(resumeGeometry.posterRight <= resumeGeometry.bodyLeft + 1, name + ' resume poster overlaps copy');
+          assert(resumeGeometry.cardWidth <= (c.width <= 768 ? c.width * 0.86 + 5 : 321), name + ' resume card width');
+        }
         if (c.mode === 'poster') { assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .6, 'Poster is bounded'); }
         if (c.width === 1366 && c.mode === 'normal') {
           const rail = page.locator('.home-anime-rail__viewport').first();
