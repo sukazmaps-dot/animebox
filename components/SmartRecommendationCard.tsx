@@ -574,14 +574,7 @@ export default function SmartRecommendationCard({
         </AnimeIntentLink>
 
         <div className="smart-card__meta" aria-label="Информация об аниме">
-          {Number.isInteger(releaseYear) && releaseYear > 1900 && <span>{releaseYear}</span>}
-          <span>{formatLabel(anime.format)}</span>
-          {ratingLabel && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span>★ {ratingLabel}</span>
-            </>
-          )}
+          {[Number.isInteger(releaseYear) && releaseYear > 1900 ? String(releaseYear) : null, formatLabel(anime.format), ratingLabel ? `★ ${ratingLabel}` : null].filter(Boolean).join(' · ')}
         </div>
 
         <div className="smart-card__actions">
