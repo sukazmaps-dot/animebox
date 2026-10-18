@@ -149,7 +149,7 @@ fs.mkdirSync(output, { recursive: true });
                 const cs = getComputedStyle(button);
                 return cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity || '1') > 0.1 && cs.pointerEvents !== 'none';
               });
-              if (visible.length > 1) errors.push('mobile poster shows multiple action buttons');
+              if (visible.length !== 1 || Number(getComputedStyle(actions).opacity) < 0.5) errors.push('mobile poster must show exactly one visible bookmark');
             }
             if (getComputedStyle(card.querySelector('.smart-card__reason') || card).getPropertyValue('display') !== 'none' && card.querySelector('.smart-card__reason')) errors.push('duplicated reason tag');
             if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push('mobile poster must be 130px');
