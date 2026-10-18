@@ -5,7 +5,8 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  min-height: clamp(560px, 44vw, 680px);
+  min-height: 420px;
+  max-height: 420px;
   margin: 0;
   overflow: hidden;
   border: 0;
@@ -26,11 +27,11 @@
   pointer-events: none;
   background: linear-gradient(90deg, #141218 0%, rgb(20 18 24 / 88%) 20%, rgb(20 18 24 / 52%) 48%, rgb(20 18 24 / 8%) 78%), linear-gradient(0deg, var(--home-canvas, #141218), transparent 35%);
 }
-.content { position: relative; width: min(62%, 760px); min-width: 0; padding: 64px clamp(24px, 4vw, 64px) 112px; }
+.content { position: relative; width: min(66%, 760px); min-width: 0; padding: 34px clamp(24px, 4vw, 64px) 76px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; color: #d7c5ff; font-size: 11px; font-weight: 650; line-height: 1.5; letter-spacing: .13em; text-transform: uppercase; }
 .eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.content h1 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; margin: 0; max-width: 650px; color: #fff; font-size: clamp(38px, 4.4vw, 68px); line-height: 1.04; font-weight: 750; letter-spacing: -.045em; overflow-wrap: anywhere; text-wrap: balance; }
-.content h1:global(.is-long-title) { font-size: clamp(34px, 3.6vw, 54px); }
+.content h1 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; margin: 0; max-width: 650px; color: #fff; font-size: clamp(32px, 3.5vw, 50px); line-height: 1.04; font-weight: 750; letter-spacing: -.045em; overflow-wrap: anywhere; text-wrap: balance; }
+.content h1:global(.is-long-title) { font-size: clamp(30px, 3vw, 43px); }
 .facts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 20px; color: rgb(255 255 255 / 85%); font-size: 13px; line-height: 1.5; }
 .facts > span + span::before { content: '·'; margin-right: 12px; opacity: .6; }
 .summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; max-width: 49ch; margin: 16px 0 0; color: rgb(255 255 255 / 86%); font-size: 15px; line-height: 1.65; }
@@ -43,24 +44,24 @@
 .scene a:focus-visible, .scene button:focus-visible { outline: 3px solid #d7c5ff; outline-offset: 3px; }
 @media (max-width: 1024px) and (min-width: 769px) {
   .content { width: 76%; }
-  .scene { min-height: 560px; }
+  .scene { min-height: 420px; }
 }
 @media (max-width: 768px) {
-  .scene { align-items: flex-end; min-height: 620px; min-height: clamp(580px, 82svh, 760px); }
+  .scene { align-items: flex-end; height: min(520px, 68svh); min-height: min(440px, 68svh); max-height: 520px; }
   .scene picture, .scene picture[data-hero-desktop-kind='poster'] { inset: 0; }
   .scene .artwork, .scene picture[data-hero-desktop-kind='poster'] .artwork { object-fit: cover; object-position: var(--hero-mobile-position, 50% 18%); }
   .shade { background: linear-gradient(0deg, var(--home-canvas, #141218) 0%, rgb(20 18 24 / 94%) 18%, rgb(20 18 24 / 62%) 44%, rgb(20 18 24 / 4%) 78%); }
-  .content { width: 100%; padding: 180px 20px 92px; }
+  .content { width: 100%; padding: 78px 16px 92px; }
   .eyebrow { margin-bottom: 12px; font-size: 10px; }
-  .content h1, .content h1:global(.is-long-title) { max-width: 560px; font-size: clamp(32px, 6.8vw, 48px); line-height: 1.08; -webkit-line-clamp: 3; }
-  .content h1:global(.is-long-title) { font-size: clamp(28px, 6.5vw, 40px); }
+  .content h1, .content h1:global(.is-long-title) { max-width: 560px; font-size: clamp(28px, 6.6vw, 38px); line-height: 1.08; -webkit-line-clamp: 2; }
+  .content h1:global(.is-long-title) { font-size: clamp(25px, 6vw, 34px); }
   .facts { margin-top: 14px; gap: 6px 10px; font-size: 12px; }
   .summary { display: none; }
   .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; max-width: 420px; }
   .play, .details { padding: 12px; min-height: 48px; font-size: 14px; }
 }
 @media (max-height: 600px) and (orientation: landscape) {
-  .scene { min-height: 460px; }
+  .scene { height: 420px; min-height: 420px; max-height: 420px; }
   .content { width: min(80%, 760px); padding-top: 40px; }
   .content h1, .content h1:global(.is-long-title) { font-size: 34px; }
   .summary { display: none; }
