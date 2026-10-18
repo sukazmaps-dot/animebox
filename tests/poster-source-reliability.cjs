@@ -99,14 +99,14 @@ function load(file) {
     const health=await (await worker.default.fetch(new Request('https://media.youranimebox.com/health'),{MEDIA_BUCKET:bucket},ctx)).json();
     assert.equal(health.r2,true);assert.equal(health.r2WritesEnabled,false);
     assert.equal(health.r2WritePolicy,'curated-webp-v1');
-    assert.deepEqual(health.r2WriteWidths,[240,540]);
+    assert.deepEqual(health.r2WriteWidths,[240,360]);
     assert.equal(health.r2MaxWriteBytes,192*1024);
     const request=()=>new Request('https://media.youranimebox.com/image?'+new URLSearchParams({url:ani,w:'240',q:'70',f:'webp'}));
     assert.equal((await worker.default.fetch(request(),{MEDIA_BUCKET:bucket},ctx)).status,200);
     await Promise.all(waits.splice(0));assert.equal(writes,0,'attached bucket must never imply writes');
     assert.equal((await worker.default.fetch(request(),{MEDIA_BUCKET:bucket,MEDIA_R2_WRITES_ENABLED:'true'},ctx)).status,200);
     await Promise.all(waits.splice(0));assert.equal(writes,1,'only explicit opt-in may write');
-    for (const [w,q,f] of [['360','70','webp'],['240','60','webp'],['240','70','avif']]) {
+    for (const [w,q,f] of [['540','70','webp'],['240','60','webp'],['240','70','avif']]) {
       const query=new URLSearchParams({url:ani,w,q,f});
       assert.equal((await worker.default.fetch(new Request(`https://media.youranimebox.com/image?${query}`),{MEDIA_BUCKET:bucket,MEDIA_R2_WRITES_ENABLED:'true'},ctx)).status,200);
       await Promise.all(waits.splice(0));
