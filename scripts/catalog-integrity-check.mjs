@@ -97,7 +97,10 @@ if (!suggestions.includes('filterAnimeIdsByAvailability')) {
 if (
   !/filterAnimeByAvailability\(\s*candidates,\s*['"]catalog['"]\s*,?\s*\)/m.test(discovery) ||
   !/const\s+availability\s*=\s*await\s+filterAnimeByAvailability\(\s*(?:filtered|ranked),\s*['"]catalog['"]\s*,?\s*\)/m.test(related) ||
-  !/return\s+availability\.items\.slice\(0,\s*12\)/.test(related) ||
+  // Poster enrichment may wrap only the final availability-filtered slice.
+  // Preserve the original acceptance path as well as the new 32.1.1 safe wrapper;
+  // never allow an unfiltered graph/candidate list into the related rail.
+  !/return\s+(?:availability\.items\.slice\(0,\s*12\)|await\s+enrichAnimePosterSources\(\s*availability\.items\.slice\(0,\s*12\)\s*\))/.test(related) ||
   !related.includes('refreshCatalogAvailabilityBatch(availability.refreshTargets, { limit: 4 })')
 ) {
   failures.push('contextual discovery / related titles bypass availability filtering');
