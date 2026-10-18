@@ -1,52 +1,10 @@
-/* Patch 32.0.1: one source of truth for the continue-watching rail. */
-.section { min-width: 0; margin: 0; }
-.section :global(.continue-smart-grid) {
-  display: flex;
-  gap: 12px;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 2px 0 10px;
-  scroll-snap-type: x proximity;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: none;
-}
-.section :global(.continue-smart-grid)::-webkit-scrollbar { display: none; }
-.section .card, .section .card:first-child {
-  position: relative;
-  display: grid;
-  flex: 0 0 320px;
-  width: 320px;
-  max-width: 100%;
-  min-height: 112px;
-  grid-template-columns: 62px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  padding: 9px 12px 12px;
-  border: 1px solid var(--ab-ui-border);
-  border-radius: 8px;
-  background: var(--ab-ui-surface);
-  scroll-snap-align: start;
-}
-.section .card :global(.continue-smart-card__poster) { width: 62px; height: 92px; border-radius: 5px; overflow: hidden; }
-.section .card :global(.continue-smart-card__body) { min-width: 0; }
-.section .card :global(.continue-smart-card__body) strong { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 13px; line-height: 1.35; }
-.section .card :global(.continue-smart-card__body) small { font-size: 11px; line-height: 1.35; }
-.section .card :global(.continue-smart-card__eyebrow) { font-size: 11px; }
-.section .card :global(.continue-smart-card__arrow) { display: none; }
-.section .card :global(.continue-smart-card__progress) {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  margin: 0;
-  background: var(--ab-ui-border);
-  border-radius: 0 0 8px 8px;
-  overflow: hidden;
-}
+.section { min-width: 0; }
 .section a:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
-@media (max-width: 768px) {
-  .section .card, .section .card:first-child { flex-basis: 86vw; width: 86vw; max-width: 360px; }
-}
+.section :global(.continue-smart-grid) { display: flex; gap: 12px; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0 10px; scroll-snap-type: x mandatory; overscroll-behavior-inline: contain; scrollbar-width: none; }
+.section :global(.continue-smart-grid)::-webkit-scrollbar { display: none; }
+.section :global(.continue-smart-card) { flex: 0 0 320px; width: 320px; max-width: 100%; scroll-snap-align: start; position: relative; overflow: hidden; }
+.section :global(.continue-smart-card__progress) { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; margin: 0; background: var(--ab-ui-border); }
+.section :global(.continue-smart-card__progress) i { display: block; height: 100%; }
+.section :global(.continue-smart-card__arrow) { display: none; }
+@media (max-width: 768px) { .section :global(.continue-smart-card) { flex-basis: min(86vw, 320px); width: min(86vw, 320px); } }
 @media (prefers-reduced-motion: reduce) { .section :global(.continue-smart-grid) { scroll-behavior: auto; } }
