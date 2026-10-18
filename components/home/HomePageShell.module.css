@@ -116,7 +116,8 @@
 .page :global(.smart-card__reason) { display: none; }
 .page :global(.smart-card__actions) { min-width: 0; }
 @media (max-width: 768px) {
-  .page :global(.smart-feed__rail) { overflow: hidden; }
+  /* The track itself scrolls; clipping its wrapper cut the peek card at the section edge. */
+  .page :global(.smart-feed__rail) { overflow: visible; }
   .page :global(.smart-feed__slide) { width: 130px; max-width: 130px; flex: 0 0 130px; }
   .page :global(.smart-card__body) { padding: 7px 0 0; }
   .page :global(.smart-card__title) { font-size: 12px; line-height: 1.35; }
