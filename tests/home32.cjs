@@ -40,6 +40,20 @@ function load(file, imports) {
   });
   return module.exports;
 }
+// Patch 32.0.1: server catalogue safety is metadata-only and never guessed
+// from unknown posters; duplicate IDs are removed before first-screen render.
+const { uniqueHomeGroups, isHomePublicSafe } = load('lib/home-public-filter.ts', {});
+const anime = id => ({ id, title: { russian: String(id) }, genres: ['Drama'] });
+assert.deepEqual(uniqueHomeGroups([anime(1), anime(1), anime(2)], [anime(2), anime(3)]).ongoing.map(x => x.id), [3]);
+assert(isHomePublicSafe(anime(10)), 'Unknown content rating must not be guessed');
+assert(!isHomePublicSafe({ ...anime(11), isAdult: true }));
+assert(!isHomePublicSafe({ ...anime(12), ageRating: '18+' }));
+assert(!isHomePublicSafe({ ...anime(13), genres: ['Hentai'] }));
+const { formatHomeScheduleCountdown } = load('lib/home-schedule-time.ts', {});
+assert.equal(formatHomeScheduleCountdown(0, 1000), 'Вышло');
+assert.equal(formatHomeScheduleCountdown(100 + (5 * 86400 + 8 * 3600), 100_000), 'через 5 дн. 8 ч');
+assert.equal(formatHomeScheduleCountdown(100 + (2 * 3600 + 23 * 60), 100_000), 'через 2 ч 23 мин');
+
 const moods = load('lib/recommendation-moods.ts', {});
 const Picker = load('components/HomeMoodPicker.tsx', {
   '@/lib/recommendation-moods': moods,
