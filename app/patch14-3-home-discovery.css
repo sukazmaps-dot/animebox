@@ -111,15 +111,9 @@
   min-height: 104px;
   margin: 0 !important;
   padding: 10px 12px !important;
-  border: 0 !important;
-  border-right: 1px solid var(--ab-line) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+  /* Patch 32.0.1: card borders and rounding live in the CSS Module;
+     the old flat/table appearance must not override them here. */
   box-shadow: none !important;
-}
-
-.home-page .continue-smart-card:last-child {
-  border-right: 0 !important;
 }
 
 .home-page .continue-smart-card:hover {
@@ -541,7 +535,6 @@
     grid-template-columns: 60px minmax(0, 1fr) 18px !important;
     gap: 9px !important;
     padding: 9px 10px !important;
-    border-right: 1px solid var(--ab-line) !important;
     scroll-snap-align: start;
   }
 
