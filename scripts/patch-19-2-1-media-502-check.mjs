@@ -40,7 +40,8 @@ if (animeImage.includes('sourceIndex: 0,\n        loaded: false,\n      });\n   
 }
 
 for (const needle of [
-  "const MEDIA_WORKER_VERSION = 'media-shield-v6-origin-relay'",
+  // Patch 32.1 keeps the relay while making attached R2 buckets read-only by default.
+  "const MEDIA_WORKER_VERSION = 'media-shield-v7-no-storage-default'",
   'reliability: MEDIA_WORKER_VERSION',
   'softFail: true',
   "'X-AnimeBox-Media-Version': MEDIA_WORKER_VERSION",

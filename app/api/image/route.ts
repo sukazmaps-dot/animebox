@@ -376,8 +376,13 @@ export async function GET(
       return imageWork.run(deadline, () => loadBufferedImage(sourceUrl, deadline));
     }, request.signal);
     if (!image.bytes) return placeholder(image.error, image.attempts, strict);
-    const buffer = image.bytes;
-    const contentType = image.contentType;
+    const optimized = request.nextUrl.searchParams.get('optimize') === 'webp'
+      ? await (await import('@/lib/image-relay-optimize')).optimizeRelayImage(
+          sourceUrl.toString(), { bytes: image.bytes, contentType: image.contentType }, request.signal,
+        )
+      : { bytes: image.bytes, contentType: image.contentType };
+    const buffer = optimized.bytes;
+    const contentType = optimized.contentType;
 
     return new NextResponse(buffer as Uint8Array<ArrayBuffer>, {
       status: 200,

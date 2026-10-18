@@ -89,6 +89,7 @@ try {
     }),
   };
   const api = compile('lib/anime-public-metadata-server.ts', {
+    '@/lib/anime-poster-metadata-server': { enrichAnimePosterSources: async rows => rows },
     'server-only': {},
     'next/server': { after: (work) => jobs.push(work) },
     '@/lib/anilist': {

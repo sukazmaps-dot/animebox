@@ -7,6 +7,8 @@ export type AnimeImage = {
   color?: string | null;
   original?: string | null;
   preview?: string | null;
+  /** Known posters for the same title, retained independently of size slots. */
+  fallbackUrls?: string[];
 };
 
 export type AnimeStudioNode = {

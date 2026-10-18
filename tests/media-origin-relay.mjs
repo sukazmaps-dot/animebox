@@ -16,6 +16,7 @@ try {
     if (new URL(url).hostname === 'youranimebox.com') {
       assert.equal(new URL(url).pathname, '/api/image');
       assert.equal(new URL(url).searchParams.get('url'), source.href);
+      assert.equal(new URL(url).searchParams.get('optimize'), 'webp', 'rescue uses one source-level compressed derivative');
       assert.equal(options.redirect, 'manual');
       assert.ok(options.signal);
       assert.deepEqual(Object.keys(options.headers), ['Accept']);

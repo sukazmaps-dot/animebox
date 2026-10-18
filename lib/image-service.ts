@@ -112,7 +112,12 @@ export function buildImageCandidateChain(
   }
 
   const primary = remote[0];
-  const secondary = remote.find((value) => value !== primary) ?? null;
+  const secondary = remote.find((value) => new URL(value).origin !== new URL(primary).origin)
+    ?? remote.find((value) => value !== primary) ?? null;
+  // Keep independent providers ahead of repeated sizes on the same CDN.
+  // Only two extra URLs survive: a corrupt provider payload cannot fan out.
+  const remaining = remote.filter(value => value !== primary && value !== secondary)
+    .slice(0, 2).map(value => prefersLegacyProxy(value) ? proxyImageUrl(value)! : value);
   const secondaryFallback = secondary
     ? prefersLegacyProxy(secondary) ? proxyImageUrl(secondary) : secondary
     : null;
@@ -138,14 +143,14 @@ export function buildImageCandidateChain(
     result.push(legacyProxy);
     if (secondaryFallback) result.push(secondaryFallback);
     if (secondaryProxy) result.push(secondaryProxy);
-    result.push(...local);
+    result.push(...remaining, ...local.slice(0, 2));
     return Array.from(new Set(result));
   }
 
   // Shikimori must stay server-side: direct browser requests reset/403.
   if (prefersLegacyProxy(primary) && legacyProxy) {
     if (secondaryFallback) result.push(secondaryFallback);
-    result.push(legacyProxy, ...local);
+    result.push(...remaining, legacyProxy, ...local.slice(0, 2));
     return Array.from(new Set(result));
   }
 
@@ -159,6 +164,8 @@ export function buildImageCandidateChain(
     if (secondaryFallback) result.push(secondaryFallback);
   }
 
+  result.push(...remaining);
+
   // Preserve a server route for the alternate original when the edge/browser fail.
   if (secondaryProxy && !result.includes(secondaryProxy)) result.push(secondaryProxy);
 
@@ -170,7 +177,7 @@ export function buildImageCandidateChain(
     result.push(legacyProxy);
   }
 
-  result.push(...local);
+  result.push(...local.slice(0, 2));
 
   return Array.from(new Set(result));
 }
@@ -185,6 +192,7 @@ function imageValues(
     return [
       image.large,
       image.extraLarge,
+      ...(image.fallbackUrls ?? []).slice(0, 6),
       image.medium,
       image.original,
       image.preview,
@@ -194,6 +202,7 @@ function imageValues(
   return [
     image.extraLarge,
     image.large,
+    ...(image.fallbackUrls ?? []).slice(0, 6),
     image.medium,
     image.original,
     image.preview,
