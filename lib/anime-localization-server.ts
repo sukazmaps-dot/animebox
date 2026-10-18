@@ -82,7 +82,7 @@ function providerRetryBlocked(id: number) {
 
 // Public catalog data only. Share reads across metadata/page and concurrent visitors.
 const localLocalizationCache = createPublicResultCache<Awaited<ReturnType<typeof loadLocalLocalization>>>({
-  ttlMs: 60_000, maxEntries: 1_000, cacheWhen: value => value.healthy,
+  ttlMs: 60_000, maxBytes: 4 * 1024 * 1024, maxEntries: 1_000, cacheWhen: value => value.healthy,
 });
 function readLocalLocalization(animeId: number) {
   return localLocalizationCache(String(animeId), () => loadLocalLocalization(animeId));

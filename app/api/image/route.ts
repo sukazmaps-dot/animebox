@@ -1,3 +1,5 @@
+import { createBoundedWork } from '@/lib/bounded-work';
+import { fetchImageUpstream } from '@/lib/image-upstream-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicResultCache } from '@/lib/public-result-cache';
 import { enforcePublicIpRateLimit } from '@/lib/public-api-rate-limit';
@@ -73,6 +75,7 @@ function normalizeUrl(value: string): URL | null {
 function buildUpstreamHeaders(url: URL): HeadersInit {
   const host = url.hostname.toLowerCase();
   const headers: Record<string, string> = {
+    'Accept-Encoding': 'identity',
     Accept:
       'image/avif,image/webp,image/apng,image/svg+xml,image/*;q=0.9,*/*;q=0.5',
     'User-Agent':
@@ -105,16 +108,14 @@ type ImageFetchResult = {
 
 async function fetchImage(
   initialUrl: URL,
+  signal: AbortSignal,
 ): Promise<ImageFetchResult> {
   let current = initialUrl;
-  const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     try {
-      const response = await fetch(current, {
+      const response = await fetchImageUpstream(current, {
         headers: buildUpstreamHeaders(current),
-        redirect: 'manual',
-        cache: 'force-cache',
         signal,
       });
 
@@ -133,6 +134,7 @@ async function fetchImage(
         response.status < 400
       ) {
         if (hop >= MAX_REDIRECTS) {
+          await response.body?.cancel().catch(() => undefined);
           console.error(
             'Image redirect limit reached:',
             current.toString(),
@@ -261,36 +263,56 @@ async function placeholder(error: string, attempts = 0, strict = false) {
   });
 }
 
-async function readImageBody(response: Response) {
+async function readImageBody(response: Response, signal: AbortSignal) {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('empty-image');
-  const chunks: Uint8Array[] = [];
+  const declared = Number(response.headers.get('content-length'));
+  // Keep a single growing destination, no retained chunk list. Never trust
+  // Content-Length for enforcement: actual streamed bytes remain authoritative.
+  let bytes = new Uint8Array(Number.isSafeInteger(declared) && declared > 0
+    ? Math.min(declared, MAX_IMAGE_SIZE) : 64 * 1024);
   let size = 0;
+  const abort = () => { void reader.cancel().catch(() => undefined); };
+  signal.addEventListener('abort', abort, {once: true});
   try {
     while (true) {
+      signal.throwIfAborted();
       const chunk = await reader.read();
+      signal.throwIfAborted();
       if (chunk.done) break;
-      size += chunk.value.byteLength;
-      if (size > MAX_IMAGE_SIZE) throw new Error('origin-too-large');
-      chunks.push(chunk.value);
+      const needed = size + chunk.value.byteLength;
+      if (needed > MAX_IMAGE_SIZE) throw new Error('origin-too-large');
+      if (needed > bytes.byteLength) {
+        const grown = new Uint8Array(Math.min(MAX_IMAGE_SIZE, Math.max(needed, bytes.byteLength * 2)));
+        grown.set(bytes.subarray(0, size));
+        bytes = grown;
+      }
+      bytes.set(chunk.value, size);
+      size = needed;
     }
-  } finally { await reader.cancel().catch(() => undefined); reader.releaseLock(); }
+  } finally {
+    signal.removeEventListener('abort', abort);
+    await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
   if (!size) throw new Error('empty-image');
-  const bytes = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return bytes;
+  if (declared > 0 && declared !== size) throw new Error('origin-truncated');
+  return bytes.subarray(0, size);
 }
 
 type BufferedImage = { bytes: Uint8Array; contentType: string; error: null; attempts: number }
   | { bytes: null; contentType: string; error: string; attempts: number };
-// At most 32 MiB retained; large images still work but are not kept in memory.
+// Bound both resident byte storage and simultaneous temporary image buffers.
+// Buffering is intentional: reject oversize/truncated bodies before a 200,
+// share a completed body between waiters, and preserve the poster fallback.
+const imageWork = createBoundedWork(4, 32);
 const bufferedImages = createPublicResultCache<BufferedImage>({
-  ttlMs: 60_000, maxEntries: 32,
+  ttlMs: 60_000, maxEntries: 64, maxBytes: 8 * 1024 * 1024,
+  sizeOf: value => value.bytes?.buffer.byteLength ?? 0,
   cacheWhen: value => Boolean(value.bytes && value.bytes.byteLength <= 1024 * 1024),
 });
-async function loadBufferedImage(sourceUrl: URL): Promise<BufferedImage> {
-  const result = await fetchImage(sourceUrl);
+async function loadBufferedImage(sourceUrl: URL, signal: AbortSignal): Promise<BufferedImage> {
+  const result = await fetchImage(sourceUrl, signal);
   const upstream = result.response;
   const failed = async (error: string): Promise<BufferedImage> => {
     await upstream?.body?.cancel().catch(() => undefined);
@@ -300,7 +322,8 @@ async function loadBufferedImage(sourceUrl: URL): Promise<BufferedImage> {
   const contentType = upstream.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().startsWith('image/')) return failed('origin-not-image');
   if (Number(upstream.headers.get('content-length') ?? '0') > MAX_IMAGE_SIZE) return failed('origin-too-large');
-  const bytes = await readImageBody(upstream);
+  if (upstream.headers.get('content-encoding') && upstream.headers.get('content-encoding') !== 'identity') return failed('origin-encoded-image');
+  const bytes = await readImageBody(upstream, signal);
   return { bytes, contentType, error: null, attempts: result.attempts };
 }
 
@@ -347,12 +370,16 @@ export async function GET(
   }
 
   try {
-    const image = await bufferedImages(sourceUrl.toString(), () => loadBufferedImage(sourceUrl));
+    const image = await bufferedImages(sourceUrl.toString(), signal => {
+      // Deadline includes admission wait, DNS, redirects and the entire body.
+      const deadline = AbortSignal.any([signal, AbortSignal.timeout(FETCH_TIMEOUT_MS)]);
+      return imageWork.run(deadline, () => loadBufferedImage(sourceUrl, deadline));
+    }, request.signal);
     if (!image.bytes) return placeholder(image.error, image.attempts, strict);
     const buffer = image.bytes;
     const contentType = image.contentType;
 
-    return new NextResponse(new Uint8Array(buffer), {
+    return new NextResponse(buffer as Uint8Array<ArrayBuffer>, {
       status: 200,
       headers: {
         'Content-Type': contentType,
@@ -367,6 +394,10 @@ export async function GET(
       },
     });
   } catch (error) {
+    if (request.signal?.aborted) return new NextResponse(null, {status: 499, headers: privateNoStoreHeaders()});
+    if (error instanceof Error && error.message === 'origin-busy') return new NextResponse(null, {
+      status: 503, headers: {...privateNoStoreHeaders(), 'Retry-After': '1'},
+    });
     console.error(
       'Image proxy error:',
       error,

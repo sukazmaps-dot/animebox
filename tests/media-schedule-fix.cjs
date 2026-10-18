@@ -11,7 +11,9 @@ function compile(file, imports = {}) {
 const originalFetch = global.fetch;
 const originalError = console.error;
 const { GET } = compile('app/api/image/route.ts', {
-  '@/lib/public-result-cache': compile('lib/public-result-cache.ts'),
+  '@/lib/bounded-work': compile('lib/bounded-work.ts'),
+    '@/lib/image-upstream-server': { fetchImageUpstream: (url, init) => fetch(url, {...init, redirect: 'manual'}) },
+    '@/lib/public-result-cache': compile('lib/public-result-cache.ts'),
   'next/server': { NextResponse: Response }, '@/lib/public-api-rate-limit': { enforcePublicIpRateLimit: () => null },
   '@/lib/edge-cache-policy': compile('lib/edge-cache-policy.ts'),
 });

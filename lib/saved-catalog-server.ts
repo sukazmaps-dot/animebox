@@ -133,7 +133,7 @@ export async function getSavedCatalogPage(options: GetAnimesOptions) {
 
 // One bounded query for the whole grid; only public title data enters this cache.
 const savedMetadataCache = createPublicResultCache<Anime[]>({
-  ttlMs: 30_000, maxEntries: 128, cacheWhen: items => items.length > 0,
+  ttlMs: 30_000, maxBytes: 4 * 1024 * 1024, maxEntries: 128, cacheWhen: items => items.length > 0,
 });
 
 export async function getSavedAnimeMetadata(ids: number[]): Promise<Anime[]> {

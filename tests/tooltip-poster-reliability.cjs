@@ -151,6 +151,8 @@ async function cache() {
   assert.equal(shield.proxy(new NextRequest('https://youranimebox.com/api/community/tracker')).headers.get('cache-control'), 'private, no-store');
   let limited = false;
   const route = compile('app/api/image/route.ts', {
+    '@/lib/bounded-work': compile('lib/bounded-work.ts'),
+    '@/lib/image-upstream-server': { fetchImageUpstream: (url, init) => fetch(url, {...init, redirect: 'manual'}) },
     '@/lib/public-result-cache': compile('lib/public-result-cache.ts'),
     '@/lib/public-api-rate-limit': { enforcePublicIpRateLimit: () => limited ? new NextResponse(null, { status: 429 }) : null },
     '@/lib/edge-cache-policy': policy,
