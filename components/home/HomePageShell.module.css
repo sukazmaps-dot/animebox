@@ -21,7 +21,8 @@
 .page :global(.smart-feed) { gap: 28px; }
 .page :global(.smart-feed__rail-heading) { margin-bottom: 12px; }
 .page :global(.smart-feed__rail-heading) h3 { font-size: 17px; font-weight: 600; }
-.page :global(.smart-feed__rail-heading) p { font-size: 12px; color: var(--ab-ui-muted); }
+/* Shelves need a title; implementation copy and duplicate badges add noise. */
+.page :global(.smart-feed__rail-heading) p, .page :global(.smart-feed__rail-badge) { display: none; }
 .page :global(.home-anime-rail__viewport) { grid-auto-columns: calc((100% - 64px) / 5); gap: 16px; scroll-snap-type: x proximity; }
 .page :global(.anime-card), .page :global(.smart-card) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .page :global(.anime-card__image-wrap), .page :global(.smart-card__poster) { overflow: hidden; border-radius: 6px; }
