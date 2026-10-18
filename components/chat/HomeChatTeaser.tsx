@@ -59,7 +59,7 @@ export default function HomeChatTeaser() {
             !controller.signal.aborted &&
             Array.isArray(data.messages)
           ) {
-            setMessages(data.messages);
+            setMessages(data.messages.filter(message => !message.deleted_at).slice(0, 3));
           }
         })
         .catch((error) => {
