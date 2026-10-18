@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import SectionHeader from '@/components/home/SectionHeader';
 import styles from './HomeContinueWatching.module.css';
 import { useVisibleHomeImpression } from '@/components/home/useVisibleHomeImpression';
 
@@ -76,16 +76,7 @@ export default function HomeContinueWatching({
 
   return (
     <section ref={impressionRef} className={`section continue-watching-section ${styles.section}`}>
-      <div className="section-head">
-        <div>
-          <span className="smart-section-eyebrow">Вернуться сегодня</span>
-          <h2 className="section-title">Продолжить просмотр</h2>
-        </div>
-
-        <Link className="section-link" href="/list">
-          Мой трекер →
-        </Link>
-      </div>
+      <SectionHeader title="Продолжить просмотр" href="/list" linkLabel="Мой трекер" />
 
       <div className="continue-smart-grid">
         {items.slice(0, 4).map(({
