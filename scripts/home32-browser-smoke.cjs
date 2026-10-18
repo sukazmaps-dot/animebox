@@ -80,6 +80,13 @@ fs.mkdirSync(output, { recursive: true });
       await page.route('**/*', route => {
         const request = route.request(), url = request.url();
         if (request.resourceType() === 'image' && (url.includes('qa-images.test') || url.includes('/api/image?'))) return route.fulfill({ contentType: 'image/svg+xml', body: svg });
+        if (url.startsWith(origin + '/api/recommendations?')) {
+          // A normal terminal page must satisfy the production response schema.
+          // The generic API stub lacks pagination fields and exercises errors,
+          // leaving artificial retry rows in the normal-state screenshots.
+          const params = new URL(url).searchParams;
+          return route.fulfill({ json: { items: [], page: Number(params.get('page')) || 1, bucket: Number(params.get('bucket')) || 0, hasMore: false, nextPage: null, nextCursor: null } });
+        }
         if (url.startsWith(origin + '/api/')) return route.fulfill({ json: { items: [], data: [], results: [], ok: true, hasMore: false } });
         if (url.startsWith(origin)) return route.continue();
         return route.abort();
@@ -213,7 +220,10 @@ fs.mkdirSync(output, { recursive: true });
             assert(await page.locator('.smart-card').count() >= 4, 'Sparse catalogue replaced by ranked cards');
           }
         }
-        if ([376, 390, 430, 1366, 1920].includes(c.width)) await page.screenshot({ path: path.join(output, name + '-initial.png'), fullPage: true });
+        if ([376, 390, 430, 1366, 1920].includes(c.width)) {
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.screenshot({ path: path.join(output, name + '-initial.png'), fullPage: true });
+        }
         if (c.width === 1366 && c.mode === 'normal') {
           const menu = page.locator('.smart-card__dismiss').first();
           await menu.click();
@@ -280,6 +290,8 @@ fs.mkdirSync(output, { recursive: true });
           fs.writeFileSync(path.join(output, name + '-settled-geometry.json'), JSON.stringify(settled, null, 2));
           assert(settled.ready.every(state => state === 'true'), name + ' deferred sections never mounted');
           assert.deepEqual(settled.promoErrors, [], name + ' footer promo content containment');
+          assert.equal(await page.locator('.smart-feed__rail-retry:visible').count(), 0, name + ' normal terminal page must not manufacture recommendation errors');
+          await page.evaluate(() => window.scrollTo(0, 0));
           await page.screenshot({ path: path.join(output, name + '-settled.png'), fullPage: true });
         }
         assert.deepEqual(errors, [], name + ' browser errors');
