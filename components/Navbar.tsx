@@ -543,7 +543,7 @@ function NavbarContent() {
       </aside>
 
       {/* Topbar keeps only global actions: search, notifications, account. */}
-      <header className="topbar">
+      <header className={pathname === '/' ? 'topbar topbar--home' : 'topbar'}>
         <form
           ref={searchFormRef}
           className="topbar__search"
