@@ -127,7 +127,7 @@ export default function HomeScheduleSection() {
                     <span>{item.episode == null ? 'Плановый выход' : `Эпизод ${item.episode}${item.timingKind ? ' · план' : ''}`}</span>
                   </div>
 
-                  <span className="schedule__time">
+                  <span className={styles.time}>
                     {formatScheduleTime(item.airingAt)}
                     <small>{released && !item.timingKind ? 'Вышло' : clockNow < item.airingAt * 1000 ? `через ${Math.floor((item.airingAt * 1000 - clockNow) / 3_600_000) > 0 ? `${Math.floor((item.airingAt * 1000 - clockNow) / 3_600_000)} ч ` : ''}${Math.floor(((item.airingAt * 1000 - clockNow) % 3_600_000) / 60_000)} мин` : 'План'}</small>
                   </span>
