@@ -68,6 +68,7 @@ async function mount(Feed) {
   tree = await mount(loadFeed()); await settle();
   const retry = tree.root.findAllByType('button').find((x) => String(x.props.children).includes('Повторить'));
   assert.ok(retry, 'error exposes recovery instead of an endless skeleton');
+  assert.ok(!tree.root.findAllByType('section').find(x => x.props.className === 'smart-feed__personal-rail' && x.findAllByType('button').includes(retry))?.props.hidden, 'error recovery must remain visible');
   recover = true;
   await act(async () => retry.props.onClick()); await settle();
   assert.ok(tree.root.findAllByType('article').some((x) => x.props['data-id'] === 201));
@@ -77,8 +78,12 @@ async function mount(Feed) {
   let refill = false;
   global.fetch = async (url) => { calls++; const page = Number(new URL(url, 'https://test.local').searchParams.get('page')); return { ok: true, json: async () => ({ ...payload(refill ? [{ id: 301, lane: 'top_match' }] : [], true, page + 1), page }) }; };
   tree = await mount(loadFeed()); await settle();
-  const resume = tree.root.findAllByType('button').find((x) => String(x.props.children).includes('Продолжить поиск'));
+  // Home 32 renamed the sparse-window action; retain the recovery behavior
+  // contract and also guard against hiding the button with its parent rail.
+  const resume = tree.root.findAllByType('button').find((x) => String(x.props.children).includes('Показать больше похожих аниме'));
   assert.ok(resume, 'a sparse window with hasMore is recoverable');
+  const resumeRail = tree.root.findAllByType('section').find(x => x.props.className === 'smart-feed__personal-rail' && x.findAllByType('button').includes(resume));
+  assert.ok(resumeRail && !resumeRail.props.hidden && resumeRail.props.style?.display !== 'none', 'sparse recovery must remain visible');
   refill = true;
   await act(async () => resume.props.onClick()); await settle();
   assert.ok(tree.root.findAllByType('article').some((x) => x.props['data-id'] === 301));

@@ -1350,11 +1350,11 @@ export default function SmartRecommendationFeed({
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
             const displayItems = rail.items.filter(item => !visibleAcrossRails.has(item.anime.id));
-            // Completed sparse rails must not leave an orphan card or an empty
-            // "retry" heading. Preserve the interleaved personal schedule slot.
+            // Hide only finished sparse rows. Recoverable windows and errors
+            // must keep their retry action visible while more pages exist.
+            // Preserve the interleaved personal schedule slot.
             const hideSparse = !showRailSkeleton && !railLoading &&
-              ((displayItems.length > 0 && displayItems.length < 4) ||
-                (displayItems.length === 0 && (railFailed || !railHasMore)));
+              !railFailed && !hasMore && displayItems.length < 4;
             // Preserve the mounted row slot and keys for session-stable rail
             // order; CSS hides the sparse surface without unmounting its data.
             displayItems.forEach(item => visibleAcrossRails.add(item.anime.id));
@@ -1474,3 +1474,4 @@ export default function SmartRecommendationFeed({
     </div>
   );
 }
+

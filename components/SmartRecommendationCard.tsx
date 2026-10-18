@@ -511,6 +511,9 @@ export default function SmartRecommendationCard({
       className="smart-card"
       data-explanation-key={primaryExplanation?.key}
       data-explanation-version={explanationVersion}
+      data-explanation-component={
+        primaryExplanation?.components.join(',') || undefined
+      }
       data-diversity-version={diversity?.version}
       data-diversity-original-rank={diversity?.originalRank}
       data-diversity-reranked-rank={diversity?.rerankedRank}
@@ -726,3 +729,4 @@ export default function SmartRecommendationCard({
     </article>
   );
 }
+
