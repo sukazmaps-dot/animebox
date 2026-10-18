@@ -46,7 +46,9 @@
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 0 10px;
+  padding: 2px 16px 10px 0;
+  -webkit-mask-image: linear-gradient(to right, #000, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, #000, #000 calc(100% - 24px), transparent);
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   overscroll-behavior-inline: contain;
@@ -90,8 +92,12 @@
 @media (max-width: 768px) {
   .root :global(.schedule__tab) { min-width: 93px; }
   .root :global(.schedule__card) { flex-basis: min(84vw, 300px); width: min(84vw, 300px); }
-  .swipeHint { display: block; margin: 0 0 5px; font-size: 11px; color: var(--ab-ui-muted); text-align: right; }
+  .root :global(.schedule__tabs) { scroll-padding-inline: var(--gutter, 16px); }
+  .root :global(.schedule__cards) { margin-inline: calc(-1 * var(--gutter, 16px)); padding-inline: var(--gutter, 16px); scroll-padding-inline: var(--gutter, 16px); }
+  .swipeHint { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .root :global(.schedule__tabs), .root :global(.schedule__cards) { scroll-behavior: auto; }
 }
+
+.more { display: inline-flex; align-items: center; margin-top: 4px; min-height: 44px; font-size: 13px; color: var(--ab-ui-muted); text-decoration: none; }
