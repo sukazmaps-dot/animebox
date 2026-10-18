@@ -204,7 +204,7 @@ export default function HomeScheduleRuntimeProvider({
   // A manual tab selection must never be overridden by a delayed fetch.
   useEffect(() => {
     const today = scheduleDays[0]?.key;
-    if (!today || scheduleLoading || autoSelectedDateRef.current === today) return;
+    if (!today || scheduleLoading || scheduleItems.length === 0 || autoSelectedDateRef.current === today) return;
     const nearest = scheduleDays.find((day) => scheduleItems.some((item) =>
       item.airingAt * 1000 > clockNow && getLocalDateKey(new Date(item.airingAt * 1000)) === day.key
     ));
