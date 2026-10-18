@@ -54,7 +54,7 @@ Cloudflare Worker revision: `media-shield-v8-curated-r2`.
   alone does not increase R2 storage or Class A operations.
 - Read all existing `posters-v3` R2 objects via the unchanged read path.
 - When explicitly enabled, only store valid Cloudflare **actually transformed**
-  WebP bytes for widths **240 or 540**, quality **70**, max **192 KiB**.
+  WebP bytes for widths **240 or 360**, quality **70**, max **192 KiB**.
 - Never persist raw/original, fallback, relay, HEIC/SVG, incorrect MIME, oversized,
   transformed-but-not-WebP, AVIF, duplicate quality/width variants or HEAD.
 - Cache key remains the existing source-URL hash plus variant token; don't
