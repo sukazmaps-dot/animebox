@@ -2,6 +2,7 @@ import type { Anime } from '@/types/anime';
 import HomeFeedRuntimeProvider from '@/components/home/HomeFeedRuntimeProvider';
 import HomeScheduleRuntimeProvider from '@/components/home/HomeScheduleRuntimeProvider';
 import HomeHeroSection from '@/components/home/HomeHeroSection';
+import HomeGuestPrompt from '@/components/home/HomeGuestPrompt';
 import HomeContinueSection from '@/components/home/HomeContinueSection';
 import HomeWatchTogetherSection from '@/components/home/HomeWatchTogetherSection';
 import HomeDiscoverySection from '@/components/home/HomeDiscoverySection';
@@ -32,6 +33,7 @@ export default function HomePageShell({
         <div className={styles.page} data-home-layout="cinematic">
           <HomeHeroSection />
           <div className={styles.shelves}>
+            <HomeGuestPrompt />
             <HomeContinueSection />
             <HomeScheduleSection />
             <HomeDiscoverySection />
