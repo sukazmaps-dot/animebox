@@ -1,4 +1,41 @@
 .section { min-width: 0; }
+/* One genuine card geometry across desktop and phone. The component's
+   styles.card was previously undefined, leaving legacy global borders in charge. */
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 112px;
+  padding: 9px 12px 12px;
+  border: 1px solid var(--ab-ui-border);
+  border-radius: 8px;
+  background: var(--ab-ui-surface);
+}
+.section .card :global(.continue-smart-card__poster) {
+  width: 62px;
+  height: 92px;
+  border-radius: 5px;
+}
+.section .card :global(.continue-smart-card__body) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-right: 0;
+}
+.section .card :global(.continue-smart-card__arrow) {
+  display: none;
+}
+.section .card :global(.continue-smart-card__arrow)::after {
+  content: none;
+}
+.section .card :global(.continue-smart-card__eyebrow),
+.section .card :global(.continue-smart-card__body) small {
+  font-size: 11px;
+}
 .section a:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
 .section :global(.continue-smart-grid) { display: flex; gap: 12px; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0 10px; scroll-snap-type: x mandatory; overscroll-behavior-inline: contain; scrollbar-width: none; }
 .section :global(.continue-smart-grid)::-webkit-scrollbar { display: none; }
