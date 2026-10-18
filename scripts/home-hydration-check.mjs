@@ -124,14 +124,16 @@ if (
 if (
   !(
     globalScheduleIndex >= 0 &&
-    retentionIndex > globalScheduleIndex &&
-    chatIndex > retentionIndex &&
-    utilityIndex > chatIndex &&
+    // Patch 32.0.1: chat now precedes secondary retention in the compact
+    // editorial flow. Keep exact ordering and no duplicate right rail.
+    chatIndex > globalScheduleIndex &&
+    retentionIndex > chatIndex &&
+    utilityIndex > retentionIndex &&
     !shell.includes('<HomeRightRail />')
   )
 ) {
   failures.push(
-    'Schedule/retention/community/support order or removed duplicate right rail regressed.',
+    'Schedule/community/retention/support order or removed duplicate right rail regressed.',
   );
 }
 
