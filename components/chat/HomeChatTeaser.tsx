@@ -31,7 +31,8 @@ export default function HomeChatTeaser() {
   const [messages, setMessages] = useState<HomeChatTeaserMessage[]>([]);
 
   useEffect(() => {
-    if (window.matchMedia('(max-width: 768px)').matches) return;
+    // The home chat strip is already lazily mounted near the viewport.
+    // Mobile visitors need the same latest-three preview as desktop.
 
     const controller = new AbortController();
     let timer: number | null = null;
