@@ -131,6 +131,7 @@ fs.mkdirSync(output, { recursive: true });
             if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push('mobile poster must be 130px');
           }
           for (const row of document.querySelectorAll('.smart-feed__rail')) {
+            if (getComputedStyle(row, '::after').display !== 'none') errors.push('legacy dark fade over rightmost poster');
             const track = row.querySelector('[role="region"]');
             const right = row.querySelector('button[aria-label="Прокрутить вперёд"]');
             if (track && right && track.scrollWidth <= track.clientWidth + 4) errors.push('arrow without actual overflow');
