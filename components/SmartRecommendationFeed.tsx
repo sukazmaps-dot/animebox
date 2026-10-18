@@ -1355,11 +1355,8 @@ export default function SmartRecommendationFeed({
             const hideSparse = !showRailSkeleton && !railLoading &&
               ((displayItems.length > 0 && displayItems.length < 4) ||
                 (displayItems.length === 0 && (railFailed || !railHasMore)));
-            if (hideSparse) {
-              return railIndex === midFeedInsertAfterIndex && midFeedSlot
-                ? <div key={`${rail.id}:interleave:${rowVersion}`} className="smart-feed__interleave" data-home-composition-slot="personal-schedule">{midFeedSlot}</div>
-                : null;
-            }
+            // Preserve the mounted row slot and keys for session-stable rail
+            // order; CSS hides the sparse surface without unmounting its data.
             displayItems.forEach(item => visibleAcrossRails.add(item.anime.id));
 
             return (
@@ -1367,6 +1364,9 @@ export default function SmartRecommendationFeed({
               <section
                 ref={(node) => registerSparseRailSection(rail.id, node)}
                 className="smart-feed__personal-rail"
+                hidden={hideSparse}
+                aria-hidden={hideSparse || undefined}
+                style={hideSparse ? { display: 'none' } : undefined}
                 data-recommendation-rail-id={rail.id}
                 data-recommendation-rail-items={rail.items.length}
                 data-recommendation-rail-sparse={
