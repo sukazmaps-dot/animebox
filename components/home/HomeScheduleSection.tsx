@@ -3,7 +3,7 @@ import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import Link from 'next/link';
 
-import AnimeImage from '@/components/AnimeImage';
+import HomeSchedulePoster from '@/components/home/HomeSchedulePoster';
 import Icon from '@/components/Icon';
 import styles from './HomeScheduleSection.module.css';
 import { ScheduleGridSkeleton } from '@/components/home/HomeLoadingSkeletons';
@@ -39,7 +39,7 @@ export default function HomeScheduleSection() {
           >
             <Icon name="calendar" />
           </span>
-          Расписание выхода серий
+          Сегодня выходит
         </h2>
 
         <Link
@@ -97,7 +97,7 @@ export default function HomeScheduleSection() {
       ) : (
         <div className="schedule__cards">
           {visibleScheduleItems
-            .slice(0, 4)
+            .slice(0, 6)
             .map((item) => {
               const title = getScheduleTitle(item);
               const released =
@@ -109,19 +109,10 @@ export default function HomeScheduleSection() {
                   href={scheduleAnimeHref(item.media)}
                   className="schedule__card"
                 >
-                  <AnimeImage
+                  <HomeSchedulePoster
                     image={item.media.coverImage}
-                    alt={title}
-                    englishName={
-                      item.media.title.english ||
-                      item.media.title.romaji
-                    }
-                    className="anime-schedule-image"
-                    containerClassName="schedule__poster"
-                    sizes="36px"
-                    quality={60}
-                    sourcePreference="compact"
-                    preset="tiny"
+                    title={title}
+                    englishName={item.media.title.english || item.media.title.romaji}
                   />
 
                   <div
@@ -138,14 +129,14 @@ export default function HomeScheduleSection() {
 
                   <span className="schedule__time">
                     {formatScheduleTime(item.airingAt)}
-                    {released && !item.timingKind ? ' · Вышел' : ''}
+                    <small>{released && !item.timingKind ? 'Вышло' : clockNow < item.airingAt * 1000 ? `через ${Math.floor((item.airingAt * 1000 - clockNow) / 3_600_000) > 0 ? `${Math.floor((item.airingAt * 1000 - clockNow) / 3_600_000)} ч ` : ''}${Math.floor(((item.airingAt * 1000 - clockNow) % 3_600_000) / 60_000)} мин` : 'План'}</small>
                   </span>
                 </Link>
               );
             })}
         </div>
       )}
-      {!scheduleLoading && !scheduleError && visibleScheduleItems.length > 4 && (
+      {!scheduleLoading && !scheduleError && visibleScheduleItems.length > 6 && (
         <Link className="section-link schedule__more" href="/schedule">
           Все выпуски за день · {visibleScheduleItems.length} →
         </Link>
