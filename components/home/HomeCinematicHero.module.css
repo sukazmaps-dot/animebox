@@ -41,6 +41,10 @@
 .play:hover { background: #ded3f2; }
 .details { background: rgb(255 255 255 / 14%); border-color: rgb(255 255 255 / 20%); color: #fff; }
 .details:hover { background: rgb(255 255 255 / 24%); }
+.bookmark { display: grid; place-items: center; flex: 0 0 48px; width: 48px; height: 48px; border: 1px solid rgb(255 255 255 / 30%); border-radius: 6px; background: rgb(255 255 255 / 14%); color: #fff; font-size: 27px; cursor: pointer; }
+.bookmark:disabled { opacity: .75; cursor: default; }
+.arrow { position: absolute; z-index: 5; top: 50%; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; transform: translateY(-50%); border: 1px solid rgb(255 255 255 / 25%); border-radius: 6px; color: #fff; background: rgb(20 18 24 / 55%); font-size: 27px; cursor: pointer; }
+.arrowLeft { left: 8px; } .arrowRight { right: 8px; }
 .scene a:focus-visible, .scene button:focus-visible { outline: 3px solid #d7c5ff; outline-offset: 3px; }
 @media (max-width: 1024px) and (min-width: 769px) {
   .content { width: 76%; }
@@ -59,6 +63,8 @@
   .summary { display: none; }
   .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; max-width: 420px; }
   .play, .details { padding: 12px; min-height: 48px; font-size: 14px; }
+  .actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 48px; gap: 8px; }
+  .arrow { top: 43%; }
 }
 @media (max-height: 600px) and (orientation: landscape) {
   .scene { height: 420px; min-height: 420px; max-height: 420px; }
