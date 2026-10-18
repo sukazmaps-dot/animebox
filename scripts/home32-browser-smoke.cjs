@@ -152,7 +152,7 @@ fs.mkdirSync(output, { recursive: true });
               if (visible.length !== 1 || Number(getComputedStyle(actions).opacity) < 0.5) errors.push('mobile poster must show exactly one visible bookmark');
             }
             if (getComputedStyle(card.querySelector('.smart-card__reason') || card).getPropertyValue('display') !== 'none' && card.querySelector('.smart-card__reason')) errors.push('duplicated reason tag');
-            if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push('mobile poster must be 130px');
+            if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push(`mobile poster must be 130px (poster=${p.width.toFixed(2)} slide=${box(card.parentElement).width.toFixed(2)} card=${box(card).width.toFixed(2)} media=${box(card.querySelector('.anime-card-content__media') || poster).width.toFixed(2)})`);
           }
           for (const row of document.querySelectorAll('.smart-feed__rail')) {
             if (getComputedStyle(row, '::after').display !== 'none') errors.push('legacy dark fade over rightmost poster');
