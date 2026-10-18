@@ -53,7 +53,16 @@ fs.mkdirSync(output, { recursive: true });
     const cases = [360, 376, 390, 412, 430, 768, 1024, 1366, 1440, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width === 376 ? 869 : width === 430 ? 932 : width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
     cases.push({ width: 844, height: 390, theme: 'dark', mode: 'normal' }, { width: 1366, height: 900, theme: 'dark', mode: 'poster' });
     for (const c of cases) {
-      const page = await browser.newPage({ viewport: { width: c.width, height: c.height }, reducedMotion: 'reduce' });
+      // The phone fixture must advertise coarse pointer/no-hover. A resized
+      // desktop Chromium hides hover-only bookmark controls and masks mobile bugs.
+      const touchPhone = c.width <= 430 && c.height > c.width;
+      const page = await browser.newPage({
+        viewport: { width: c.width, height: c.height },
+        isMobile: touchPhone,
+        hasTouch: touchPhone,
+        deviceScaleFactor: 1,
+        reducedMotion: 'reduce',
+      });
       const errors = [];
       const navigations = [];
       page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations.push(frame.url()); });
@@ -135,6 +144,13 @@ fs.mkdirSync(output, { recursive: true });
             if (!poster || !actions || !title) continue;
             const a = box(actions), p = box(poster);
             if (a.x < p.x - 2 || a.right > p.right + 2 || a.y < p.y - 2 || a.bottom > p.bottom + 2) errors.push('poster overlay overflow');
+            if (innerWidth <= 430) {
+              const visible = [...actions.querySelectorAll('button')].filter(button => {
+                const cs = getComputedStyle(button);
+                return cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity || '1') > 0.1 && cs.pointerEvents !== 'none';
+              });
+              if (visible.length > 1) errors.push('mobile poster shows multiple action buttons');
+            }
             if (getComputedStyle(card.querySelector('.smart-card__reason') || card).getPropertyValue('display') !== 'none' && card.querySelector('.smart-card__reason')) errors.push('duplicated reason tag');
             if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push('mobile poster must be 130px');
           }
