@@ -72,6 +72,7 @@ function railHarness() {
     DEFAULT_RECOMMENDATION_RAIL_LIMIT: 8, MIN_INITIAL_RAIL_ITEMS: 4,
     RECOMMENDATION_RAIL_BATCH_SIZE: 8, SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS: 1,
     ZERO_RAIL_BOOTSTRAP_PAGE_HOPS: 3,
+    MAX_VISIBLE_RAIL_FILL_ITEMS: 12,
     MAX_EMPTY_PAGE_HOPS: 2, STRICT_EMPTY_PAGE_HOPS: 1, MAX_RAIL_DOM_ITEMS: 20,
     recommendationMatchesRail: () => true, recommendationMatchesRailRelaxed: () => true,
     fetchNextCandidateBatch: () => task.promise,
@@ -113,11 +114,14 @@ for (const fail of [false, true]) {
   const c = vm.createContext({
     sparseRails: new Map([['first', { id: 'first' }], ['second', { id: 'second' }]]),
     sparseRailPrimedRef: { current: new Set() },
-    ensureRailDepth: async (rail) => { calls.push(rail.id); },
+    sparseRailPrimedTargetRef: { current: new Map() },
+    sparseRailSectionRefs: { current: new Map() },
+    getVisibleRailFillTarget: () => 9,
+    ensureRailDepth: async (rail, opts) => { calls.push([rail.id, opts.targetCount]); },
   });
   vm.runInContext(ts.transpile(feed.slice(primeStart, primeEnd), { target: ts.ScriptTarget.ES2022 }) + '\nglobalThis.primeRow = prime;', c);
   c.primeRow('first'); c.primeRow('second'); c.primeRow('first');
-  assert.deepEqual(calls, ['first', 'second']);
+  assert.deepEqual(calls, [['first', 9], ['second', 9]]);
 }
 // Check the actual jitter function across many image keys, not only its name.
 {
