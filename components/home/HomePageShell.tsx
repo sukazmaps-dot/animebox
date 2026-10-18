@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import Icon from '@/components/Icon';
 import type { Anime } from '@/types/anime';
 import HomeFeedRuntimeProvider from '@/components/home/HomeFeedRuntimeProvider';
 import HomeScheduleRuntimeProvider from '@/components/home/HomeScheduleRuntimeProvider';
@@ -17,98 +16,7 @@ import {
   HomeDeferredChat,
   HomeDeferredSupport,
 } from '@/components/home/HomeDeferredCommunity';
-import HomeRightRail from '@/components/home/HomeRightRail';
-
-function HomeShortcuts() {
-  return (
-    <nav
-      className="home-shortcuts"
-      aria-label="Быстрые переходы AnimeBox"
-    >
-      <Link
-        href="/search"
-        className="home-shortcuts__item"
-      >
-        <span>
-          <strong>Каталог</strong>
-          <small>По жанрам и тегам</small>
-        </span>
-        <b aria-hidden="true">↗</b>
-      </Link>
-
-      <Link
-        href="/schedule"
-        className="home-shortcuts__item"
-      >
-        <span>
-          <strong>Релизы сегодня</strong>
-          <small>Свежие эпизоды</small>
-        </span>
-        <b aria-hidden="true">→</b>
-      </Link>
-
-      <Link
-        href="/list"
-        className="home-shortcuts__item"
-      >
-        <span>
-          <strong>Мой список</strong>
-          <small>Продолжить просмотр</small>
-        </span>
-        <b aria-hidden="true">→</b>
-      </Link>
-
-      <Link
-        href="/watch-together"
-        className="home-shortcuts__item"
-      >
-        <span>
-          <strong>Комнаты</strong>
-          <small>Смотреть с друзьями</small>
-        </span>
-        <b aria-hidden="true">→</b>
-      </Link>
-    </nav>
-  );
-}
-
-function HomeTrackerCard() {
-  return (
-    <section className="panel home-library-panel home-library-panel--footer home-service-card">
-      <div className="home-service-card__head">
-        <span
-          className="home-service-card__icon"
-          aria-hidden="true"
-        >
-          <Icon
-            name="tracker"
-            size={19}
-            weight="regular"
-          />
-        </span>
-
-        <span className="home-service-card__eyebrow">
-          Твоя коллекция
-        </span>
-      </div>
-
-      <div className="home-service-card__copy">
-        <h2>Всё просмотренное — в одном месте.</h2>
-        <p>
-          Отмечай серии, следи за онгоингами и возвращайся
-          к просмотру без лишнего поиска.
-        </p>
-      </div>
-
-      <Link
-        className="btn home-service-card__action"
-        href="/list"
-      >
-        Открыть трекер <span aria-hidden="true">↗</span>
-      </Link>
-    </section>
-  );
-}
+import styles from './HomePageShell.module.css';
 
 export default function HomePageShell({
   initialPopular,
@@ -123,28 +31,25 @@ export default function HomePageShell({
       initialOngoing={initialOngoing}
     >
       <HomeScheduleRuntimeProvider>
-        <div className="home-page home-visual-v31">
-          <div className="home-grid home-grid--main">
-            <div className="main-column">
-              {/* Streaming-first order: the next watch is more important than utilities. */}
-              <HomeHeroSection />
-              <HomeContinueSection />
-              <HomeDiscoverySection />
-              <HomeCatalogSections />
-              <HomeWatchTogetherSection />
-
-              <HomeShortcuts />
-              <HomeDeferredChat />
-              <HomeScheduleSection />
-              <HomeRetentionSections />
-
-              <div className="home-utility-grid">
-                <HomeTrackerCard />
-                <HomeDeferredSupport />
-              </div>
+        <div className={styles.page} data-home-layout="cinematic">
+          <HomeHeroSection />
+          <div className={styles.shelves}>
+            <HomeContinueSection />
+            <HomeDiscoverySection />
+            <HomeCatalogSections />
+            <HomeScheduleSection />
+            <HomeWatchTogetherSection />
+            <HomeRetentionSections />
+            <HomeDeferredChat />
+            <nav className={styles.links} aria-label="Разделы AnimeBox">
+              <Link href="/search">Каталог</Link>
+              <Link href="/schedule">Расписание</Link>
+              <Link href="/list">Мой список</Link>
+              <Link href="/watch-together">Смотреть вместе</Link>
+            </nav>
+            <div className={styles.support}>
+              <HomeDeferredSupport />
             </div>
-
-            <HomeRightRail />
           </div>
         </div>
       </HomeScheduleRuntimeProvider>

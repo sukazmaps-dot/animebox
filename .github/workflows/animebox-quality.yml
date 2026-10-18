@@ -51,6 +51,23 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/animebox-browser" --no-audit --no-fund --save-exact playwright@1.62.1 esbuild@0.28.2
           "$RUNNER_TEMP/animebox-browser/node_modules/.bin/playwright" install --with-deps chromium
 
+      - name: Home 32 production shell and responsive interaction matrix
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+          HOME32_SCREENSHOT_DIR: artifacts/home32
+        run: |
+          npm run home32:check
+          npx eslint app/page.tsx components/home/HomePageShell.tsx components/home/HomeHeroSection.tsx components/home/HomeDiscoverySection.tsx components/home/HomeWatchTogetherSection.tsx components/HomeHeroCarousel.tsx components/HomeHeroPagination.tsx components/HomeMoodPicker.tsx
+          npm run home32:browser
+
+      - name: Home 32 visual review artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home32-visual-review
+          path: artifacts/home32
+          if-no-files-found: ignore
+
       - name: Home hero artwork recovery and quality
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright

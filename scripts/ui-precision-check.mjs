@@ -10,7 +10,6 @@ const css = read('app/patch17-4-2-ui-precision.css');
 const failures = [];
 
 for (const [label, source] of [
-  ['collection', home],
   ['support', support],
 ]) {
   for (const needle of [
@@ -26,8 +25,8 @@ for (const [label, source] of [
   }
 }
 
-if (!home.includes('Открыть трекер <span aria-hidden="true">↗</span>')) {
-  failures.push('collection CTA is not using the unified action pattern');
+if (!home.includes('href="/list"') || !home.includes('aria-label="Разделы AnimeBox"')) {
+  failures.push('compact home navigation must retain the tracker link');
 }
 
 if (!support.includes('Подробнее <span aria-hidden="true">↗</span>')) {

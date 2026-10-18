@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import homeSocialStyles from '@/components/HomeHeroSocialLink.module.css';
 import factStyles from '@/components/HomeHeroFacts.module.css';
+import cinematicStyles from '@/components/home/HomeCinematicHero.module.css';
 import HomeHeroPagination from '@/components/HomeHeroPagination';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -50,6 +51,7 @@ function subscribeHydrationReady() {
 interface HomeHeroCarouselProps {
   popular: Anime[];
   ongoing: Anime[];
+  cinematic?: boolean;
 }
 
 function isValidAnime(
@@ -178,12 +180,13 @@ function getAmbientRgb(anime: Anime): readonly [number, number, number] {
 
 /** Keyed by slide + source list: late events cannot advance a different slide. */
 export function HomeHeroArtwork({
-  animeId, backdropAttempts, mobileAttempts, firstSlide,
+  animeId, backdropAttempts, mobileAttempts, firstSlide, cinematic = false,
 }: {
   animeId: number;
   backdropAttempts: HeroImageAttempt[];
   mobileAttempts: HeroImageAttempt[];
   firstSlide: boolean;
+  cinematic?: boolean;
 }) {
   const [backdropAttemptIndex, setBackdropAttemptIndex] = useState(0);
   const [mobileAttemptIndex, setMobileAttemptIndex] = useState(0);
@@ -260,7 +263,7 @@ export function HomeHeroArtwork({
             decoding="async"
             unoptimized
             sizes="(min-width: 1920px) 1500px, (max-width: 768px) calc(100vw - 32px), (max-width: 1200px) calc(100vw - 100px), 1380px"
-            className="page-hero__backdrop home-hero-carousel__backdrop is-visible"
+            className={cinematic ? cinematicStyles.artwork : 'page-hero__backdrop home-hero-carousel__backdrop is-visible'}
             aria-hidden="true"
             ref={imageRef}
             onLoad={() => { loadedRef.current = true; }}
@@ -273,6 +276,7 @@ export function HomeHeroArtwork({
 export default function HomeHeroCarousel({
   popular,
   ongoing,
+  cinematic = false,
 }: HomeHeroCarouselProps) {
   const router = useRouter();
   const heroRef = useRef<HTMLElement | null>(null);
@@ -530,8 +534,8 @@ export default function HomeHeroCarousel({
     !anime
   ) {
     return (
-      <section className="page-hero page-hero--empty">
-        <div className="page-hero__content">
+      <section className={cinematic ? cinematicStyles.scene : 'page-hero page-hero--empty'}>
+        <div className={cinematic ? cinematicStyles.content : 'page-hero__content'}>
           <span className="pill pill--accent">
             ANIMEBOX
           </span>
@@ -747,9 +751,9 @@ export default function HomeHeroCarousel({
   return (
     <section
       ref={heroRef}
+      data-home-hero={cinematic ? 'cinematic' : undefined}
       className={[
-        'page-hero',
-        'home-hero-carousel',
+        cinematic ? cinematicStyles.scene : 'page-hero home-hero-carousel',
         bannerImage ? 'has-banner' : 'no-banner',
         autoplayUnlocked ? 'is-motion-ready' : '',
         autoplayUnlocked && safeActiveIndex !== 0 ? 'is-slide-transition' : '',
@@ -762,7 +766,7 @@ export default function HomeHeroCarousel({
         ['--hero-mobile-position' as string]: mobileHeroObjectPosition(anime),
       }}
       onPointerDown={handleSwipePointerDown}
-      onPointerMove={handlePointerMove}
+      onPointerMove={cinematic ? undefined : handlePointerMove}
       onPointerUp={(event) => finishSwipeGesture(event)}
       onPointerCancel={(event) => finishSwipeGesture(event, true)}
       onPointerLeave={(event) => {
@@ -785,27 +789,28 @@ export default function HomeHeroCarousel({
         backdropAttempts={imageAttempts.backdrop}
         mobileAttempts={imageAttempts.mobile}
         firstSlide={safeActiveIndex === 0}
+        cinematic={cinematic}
       />
 
-      <div className="page-hero__overlay" />
+      <div className={cinematic ? cinematicStyles.shade : 'page-hero__overlay'} />
 
       <div
-        className="page-hero__content home-hero-carousel__content"
+        className={cinematic ? cinematicStyles.content : 'page-hero__content home-hero-carousel__content'}
         key={`content-${anime.id}`}
       >
-        <span className="home-hero-scene__eyebrow"><span aria-hidden="true" /> Открой для себя</span>
+        <span className={cinematic ? cinematicStyles.eyebrow : 'home-hero-scene__eyebrow'}><span aria-hidden="true" /> Открой для себя</span>
         <h1 title={title} className={title.length > 55 ? 'is-long-title' : undefined}>
           {title}
         </h1>
 
         {(validYear || genre || score != null) && (
-          <div className={factStyles.facts}>
+          <div className={cinematic ? cinematicStyles.facts : factStyles.facts}>
             {validYear && <span>{year}</span>}
             {genre && <span>{genre}</span>}
             {score != null && <span className={factStyles.score} aria-label={`Рейтинг: ${score.toFixed(1)} из 10`}>★ {score.toFixed(1)}</span>}
           </div>
         )}
-        {(score != null || validYear || anime.format || anime.episodes) && (
+        {!cinematic && (score != null || validYear || anime.format || anime.episodes) && (
           <div className="home-hero-scene__facts" aria-label="Информация об аниме">
             {score != null && (
               <span className="home-hero-scene__score">
@@ -818,12 +823,12 @@ export default function HomeHeroCarousel({
             {typeof anime.episodes === 'number' && Number.isSafeInteger(anime.episodes) && anime.episodes > 0 && <span>{anime.episodes} эп.</span>}
           </div>
         )}
-        {genre && <p className="home-hero-scene__genres">{genre}</p>}
-        {heroSummary && <p className="home-hero-scene__summary">{heroSummary}</p>}
+        {!cinematic && genre && <p className="home-hero-scene__genres">{genre}</p>}
+        {heroSummary && <p className={cinematic ? cinematicStyles.summary : 'home-hero-scene__summary'}>{heroSummary}</p>}
 
-        <div className="hero-actions">
+        <div className={cinematic ? cinematicStyles.actions : 'hero-actions'}>
           <Link
-            className="btn btn--primary"
+            className={cinematic ? cinematicStyles.play : 'btn btn--primary'}
             href={animeWatchHref(anime)}
           >
             <Icon name="play" />
@@ -832,21 +837,22 @@ export default function HomeHeroCarousel({
           </Link>
 
           <Link
-            className="btn btn--ghost"
+            className={cinematic ? cinematicStyles.details : 'btn btn--ghost'}
             href={animeHref(anime)}
           >
             Подробнее
           </Link>
         </div>
-        <Link href="/watch-together" className={homeSocialStyles.link}>
+        {!cinematic && <Link href="/watch-together" className={homeSocialStyles.link}>
           <span aria-hidden="true">✦</span> Смотреть вместе с друзьями →
-        </Link>
+        </Link>}
       </div>
 
       <HomeHeroPagination
         slides={slides.map((slide) => ({ id: slide.id, title: getAnimeTitle(slide) }))}
         activeIndex={safeActiveIndex}
         onSelect={setActiveIndex}
+        cinematic={cinematic}
       />
     </section>
   );

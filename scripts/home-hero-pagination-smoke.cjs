@@ -14,7 +14,19 @@ const files = [
   ...[...read('app/layout.tsx').matchAll(/import '\.\/([^']+\.css)'/g)].map(m => 'app/' + m[1]),
   ...[...read('app/page.tsx').matchAll(/import '\.\/([^']+\.css)'/g)].map(m => 'app/' + m[1]),
 ];
-const globalCSS = files.map(file => read(file).replace(/@import[^;]+;/g, '')).join('\n');
+// This fixture deliberately models the pre-32 legacy hero and asserts its
+// pagination/contrast geometry. The cinematic home no longer imports these
+// legacy route styles; its real shell is covered by home32:browser instead.
+// Retain the former cascade only inside this isolated offline regression test.
+const legacyHeroCSS = [
+  'app/home-visual-repair.css',
+  'app/patch29-1-home-mobile.css',
+  'app/patch30-0-home-streaming.css',
+  'app/patch30-1-home-visual.css',
+];
+const globalCSS = [...files, ...legacyHeroCSS]
+  .map(file => read(file).replace(/@import[^;]+;/g, ''))
+  .join('\n');
 const classes = Object.fromEntries(['pagination','counter','positions','position','mark'].map(n => [n,'hero_'+n]));
 const compiled = ts.transpileModule(read('components/HomeHeroPagination.tsx'), {
   compilerOptions: {module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX},

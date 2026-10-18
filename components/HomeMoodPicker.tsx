@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { observeNearViewportMedia } from '@/lib/media-warmup-client';
 import Icon from '@/components/Icon';
+import styles from './HomeMoodPicker.module.css';
 
 import {
   HOME_MOOD_OPTIONS,
@@ -22,10 +23,12 @@ export default function HomeMoodPicker({
   value,
   onChange,
   busy = false,
+  compact = false,
 }: {
   value: TasteMood;
   onChange: (value: TasteMood) => void;
   busy?: boolean;
+  compact?: boolean;
 }) {
   const selectedLabel = getRecommendationMoodLabel(value);
   const [artUnlocked, setArtUnlocked] = useState(false);
@@ -33,12 +36,12 @@ export default function HomeMoodPicker({
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || artUnlocked) return;
+    if (!root || artUnlocked || compact) return;
     return observeNearViewportMedia(root, () => setArtUnlocked(true));
-  }, [artUnlocked]);
+  }, [artUnlocked, compact]);
 
   const unlockArt = () => {
-    setArtUnlocked(true);
+    if (!compact) setArtUnlocked(true);
   };
 
   const navigateMoods = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -58,7 +61,7 @@ export default function HomeMoodPicker({
   return (
     <section
       ref={rootRef}
-      className="mood-picker"
+      className={compact ? styles.compact : 'mood-picker'}
       aria-labelledby="mood-picker-title"
       aria-busy={busy}
       data-mood-art={artUnlocked ? 'ready' : 'deferred'}
@@ -66,7 +69,7 @@ export default function HomeMoodPicker({
       onPointerDown={unlockArt}
       onFocusCapture={unlockArt}
     >
-      <div className="mood-picker__intro">
+      <div className={compact ? styles.intro : 'mood-picker__intro'}>
         <span className="mood-picker__eyebrow">Настроение</span>
         <div>
           <h2 id="mood-picker-title">Что хочется посмотреть?</h2>
@@ -79,7 +82,7 @@ export default function HomeMoodPicker({
       </div>
 
       <div
-        className="mood-picker__options"
+        className={compact ? styles.options : 'mood-picker__options'}
         role="radiogroup"
         aria-label="Настроение для рекомендаций"
         onKeyDown={navigateMoods}
@@ -95,10 +98,10 @@ export default function HomeMoodPicker({
               aria-checked={active}
               tabIndex={active ? 0 : -1}
               data-mood={mood.value}
-              className={active ? 'mood-chip is-active' : 'mood-chip'}
+              className={compact ? styles.chip : active ? 'mood-chip is-active' : 'mood-chip'}
               onClick={() => onChange(mood.value)}
             >
-              <span className="mood-chip__icon" aria-hidden="true">
+              {!compact && <span className="mood-chip__icon" aria-hidden="true">
                 {artUnlocked ? (
                   // These decorative illustrations are intentionally released
                   // only when the visitor reaches/interacts with the picker.
@@ -122,13 +125,13 @@ export default function HomeMoodPicker({
                     <Icon name={MOOD_FALLBACK_GLYPHS[mood.value]} size={22} />
                   </span>
                 )}
-              </span>
+              </span>}
 
-              <span className="mood-chip__copy">
+              <span className={compact ? styles.copy : 'mood-chip__copy'}>
                 <strong>{mood.label}</strong>
-                <small>{mood.hint}</small>
+                {!compact && <small>{mood.hint}</small>}
               </span>
-              <span className="mood-chip__selected" aria-hidden="true">{active ? '✓' : ''}</span>
+              {!compact && <span className="mood-chip__selected" aria-hidden="true">{active ? '✓' : ''}</span>}
             </button>
           );
         })}

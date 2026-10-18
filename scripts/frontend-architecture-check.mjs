@@ -179,7 +179,7 @@ for (const needle of [
   '<HomeDiscoverySection />',
   '<HomeCatalogSections />',
   '<HomeScheduleSection />',
-  '<HomeRightRail />',
+  '<HomeContinueSection />',
 ]) {
   if (!homeShell.includes(needle)) {
     failures.push(`HomePageShell missing client island boundary: ${needle}`);

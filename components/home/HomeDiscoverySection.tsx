@@ -1,8 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import Link from 'next/link';
+
+import styles from './HomePageShell.module.css';
 
 import HomeMoodPicker from '@/components/HomeMoodPicker';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
@@ -44,13 +45,7 @@ export default function HomeDiscoverySection() {
     <>
       <HomePersonalScheduleSection />
 
-      <div className="home-discovery-flow">
-        <HomeMoodPicker
-          value={mood}
-          onChange={updateMood}
-          busy={moodSwitching}
-        />
-
+      <div className={styles.discovery}>
         <section
           id="animebox-for-you"
           className="section smart-feed-section"
@@ -58,32 +53,7 @@ export default function HomeDiscoverySection() {
         >
           <div className="section-head">
             <div className="smart-feed-heading">
-              <span className="smart-section-eyebrow">
-                Твоя следующая история
-              </span>
-
-              <div className="smart-feed-heading__line">
-                <span
-                  className="section-title__icon section-title__icon--asset smart-feed-heading__asset"
-                  aria-hidden="true"
-                >
-                  <Image
-                    src="/brand/icons/sections/recommendations.svg"
-                    alt=""
-                    width={16}
-                    height={16}
-                    sizes="16px"
-                  />
-                </span>
-
-                <h2 className="section-title">
-                  Подобрано для тебя
-                </h2>
-              </div>
-
-              <p>
-                По твоему вкусу, истории просмотра и настроению.
-              </p>
+              <h2 className="section-title">Подобрано для тебя</h2>
             </div>
 
             <Link
@@ -93,6 +63,13 @@ export default function HomeDiscoverySection() {
               Весь каталог →
             </Link>
           </div>
+
+          <HomeMoodPicker
+            value={mood}
+            onChange={updateMood}
+            busy={moodSwitching}
+            compact
+          />
 
           {recommendationsLoading ? (
             <RecommendationFeedSkeleton

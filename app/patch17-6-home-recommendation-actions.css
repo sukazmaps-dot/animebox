@@ -4,7 +4,7 @@
    Older smart-home rules used 28–30px grid columns, so merely increasing the
    button min-width could still look like circles on production. The final
    layer owns both the grid tracks and the button boxes. */
-.home-page .smart-card__actions {
+.home-page .smart-card__actions, [data-home-layout="cinematic"] .smart-card__actions {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   grid-template-areas:
@@ -18,7 +18,7 @@
   min-width: 0 !important;
 }
 
-.home-page .smart-card__plan {
+.home-page .smart-card__plan, [data-home-layout="cinematic"] .smart-card__plan {
   grid-area: plan !important;
   width: 100% !important;
   min-width: 0 !important;
@@ -33,11 +33,11 @@
   color: var(--ab-ui-text) !important;
 }
 
-.home-page .smart-card__plan::before {
+.home-page .smart-card__plan::before, [data-home-layout="cinematic"] .smart-card__plan::before {
   display: none !important;
 }
 
-.home-page .smart-card__plan-icon {
+.home-page .smart-card__plan-icon, [data-home-layout="cinematic"] .smart-card__plan-icon {
   width: 16px !important;
   height: 16px !important;
   flex: 0 0 16px !important;
@@ -47,32 +47,36 @@
   font-size: 15px !important;
 }
 
-.home-page .smart-card__plan.is-saved {
+.home-page .smart-card__plan.is-saved, [data-home-layout="cinematic"] .smart-card__plan.is-saved {
   border-color: color-mix(in srgb, var(--ab-ui-success) 28%, transparent) !important;
   background: color-mix(in srgb, var(--ab-ui-success) 18%, transparent) !important;
   color: var(--ab-ui-success) !important;
 }
 
 .home-page .smart-card__plan.is-auth,
-.home-page .smart-card__plan.is-error {
+.home-page .smart-card__plan.is-error,
+[data-home-layout="cinematic"] .smart-card__plan.is-auth,
+[data-home-layout="cinematic"] .smart-card__plan.is-error {
   border-color: color-mix(in srgb, var(--ab-ui-danger) 26%, transparent) !important;
   background: color-mix(in srgb, var(--ab-ui-danger) 16%, transparent) !important;
 }
 
-.home-page .smart-card__feedback--like {
+.home-page .smart-card__feedback--like, [data-home-layout="cinematic"] .smart-card__feedback--like {
   grid-area: like !important;
 }
 
-.home-page .smart-card__feedback--watched {
+.home-page .smart-card__feedback--watched, [data-home-layout="cinematic"] .smart-card__feedback--watched {
   grid-area: watched !important;
 }
 
-.home-page .smart-card__feedback--dismiss {
+.home-page .smart-card__feedback--dismiss, [data-home-layout="cinematic"] .smart-card__feedback--dismiss {
   grid-area: dismiss !important;
 }
 
 .home-page .smart-card__feedback,
-.home-page .smart-card__dismiss {
+.home-page .smart-card__dismiss,
+[data-home-layout="cinematic"] .smart-card__feedback,
+[data-home-layout="cinematic"] .smart-card__dismiss {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -88,37 +92,41 @@
   background: var(--ab-ui-raised) !important;
 }
 
-.home-page .smart-card__dismiss {
+.home-page .smart-card__dismiss, [data-home-layout="cinematic"] .smart-card__dismiss {
   color: var(--ab-ui-muted) !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .home-page .smart-card__feedback:hover,
-  .home-page .smart-card__dismiss:hover {
+  .home-page .smart-card__dismiss:hover,
+  [data-home-layout="cinematic"] .smart-card__feedback:hover,
+  [data-home-layout="cinematic"] .smart-card__dismiss:hover {
     border-color: color-mix(in srgb, var(--ab-ui-accent) 34%, transparent) !important;
     background: color-mix(in srgb, var(--ab-ui-accent) 13%, transparent) !important;
   }
 
-  .home-page .smart-card__dismiss:hover {
+  .home-page .smart-card__dismiss:hover, [data-home-layout="cinematic"] .smart-card__dismiss:hover {
     border-color: color-mix(in srgb, var(--ab-ui-danger) 28%, transparent) !important;
     background: color-mix(in srgb, var(--ab-ui-danger) 15%, transparent) !important;
   }
 }
 
 @media (max-width: 760px) {
-  .home-page .smart-card__actions {
+  .home-page .smart-card__actions, [data-home-layout="cinematic"] .smart-card__actions {
     gap: 5px !important;
     margin-top: 7px !important;
     padding-top: 7px !important;
   }
 
-  .home-page .smart-card__plan {
+  .home-page .smart-card__plan, [data-home-layout="cinematic"] .smart-card__plan {
     height: 39px !important;
     min-height: 39px !important;
   }
 
   .home-page .smart-card__feedback,
-  .home-page .smart-card__dismiss {
+  .home-page .smart-card__dismiss,
+  [data-home-layout="cinematic"] .smart-card__feedback,
+  [data-home-layout="cinematic"] .smart-card__dismiss {
     height: 34px !important;
     min-height: 34px !important;
     padding-inline: 9px !important;
@@ -126,12 +134,14 @@
 }
 
 @media (max-width: 380px) {
-  .home-page .smart-card__actions {
+  .home-page .smart-card__actions, [data-home-layout="cinematic"] .smart-card__actions {
     gap: 5px 4px !important;
   }
 
   .home-page .smart-card__feedback,
-  .home-page .smart-card__dismiss {
+  .home-page .smart-card__dismiss,
+  [data-home-layout="cinematic"] .smart-card__feedback,
+  [data-home-layout="cinematic"] .smart-card__dismiss {
     height: 33px !important;
     min-height: 33px !important;
     padding-inline: 7px !important;
@@ -148,21 +158,21 @@
   width: 100%;
 }
 
-.home-page .smart-card {
+.home-page .smart-card, [data-home-layout="cinematic"] .smart-card {
   display: flex;
   height: 100%;
   min-height: 0;
   flex-direction: column;
 }
 
-.home-page .smart-card__body {
+.home-page .smart-card__body, [data-home-layout="cinematic"] .smart-card__body {
   display: flex;
   min-height: 178px;
   flex: 1 1 auto;
   flex-direction: column;
 }
 
-.home-page .smart-card__title {
+.home-page .smart-card__title, [data-home-layout="cinematic"] .smart-card__title {
   display: -webkit-box;
   min-height: 2.8em;
   overflow: hidden;
@@ -171,11 +181,11 @@
   -webkit-line-clamp: 2;
 }
 
-.home-page .smart-card__meta {
+.home-page .smart-card__meta, [data-home-layout="cinematic"] .smart-card__meta {
   min-height: 18px;
 }
 
-.home-page .smart-card__reason {
+.home-page .smart-card__reason, [data-home-layout="cinematic"] .smart-card__reason {
   display: -webkit-box;
   min-height: 2.9em;
   overflow: hidden;
@@ -184,19 +194,19 @@
   -webkit-line-clamp: 2;
 }
 
-.home-page .smart-card__actions {
+.home-page .smart-card__actions, [data-home-layout="cinematic"] .smart-card__actions {
   margin-top: auto !important;
 }
 
 @media (max-width: 720px) {
-  .home-page .smart-card__body { min-height: 170px; }
-  .home-page .smart-card__title { min-height: 2.7em; }
-  .home-page .smart-card__reason { min-height: 2.8em; }
+  .home-page .smart-card__body, [data-home-layout="cinematic"] .smart-card__body { min-height: 170px; }
+  .home-page .smart-card__title, [data-home-layout="cinematic"] .smart-card__title { min-height: 2.7em; }
+  .home-page .smart-card__reason, [data-home-layout="cinematic"] .smart-card__reason { min-height: 2.8em; }
 }
 
 
 /* Patch 22 Phase H — Structured feedback 2.0 */
-.home-page .smart-card__feedback-dialog {
+.home-page .smart-card__feedback-dialog, [data-home-layout="cinematic"] .smart-card__feedback-dialog {
   width: min(430px, calc(100vw - 24px));
   max-height: min(76dvh, 620px);
   margin: auto;
@@ -209,45 +219,45 @@
   box-shadow: 0 28px 80px rgba(0, 0, 0, .46);
 }
 
-.home-page .smart-card__feedback-dialog::backdrop {
+.home-page .smart-card__feedback-dialog::backdrop, [data-home-layout="cinematic"] .smart-card__feedback-dialog::backdrop {
   background: color-mix(in srgb, var(--ab-ui-canvas) 66%, transparent);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 
-.home-page .smart-card__feedback-dialog-panel {
+.home-page .smart-card__feedback-dialog-panel, [data-home-layout="cinematic"] .smart-card__feedback-dialog-panel {
   display: grid;
   gap: 14px;
   padding: 18px;
 }
 
-.home-page .smart-card__feedback-dialog-head {
+.home-page .smart-card__feedback-dialog-head, [data-home-layout="cinematic"] .smart-card__feedback-dialog-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
 
-.home-page .smart-card__feedback-dialog-head > div {
+.home-page .smart-card__feedback-dialog-head > div, [data-home-layout="cinematic"] .smart-card__feedback-dialog-head > div {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
-.home-page .smart-card__feedback-dialog-head span {
+.home-page .smart-card__feedback-dialog-head span, [data-home-layout="cinematic"] .smart-card__feedback-dialog-head span {
   color: var(--ab-ui-accent);
   font-size: 10px;
   font-weight: 850;
   letter-spacing: .12em;
 }
 
-.home-page .smart-card__feedback-dialog-head strong {
+.home-page .smart-card__feedback-dialog-head strong, [data-home-layout="cinematic"] .smart-card__feedback-dialog-head strong {
   color: inherit;
   font-size: clamp(18px, 2.2vw, 22px);
   line-height: 1.2;
 }
 
-.home-page .smart-card__feedback-dialog-close {
+.home-page .smart-card__feedback-dialog-close, [data-home-layout="cinematic"] .smart-card__feedback-dialog-close {
   display: inline-grid;
   width: 34px;
   height: 34px;
@@ -261,20 +271,20 @@
   line-height: 1;
 }
 
-.home-page .smart-card__feedback-dialog-copy {
+.home-page .smart-card__feedback-dialog-copy, [data-home-layout="cinematic"] .smart-card__feedback-dialog-copy {
   margin: 0;
   color: var(--ab-ui-muted);
   font-size: 12px;
   line-height: 1.55;
 }
 
-.home-page .smart-card__feedback-dialog-options {
+.home-page .smart-card__feedback-dialog-options, [data-home-layout="cinematic"] .smart-card__feedback-dialog-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-.home-page .smart-card__feedback-dialog-option {
+.home-page .smart-card__feedback-dialog-option, [data-home-layout="cinematic"] .smart-card__feedback-dialog-option {
   display: grid;
   min-width: 0;
   gap: 4px;
@@ -286,18 +296,18 @@
   text-align: left;
 }
 
-.home-page .smart-card__feedback-dialog-option strong {
+.home-page .smart-card__feedback-dialog-option strong, [data-home-layout="cinematic"] .smart-card__feedback-dialog-option strong {
   font-size: 12px;
   line-height: 1.35;
 }
 
-.home-page .smart-card__feedback-dialog-option span {
+.home-page .smart-card__feedback-dialog-option span, [data-home-layout="cinematic"] .smart-card__feedback-dialog-option span {
   color: var(--ab-ui-muted);
   font-size: 10.5px;
   line-height: 1.45;
 }
 
-.home-page .smart-card__feedback-dialog-cancel {
+.home-page .smart-card__feedback-dialog-cancel, [data-home-layout="cinematic"] .smart-card__feedback-dialog-cancel {
   min-height: 40px;
   border: 1px solid var(--ab-ui-border);
   border-radius: 11px;
@@ -307,7 +317,7 @@
   font-weight: 800;
 }
 
-.home-page .smart-feed__feedback-undo {
+.home-page .smart-feed__feedback-undo, [data-home-layout="cinematic"] .smart-feed__feedback-undo {
   position: fixed;
   z-index: 260;
   left: 50%;
@@ -329,7 +339,7 @@
   backdrop-filter: blur(16px);
 }
 
-.home-page .smart-feed__feedback-undo span {
+.home-page .smart-feed__feedback-undo span, [data-home-layout="cinematic"] .smart-feed__feedback-undo span {
   min-width: 0;
   overflow: hidden;
   font-size: 11px;
@@ -338,7 +348,7 @@
   white-space: nowrap;
 }
 
-.home-page .smart-feed__feedback-undo button {
+.home-page .smart-feed__feedback-undo button, [data-home-layout="cinematic"] .smart-feed__feedback-undo button {
   min-height: 32px;
   padding: 0 11px;
   border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
@@ -352,14 +362,19 @@
 @media (hover: hover) and (pointer: fine) {
   .home-page .smart-card__feedback-dialog-option:hover,
   .home-page .smart-card__feedback-dialog-cancel:hover,
-  .home-page .smart-card__feedback-dialog-close:hover {
+  .home-page .smart-card__feedback-dialog-close:hover,
+  [data-home-layout="cinematic"] .smart-card__feedback-dialog-option:hover,
+  [data-home-layout="cinematic"] .smart-card__feedback-dialog-cancel:hover,
+  [data-home-layout="cinematic"] .smart-card__feedback-dialog-close:hover {
     border-color: color-mix(in srgb, var(--ab-ui-accent) 34%, transparent);
     background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
   }
 }
 
 html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog,
-html[data-animebox-theme='light'] .home-page .smart-feed__feedback-undo {
+html[data-animebox-theme='light'] .home-page .smart-feed__feedback-undo,
+html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__feedback-dialog,
+html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-feed__feedback-undo {
   border-color: var(--ab-ui-border);
   background: color-mix(in srgb, var(--ab-ui-surface) 98%, transparent);
   color: var(--ab-ui-text);
@@ -367,41 +382,83 @@ html[data-animebox-theme='light'] .home-page .smart-feed__feedback-undo {
 }
 
 html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-copy,
-html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-option span {
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-option span,
+html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__feedback-dialog-copy,
+html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__feedback-dialog-option span {
   color: var(--ab-ui-text);
 }
 
 html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-option,
 html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-cancel,
-html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-close {
+html[data-animebox-theme='light'] .home-page .smart-card__feedback-dialog-close,
+html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__feedback-dialog-option,
+html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__feedback-dialog-cancel,
+html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__feedback-dialog-close {
   border-color: var(--ab-ui-border);
   background: color-mix(in srgb, var(--ab-ui-raised) 2.5%, transparent);
   color: var(--ab-ui-text);
 }
 
 @media (max-width: 560px) {
-  .home-page .smart-card__feedback-dialog {
+  .home-page .smart-card__feedback-dialog, [data-home-layout="cinematic"] .smart-card__feedback-dialog {
     width: min(calc(100% - 16px), 430px);
     max-height: 82dvh;
     border-radius: 16px;
   }
 
-  .home-page .smart-card__feedback-dialog-panel {
+  .home-page .smart-card__feedback-dialog-panel, [data-home-layout="cinematic"] .smart-card__feedback-dialog-panel {
     gap: 12px;
     padding: 14px;
   }
 
-  .home-page .smart-card__feedback-dialog-options {
+  .home-page .smart-card__feedback-dialog-options, [data-home-layout="cinematic"] .smart-card__feedback-dialog-options {
     grid-template-columns: 1fr;
   }
 
-  .home-page .smart-card__feedback-dialog-option {
+  .home-page .smart-card__feedback-dialog-option, [data-home-layout="cinematic"] .smart-card__feedback-dialog-option {
     padding: 11px 12px;
   }
 
-  .home-page .smart-feed__feedback-undo {
+  .home-page .smart-feed__feedback-undo, [data-home-layout="cinematic"] .smart-feed__feedback-undo {
     bottom: max(10px, env(safe-area-inset-bottom));
     width: calc(100vw - 20px);
     justify-content: space-between;
   }
+}
+
+/* Home 32 reuses this action/dialog owner. The card has two inline actions;
+   taste controls remain in the existing native dialog, including undo. */
+[data-home-layout="cinematic"] .smart-card .smart-card__actions {
+  grid-template-columns: minmax(0, 1fr) 44px !important;
+  grid-template-areas: "plan dismiss" !important;
+  margin-top: auto !important;
+  padding-top: 6px !important;
+  border: 0 !important;
+}
+[data-home-layout="cinematic"] .smart-card .smart-card__plan,
+[data-home-layout="cinematic"] .smart-card .smart-card__dismiss {
+  height: 44px !important;
+  min-height: 44px !important;
+  border-radius: 6px !important;
+}
+[data-home-layout="cinematic"] .smart-card .smart-card__dismiss {
+  grid-area: dismiss !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+[data-home-layout="cinematic"] .smart-card__body { min-height: 0; gap: 6px; }
+[data-home-layout="cinematic"] .smart-card__reason { min-height: 0; margin: 0; -webkit-line-clamp: 2; }
+[data-home-layout="cinematic"] .smart-card__dialog-quick-actions { display: grid; gap: 8px; margin-bottom: 14px; }
+[data-home-layout="cinematic"] .smart-card .smart-card__dialog-quick-actions .smart-card__feedback {
+  display: flex !important;
+  justify-content: flex-start !important;
+  gap: 10px;
+  height: auto !important;
+  min-height: 46px !important;
+  padding: 12px !important;
+  background: var(--ab-ui-raised) !important;
+  color: var(--ab-ui-text) !important;
+  grid-area: auto !important;
+  white-space: normal;
+  text-align: left;
 }

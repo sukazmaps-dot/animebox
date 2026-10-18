@@ -29,17 +29,14 @@ ordered([
   '<HomeContinueSection />',
   '<HomeDiscoverySection />',
   '<HomeCatalogSections />',
-  '<HomeWatchTogetherSection />',
-  '<HomeShortcuts />',
-  '<HomeDeferredChat />',
   '<HomeScheduleSection />',
+  '<HomeWatchTogetherSection />',
   '<HomeRetentionSections />',
-  '<HomeRightRail />',
+  '<HomeDeferredChat />',
 ]);
 assert(!shell.includes("'use client'"), 'Server shell cannot become a client island');
-assert(home.includes("import './patch30-0-home-streaming.css';"), 'route CSS not imported');
-assert(home.indexOf("import './patch30-0-home-streaming.css';") >
-  home.indexOf("import './patch29-1-home-mobile.css';"), 'CSS must come after mobile fix');
+assert(shell.includes('data-home-layout="cinematic"'), 'Home 32 scope missing');
+assert(shell.includes("import styles from './HomePageShell.module.css'"), 'Home CSS module owner missing');
 assert(home.includes('revalidate = 900'), 'Home ISR contract changed');
 assert(next.includes('unoptimized: true'), 'Global Image optimizer quota contract changed');
 

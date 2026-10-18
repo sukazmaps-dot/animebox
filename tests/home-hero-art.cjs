@@ -8,6 +8,7 @@ function load(file, imports = {}) {
   });
   new Function('module','exports','require',outputText)(module,module.exports,name => {
     if (name in imports) return imports[name];
+    if (name.endsWith('.module.css')) return {default: {}};
     if (name === 'react' || name === 'react/jsx-runtime') return require(name);
     throw Error('Unexpected import: '+name);
   });
@@ -79,3 +80,15 @@ assert.equal(desktop[0].poster,false);
 assert.equal(mobile[0].poster,true);
 assert(desktop.find(a=>a.src.endsWith('/poster.jpg')).poster,'poster fallback retains its layout kind');
 console.log('PASS desktop/mobile artwork direction and same-origin recovery candidates.');
+
+// Patch 32 uses the same recovery pipeline, with one metadata row and isolated
+// structural classes; legacy consumers retain the original default rendering.
+const cinematicHTML = renderToStaticMarkup(React.createElement(Hero, {
+  popular: [{...fallback, score:9.1, startDate:{year:2026}, genres:['Adventure']}], ongoing:[], cinematic:true,
+}));
+assert(cinematicHTML.includes('data-home-hero="cinematic"'));
+assert.equal((cinematicHTML.match(/<img /g)||[]).length,1);
+assert.equal((cinematicHTML.match(/aria-label="Рейтинг:/g)||[]).length,1);
+assert(!cinematicHTML.includes('home-hero-scene__facts') && !cinematicHTML.includes('page-hero__content'));
+assert(cinematicHTML.includes('/anime/test/watch') && cinematicHTML.includes('Подробнее'));
+console.log('PASS cinematic Hero SSR: shared responsive recovery, one metadata row, preserved destinations.');
