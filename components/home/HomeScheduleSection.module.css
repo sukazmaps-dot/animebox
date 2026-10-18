@@ -1,5 +1,6 @@
 /* Patch 32.0.1: route-local home schedule. Legacy .home-page rules do not apply. */
 .root { min-width: 0; overflow: hidden; }
+.empty { min-height: 0; margin: 0; padding: 10px 0 0; color: var(--ab-ui-muted); font-size: 13px; line-height: 1.4; }
 .swipeHint { display: none; }
 .root :global(.schedule__tabs) {
   display: flex;
