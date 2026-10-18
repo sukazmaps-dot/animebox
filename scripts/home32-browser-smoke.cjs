@@ -50,7 +50,7 @@ fs.mkdirSync(output, { recursive: true });
     assert.equal(preflight.status, 200, 'Local production fixture must not redirect: ' + preflight.status + ' ' + preflight.headers.get('location'));
     await preflight.body?.cancel();
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
-    const cases = [360, 390, 412, 768, 1024, 1366, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
+    const cases = [360, 376, 390, 412, 430, 768, 1024, 1366, 1440, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width === 376 ? 869 : width === 430 ? 932 : width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
     cases.push({ width: 844, height: 390, theme: 'dark', mode: 'normal' }, { width: 1366, height: 900, theme: 'dark', mode: 'poster' });
     for (const c of cases) {
       const page = await browser.newPage({ viewport: { width: c.width, height: c.height }, reducedMotion: 'reduce' });
@@ -116,6 +116,14 @@ fs.mkdirSync(output, { recursive: true });
         // Patch 32.0.1: detect the real mobile bug reported in the field:
         // poster cards used to carry a tall duplicated reason + wide buttons
         // which overhung the last partially visible card.
+        // Shared page grid: hero artwork and visible section container have
+        // the same left/right edges, regardless of sidebar width and theme.
+        const aligned = await page.evaluate(() => {
+          const a = document.querySelector('[data-home-hero]')?.getBoundingClientRect();
+          const b = document.querySelector('section.schedule')?.getBoundingClientRect();
+          return !a || !b ? null : { left: Math.abs(a.left - b.left), right: Math.abs(a.right - b.right) };
+        });
+        assert(aligned && aligned.left <= 1 && aligned.right <= 1, name + ' hero/schedule gutter alignment');
         const compact = await page.evaluate(() => {
           const box = el => el.getBoundingClientRect();
           const cards = [...document.querySelectorAll('.smart-feed__slide:not(.smart-feed__slide--skeleton) .smart-card')];
@@ -158,12 +166,22 @@ fs.mkdirSync(output, { recursive: true });
         }
         if (c.mode === 'poster') { assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .6, 'Poster is bounded'); }
         if (c.width === 1366 && c.mode === 'normal') {
+          // With all catalogue IDs already represented in personalized rails,
+          // the duplicate-free public row is intentionally hidden. The old
+          // mandatory click assumed a duplicate catalogue was always present.
           const rail = page.locator('.home-anime-rail__viewport').first();
-          await page.locator('.home-anime-rail__arrow--next').first().click();
-          await page.waitForFunction(() => document.querySelector('.home-anime-rail__viewport').scrollLeft > 0);
-          assert(await rail.evaluate(e => e.scrollLeft > 0), 'Rail navigation');
+          if (await rail.count()) {
+            const next = page.locator('.home-anime-rail__arrow--next:not([hidden])').first();
+            if (await next.count()) {
+              await next.click();
+              await page.waitForFunction(() => document.querySelector('.home-anime-rail__viewport').scrollLeft > 0);
+              assert(await rail.evaluate(e => e.scrollLeft > 0), 'Rail navigation');
+            }
+          } else {
+            assert(await page.locator('.smart-card').count() >= 4, 'Sparse catalogue replaced by ranked cards');
+          }
         }
-        if ([390, 1366, 1920].includes(c.width)) await page.screenshot({ path: path.join(output, name + '-initial.png'), fullPage: true });
+        if ([376, 390, 430, 1366, 1920].includes(c.width)) await page.screenshot({ path: path.join(output, name + '-initial.png'), fullPage: true });
         if (c.width === 1366 && c.mode === 'normal') {
           const menu = page.locator('.smart-card__dismiss').first();
           await menu.click();
@@ -229,7 +247,7 @@ fs.mkdirSync(output, { recursive: true });
         throw error;
       } finally {
         await page.evaluate(() => scrollTo(0, 0)).catch(() => {});
-        if ([390, 1366, 1920].includes(c.width) || errors.length || navigations.length > 1) {
+        if ([376, 390, 430, 1366, 1920].includes(c.width) || errors.length || navigations.length > 1) {
           await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true }).catch(error => console.error('Screenshot cleanup:', error.message));
         }
         await page.close();
