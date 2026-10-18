@@ -426,28 +426,69 @@ html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__fe
   }
 }
 
-/* Home 32 reuses this action/dialog owner. The card has two inline actions;
-   taste controls remain in the existing native dialog, including undo. */
+/* Patch 32.0.1: editing the EXISTING action owner, not layering another
+   global stylesheet. Keep dialog actions/undo and original handlers intact.
+   Actions position over the poster as siblings of the poster link, never
+   nested inside an interactive anchor. */
+[data-home-layout="cinematic"] .smart-card {
+  position: relative;
+}
 [data-home-layout="cinematic"] .smart-card .smart-card__actions {
-  grid-template-columns: minmax(0, 1fr) 44px !important;
-  grid-template-areas: "plan dismiss" !important;
-  margin-top: auto !important;
-  padding-top: 6px !important;
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  right: 8px;
+  display: flex !important;
+  flex-direction: column;
+  grid-template-areas: none !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 6px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
   border: 0 !important;
+  background: transparent;
 }
 [data-home-layout="cinematic"] .smart-card .smart-card__plan,
 [data-home-layout="cinematic"] .smart-card .smart-card__dismiss {
+  display: grid !important;
+  flex: 0 0 44px;
+  place-items: center;
+  width: 44px !important;
+  min-width: 44px !important;
   height: 44px !important;
   min-height: 44px !important;
-  border-radius: 6px !important;
-}
-[data-home-layout="cinematic"] .smart-card .smart-card__dismiss {
-  grid-area: dismiss !important;
   padding: 0 !important;
-  background: transparent !important;
+  border: 1px solid rgb(255 255 255 / 35%) !important;
+  border-radius: 8px !important;
+  background: rgb(20 18 28 / 85%) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 35%) !important;
 }
-[data-home-layout="cinematic"] .smart-card__body { min-height: 0; gap: 6px; }
-[data-home-layout="cinematic"] .smart-card__reason { min-height: 0; margin: 0; -webkit-line-clamp: 2; }
+[data-home-layout="cinematic"] .smart-card .smart-card__plan-label { display: none; }
+[data-home-layout="cinematic"] .smart-card .smart-card__plan-icon { display: grid; place-items: center; }
+[data-home-layout="cinematic"] .smart-card .smart-card__dismiss { grid-area: auto !important; }
+[data-home-layout="cinematic"] .smart-card .smart-card__plan.is-saved {
+  background: color-mix(in srgb, var(--ab-ui-success) 80%, #16121d) !important;
+}
+[data-home-layout="cinematic"] .smart-card__body {
+  min-height: 0 !important;
+  flex: 0 0 auto !important;
+  gap: 4px;
+}
+[data-home-layout="cinematic"] .smart-card__title { min-height: 0 !important; }
+[data-home-layout="cinematic"] .smart-card__reason { display: none !important; }
+[data-home-layout="cinematic"] .smart-card__meta { min-height: 0 !important; margin-top: 0; }
+@media (hover: hover) and (pointer: fine) {
+  [data-home-layout="cinematic"] .smart-card .smart-card__actions { opacity: 0; transition: opacity .15s ease; }
+  [data-home-layout="cinematic"] .smart-card:hover .smart-card__actions,
+  [data-home-layout="cinematic"] .smart-card:focus-within .smart-card__actions { opacity: 1; }
+}
+@media (hover: none), (pointer: coarse) {
+  [data-home-layout="cinematic"] .smart-card .smart-card__actions { opacity: 1; }
+}
 [data-home-layout="cinematic"] .smart-card__dialog-quick-actions { display: grid; gap: 8px; margin-bottom: 14px; }
 [data-home-layout="cinematic"] .smart-card .smart-card__dialog-quick-actions .smart-card__feedback {
   display: flex !important;
