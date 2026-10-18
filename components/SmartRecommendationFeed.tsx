@@ -1474,4 +1474,3 @@ export default function SmartRecommendationFeed({
     </div>
   );
 }
-

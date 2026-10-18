@@ -102,4 +102,3 @@
 .footer .dismiss { display: none; }
 @media (min-width: 769px) { .footer .copy p { display: none; } }
 @media (max-width: 480px) { .footer .footerContent { grid-template-columns: 32px minmax(0, 1fr); } .footer .cta { grid-column: 2; justify-self: start; } }
-

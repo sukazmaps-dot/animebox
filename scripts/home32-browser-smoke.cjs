@@ -309,4 +309,3 @@ fs.mkdirSync(output, { recursive: true });
     fs.copyFileSync(logPath, path.join(output, 'next.log'));
   }
 })().catch(error => { console.error(error); console.error('Next log:', logPath); process.exitCode = 1; });
-

@@ -8,4 +8,3 @@
 .strip :global(.home-service-card) { min-height: 64px; }
 @media (max-width: 960px) { .strip { grid-template-columns: minmax(0,1fr); } }
 @media (max-width: 480px) { .strip { padding-right: 0; padding-top: 54px; } .close { top: 0; } }
-
