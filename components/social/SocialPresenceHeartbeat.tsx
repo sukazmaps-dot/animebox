@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 
 import { useAuthState } from '@/components/AuthStateProvider';
+import { presenceRetryDelayMs } from '@/lib/social-presence-retry';
 
 function detectSurface() {
   const path = window.location.pathname;
@@ -22,6 +23,8 @@ export default function SocialPresenceHeartbeat() {
     let stopped = false;
     let timer: number | null = null;
     let inFlight = false;
+    let failures = 0;
+    let nextAllowedAt = 0;
 
     const canPing = () =>
       !stopped &&
@@ -29,22 +32,39 @@ export default function SocialPresenceHeartbeat() {
       navigator.onLine;
 
     const ping = async () => {
-      if (!canPing() || inFlight) return;
+      if (!canPing() || inFlight || Date.now() < nextAllowedAt) return;
 
       inFlight = true;
 
-      await fetch('/api/social/presence', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          surface: detectSurface(),
-        }),
-        keepalive: true,
-      }).catch(() => undefined);
-
-      inFlight = false;
+      try {
+        const response = await fetch('/api/social/presence', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            surface: detectSurface(),
+          }),
+          keepalive: true,
+          signal: AbortSignal.timeout(5_000),
+        });
+        if (response.ok) {
+          failures = 0;
+          nextAllowedAt = 0;
+        } else {
+          failures++;
+          nextAllowedAt = Date.now() + presenceRetryDelayMs(
+            failures, response.headers.get('Retry-After'),
+          );
+        }
+      } catch {
+        // Presence is optional. On an offline/timeout path, avoid
+        // request storms while keeping the authenticated server guard intact.
+        failures++;
+        nextAllowedAt = Date.now() + presenceRetryDelayMs(failures, null);
+      } finally {
+        inFlight = false;
+      }
     };
 
     const stopTimer = () => {
