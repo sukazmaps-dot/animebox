@@ -443,7 +443,7 @@ function NavbarContent() {
 
         <details className="sidebar__more">
           <summary className="sidebar__more-trigger">
-            <Icon name="more-horizontal" />
+            <Icon name="menu" />
             <span>Ещё</span>
           </summary>
           <div className="sidebar__more-content">
