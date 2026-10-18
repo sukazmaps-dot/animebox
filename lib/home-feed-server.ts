@@ -7,6 +7,7 @@ import { after } from 'next/server';
 
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import type { Anime } from '@/types/anime';
+import { uniqueHomeGroups } from '@/lib/home-public-filter';
 import { scheduleHomeMetadataRefresh } from '@/lib/anime-public-metadata-server';
 import {
   filterAnimeByAvailability,
@@ -59,10 +60,10 @@ const loadHomeInitialFeed = unstable_cache(
       ),
     );
     const enriched = await enrichHomeHeroArt([...result.popular, ...result.ongoing]);
-    return {
-      popular: enriched.slice(0, result.popular.length),
-      ongoing: enriched.slice(result.popular.length),
-    };
+    return uniqueHomeGroups(
+      enriched.slice(0, result.popular.length),
+      enriched.slice(result.popular.length),
+    );
   },
   ['animebox-home-initial-feed-v8-hero-art'],
   {
@@ -86,6 +87,6 @@ export async function getHomeInitialFeed(): Promise<HomeInitialFeed> {
       }
     };
     const [popular, ongoing] = await Promise.all([recover('ranked', false), recover('popularity', true)]);
-    return {popular, ongoing};
+    return uniqueHomeGroups(popular, ongoing);
   }
 }
