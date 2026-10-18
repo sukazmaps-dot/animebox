@@ -24,15 +24,20 @@ function ordered(markers, source = shell) {
   }
 }
 
+// Patch 32.0.1 editorial reordering: schedule now precedes discovery, and
+// community chat precedes secondary retention. Preserve strict relative order
+// and the original server-shell invariant instead of disabling this gate.
 ordered([
   '<HomeHeroSection />',
+  '<HomeGuestPrompt />',
   '<HomeContinueSection />',
+  '<HomeScheduleSection />',
   '<HomeDiscoverySection />',
   '<HomeCatalogSections />',
-  '<HomeScheduleSection />',
   '<HomeWatchTogetherSection />',
-  '<HomeRetentionSections />',
   '<HomeDeferredChat />',
+  '<HomeRetentionSections />',
+  '<HomeDeferredSupport />',
 ]);
 assert(!shell.includes("'use client'"), 'Server shell cannot become a client island');
 assert(shell.includes('data-home-layout="cinematic"'), 'Home 32 scope missing');
