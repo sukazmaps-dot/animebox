@@ -1380,6 +1380,7 @@ export default function SmartRecommendationFeed({
                 <ScrollRow
                   className="smart-feed__rail"
                   ariaLabel={rail.title}
+                  arrowRequiresOverflow
                   stepRatio={0.82}
                   hasMore={rail.items.length > 0 ? railHasMore : false}
                   loading={railLoading}
