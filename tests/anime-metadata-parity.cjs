@@ -61,7 +61,11 @@ for (const [name,source] of Object.entries(files)) {
   assert(source.includes('formatAnimeScore'), name + ': missing shared rating normalization');
   assert(!source.includes("anime.score ?? anime.averageScore ?? '—'"), name + ': raw rating leaks to UI');
 }
-assert(files.card.includes('animeEpisodesDisplay(anime)'), 'card must distinguish total vs aired');
+// Patch 32.0.1: the deliberately compact Home TitleCard shows one stable
+// "year · type · score" line; episode counts remain authoritative in TopAnime,
+// the detail facts and the shared animeEpisodesDisplay() tests above.
+assert(files.card.includes("filter(Boolean).join(' · ')"), 'compact card must avoid dangling separators');
+assert(files.card.includes('formatLabel(anime.format)') && files.card.includes('formatAnimeScore(anime)'), 'compact card metadata must include type and normalized rating');
 assert(files.top.includes('animeEpisodesDisplay(anime)'), 'top must distinguish total vs aired');
 assert(files.detail.includes('animeContentFacts(resolved)'), 'detail facts must use raw metadata');
 assert(!files.detail.includes('resolved.score * 10'), 'detail must not fabricate averageScore');

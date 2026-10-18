@@ -52,15 +52,6 @@ function formatLabel(format: string | null | undefined): string {
   return format ? labels[format] ?? format : 'Аниме';
 }
 
-function formatDuration(duration: number | null | undefined): string | null {
-  if (!duration || duration <= 0) return null;
-  if (duration < 60) return `${duration} мин`;
-
-  const hours = Math.floor(duration / 60);
-  const minutes = duration % 60;
-  return minutes > 0 ? `${hours} ч ${minutes} мин` : `${hours} ч`;
-}
-
 type RecommendationCardRuntimeIdentity = {
   recommendationId: string;
   impressionId: string;
@@ -190,7 +181,6 @@ export default function SmartRecommendationCard({
   const [liked, setLiked] = useState(false);
   const [posterState, setPosterState] = useState<AnimeImageLoadState>('loading');
   const ratingLabel = formatAnimeScore(anime);
-  const durationLabel = formatDuration(anime.duration);
   const releaseYear = Number(anime.startDate?.year);
   const primaryExplanation = explanations[0];
 
@@ -521,16 +511,21 @@ export default function SmartRecommendationCard({
       className="smart-card"
       data-explanation-key={primaryExplanation?.key}
       data-explanation-version={explanationVersion}
+      data-explanation-component={
+        primaryExplanation?.components.join(',') || undefined
+      }
       data-diversity-version={diversity?.version}
       data-diversity-original-rank={diversity?.originalRank}
       data-diversity-reranked-rank={diversity?.rerankedRank}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
+      onContextMenu={(event) => { event.preventDefault(); openFeedbackMenu(); }}
     >
       <AnimeCardContent media={
         <AnimeIntentLink
         href={animeHref(anime)}
         className="smart-card__poster-link"
+        title={reasons.join(' · ') || title}
         onClick={trackOpen}
         aria-label={`Открыть ${title}`}
       >
@@ -583,26 +578,8 @@ export default function SmartRecommendationCard({
         </AnimeIntentLink>
 
         <div className="smart-card__meta" aria-label="Информация об аниме">
-          {Number.isInteger(releaseYear) && releaseYear > 1900 && <span>{releaseYear}</span>}
-          <span>{formatLabel(anime.format)}</span>
-          {durationLabel && (
-            <>
-              <span aria-hidden="true">•</span>
-              <span>{durationLabel}</span>
-            </>
-          )}
+          {[Number.isInteger(releaseYear) && releaseYear > 1900 ? String(releaseYear) : null, formatLabel(anime.format), ratingLabel ? `★ ${ratingLabel}` : null].filter(Boolean).join(' · ')}
         </div>
-
-        <p
-          className="smart-card__reason"
-          title={reasons.join(' · ')}
-          data-explanation-component={
-            primaryExplanation?.components.join(',') || undefined
-          }
-        >
-          <span aria-hidden="true">✦</span>
-          {reason}
-        </p>
 
         <div className="smart-card__actions">
           <button
@@ -629,7 +606,11 @@ export default function SmartRecommendationCard({
               }
               aria-hidden="true"
             >
-              {planState === 'saving' ? '' : planIcon}
+              {planState === 'saving' ? '' : (planState === 'saved' || planState === 'idle') ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={planState === 'saved' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 3.5h12v17l-6-4-6 4z" />
+                </svg>
+              ) : planIcon}
             </span>
             <span className="smart-card__plan-label">{planLabel}</span>
           </button>

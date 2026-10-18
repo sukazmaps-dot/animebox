@@ -6,7 +6,6 @@ import type { Anime } from '@/types/anime';
 import AnimeImage from '@/components/AnimeImage';
 import { getAnimeTitle, isAnimeOngoing } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
-import { animeEpisodesDisplay } from '@/lib/anime-content-intelligence';
 
 function formatLabel(
   format: string | null | undefined,
@@ -44,6 +43,7 @@ export default function AnimeCard({
   discoveryMatch = null,
   imageLoading = 'near',
   imageFetchPriority = 'auto',
+  displayTitle,
 }: {
   anime: Anime;
   compact?: boolean;
@@ -51,9 +51,12 @@ export default function AnimeCard({
   discoveryMatch?: { percent: number; reasons?: string[] } | null;
   imageLoading?: 'lazy' | 'eager' | 'near';
   imageFetchPriority?: 'high' | 'low' | 'auto';
+  displayTitle?: string;
 }) {
   const title = getAnimeTitle(anime);
   const year = yearLabel(anime);
+  const scoreLabel = formatAnimeScore(anime);
+  const metaLabel = [year, formatLabel(anime.format), scoreLabel ? `★ ${scoreLabel}` : null].filter(Boolean).join(' · ');
   const episode =
     typeof watchedEpisode === 'number' &&
     Number.isInteger(watchedEpisode) &&
@@ -121,7 +124,7 @@ export default function AnimeCard({
       }>
       <div className="anime-card__body flex min-w-0 flex-1 flex-col">
         <h3 className="line-clamp-2">
-          {title}
+          {displayTitle || title}
         </h3>
 
         {discoveryMatch && (
@@ -138,13 +141,7 @@ export default function AnimeCard({
             <small>эпизод {episode}</small>
           </div>
         ) : (
-          <div className="anime-card__meta">
-            {year && <span>{year}</span>}
-            {year && <span aria-hidden="true">·</span>}
-            <span>{formatLabel(anime.format)}</span>
-            <span aria-hidden="true">·</span>
-            <span>{animeEpisodesDisplay(anime) ?? 'Эпизоды уточняются'}</span>
-          </div>
+          <div className="anime-card__meta" title={metaLabel}>{metaLabel}          </div>
         )}
       </div>
       </AnimeCardContent>

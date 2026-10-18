@@ -172,6 +172,7 @@ export default function HomeScheduleRuntimeProvider({
   const [selectedScheduleDay, setSelectedScheduleDay] =
     useState('');
   const [clockNow, setClockNow] = useState(0);
+  const autoSelectedDateRef = useRef('');
   const {
     scheduleItems,
     scheduleWindowItems,
@@ -198,6 +199,18 @@ export default function HomeScheduleRuntimeProvider({
       window.clearInterval(timer);
     };
   }, []);
+
+  // Select the next day with an upcoming episode once per calendar day.
+  // A manual tab selection must never be overridden by a delayed fetch.
+  useEffect(() => {
+    const today = scheduleDays[0]?.key;
+    if (!today || scheduleLoading || scheduleItems.length === 0 || autoSelectedDateRef.current === today) return;
+    const nearest = scheduleDays.find((day) => scheduleItems.some((item) =>
+      item.airingAt * 1000 > clockNow && getLocalDateKey(new Date(item.airingAt * 1000)) === day.key
+    ));
+    autoSelectedDateRef.current = today;
+    setSelectedScheduleDay((previous) => !previous || previous === today ? (nearest?.key ?? today) : previous);
+  }, [clockNow, scheduleDays, scheduleItems, scheduleLoading]);
 
   const personalScheduleItems = useMemo(() => {
     if (
@@ -291,13 +304,12 @@ export default function HomeScheduleRuntimeProvider({
     return scheduleItems.filter((item) => {
       const date = new Date(item.airingAt * 1000);
 
-      return (
-        getLocalDateKey(date) === selectedScheduleDay
-      );
+      return getLocalDateKey(date) === selectedScheduleDay && item.airingAt * 1000 > clockNow;
     });
   }, [
     scheduleItems,
     selectedScheduleDay,
+    clockNow,
   ]);
 
   const upcomingScheduleItems = useMemo(() => {

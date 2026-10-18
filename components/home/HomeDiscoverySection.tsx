@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
+import SectionHeader from '@/components/home/SectionHeader';
 
 import styles from './HomePageShell.module.css';
 
@@ -51,18 +51,7 @@ export default function HomeDiscoverySection() {
           className="section smart-feed-section"
           aria-busy={recommendationsLoading}
         >
-          <div className="section-head">
-            <div className="smart-feed-heading">
-              <h2 className="section-title">Подобрано для тебя</h2>
-            </div>
-
-            <Link
-              className="section-link"
-              href="/search"
-            >
-              Весь каталог →
-            </Link>
-          </div>
+          <SectionHeader title="Подобрано для тебя" href="/search" linkLabel="Весь каталог" />
 
           <HomeMoodPicker
             value={mood}

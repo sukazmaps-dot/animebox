@@ -3,8 +3,9 @@ import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import Link from 'next/link';
 
-import AnimeImage from '@/components/AnimeImage';
-import Icon from '@/components/Icon';
+import HomeSchedulePoster from '@/components/home/HomeSchedulePoster';
+import SectionHeader from '@/components/home/SectionHeader';
+import { formatHomeScheduleCountdown } from '@/lib/home-schedule-time';
 import styles from './HomeScheduleSection.module.css';
 import { ScheduleGridSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import {
@@ -31,26 +32,11 @@ export default function HomeScheduleSection() {
       className={`section schedule ${styles.root}`}
       aria-busy={scheduleLoading}
     >
-      <div className="section-head">
-        <h2 className="section-title">
-          <span
-            className="section-title__icon section-title__icon--ui"
-            aria-hidden="true"
-          >
-            <Icon name="calendar" />
-          </span>
-          Расписание выхода серий
-        </h2>
-
-        <Link
-          className="section-link"
-          href="/schedule"
-        >
-          Полное расписание →
-        </Link>
-      </div>
-
-      <p className={styles.swipeHint} aria-hidden="true">Листай дни →</p>
+      <SectionHeader
+        title={selectedScheduleDay === scheduleDays[0]?.key && visibleScheduleItems.length > 0 ? 'Сегодня выходит' : 'Скоро выходит'}
+        href="/schedule"
+        linkLabel="Полное расписание"
+      />
       <div
         className="schedule__tabs"
         role="group"
@@ -90,38 +76,23 @@ export default function HomeScheduleSection() {
           <span>{scheduleError}</span>
         </div>
       ) : visibleScheduleItems.length === 0 ? (
-        <div className="empty-state">
-          <strong>На этот день серий нет</strong>
-          <span>Попробуй выбрать соседний день.</span>
-        </div>
+        <p className={styles.empty}>{selectedScheduleDay === scheduleDays[0]?.key ? 'Сегодня выпусков больше нет' : 'На этот день выпусков нет'}</p>
       ) : (
         <div className="schedule__cards">
           {visibleScheduleItems
-            .slice(0, 4)
+            .slice(0, 6)
             .map((item) => {
               const title = getScheduleTitle(item);
-              const released =
-                item.airingAt * 1000 <= clockNow;
-
               return (
                 <Link
                   key={item.id}
                   href={scheduleAnimeHref(item.media)}
                   className="schedule__card"
                 >
-                  <AnimeImage
+                  <HomeSchedulePoster
                     image={item.media.coverImage}
-                    alt={title}
-                    englishName={
-                      item.media.title.english ||
-                      item.media.title.romaji
-                    }
-                    className="anime-schedule-image"
-                    containerClassName="schedule__poster"
-                    sizes="36px"
-                    quality={60}
-                    sourcePreference="compact"
-                    preset="tiny"
+                    title={title}
+                    englishName={item.media.title.english || item.media.title.romaji}
                   />
 
                   <div
@@ -136,17 +107,17 @@ export default function HomeScheduleSection() {
                     <span>{item.episode == null ? 'Плановый выход' : `Эпизод ${item.episode}${item.timingKind ? ' · план' : ''}`}</span>
                   </div>
 
-                  <span className="schedule__time">
+                  <span className={styles.time}>
                     {formatScheduleTime(item.airingAt)}
-                    {released && !item.timingKind ? ' · Вышел' : ''}
+                    <small>{item.timingKind ? 'План' : formatHomeScheduleCountdown(item.airingAt, clockNow)}</small>
                   </span>
                 </Link>
               );
             })}
         </div>
       )}
-      {!scheduleLoading && !scheduleError && visibleScheduleItems.length > 4 && (
-        <Link className="section-link schedule__more" href="/schedule">
+      {!scheduleLoading && !scheduleError && visibleScheduleItems.length > 6 && (
+        <Link className={styles.more} href="/schedule">
           Все выпуски за день · {visibleScheduleItems.length} →
         </Link>
       )}

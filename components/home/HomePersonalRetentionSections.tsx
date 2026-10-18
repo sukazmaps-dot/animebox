@@ -2,7 +2,7 @@
 import {scheduleAnimeHref} from '@/lib/schedule-url';
 
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
+import SectionHeader from '@/components/home/SectionHeader';
 
 import DeferredMount from '@/components/DeferredMount';
 import { useVisibleHomeImpression } from '@/components/home/useVisibleHomeImpression';
@@ -73,27 +73,12 @@ export function HomePersonalScheduleSection() {
       className="section personal-schedule-section"
       aria-busy={showLoading}
     >
-      <div className="section-head">
-        <div>
-          <span className="smart-section-eyebrow">
-            Твои онгоинги
-          </span>
-          <h2 className="section-title">
-            Расписание твоих аниме
-          </h2>
-          <p>
-            Время эфира в Японии. Перевод и озвучка
-            могут появиться позже.
-          </p>
-        </div>
-
-        <Link
-          className="section-link"
-          href="/notifications"
-        >
-          Настроить уведомления →
-        </Link>
-      </div>
+      <SectionHeader
+        title="Расписание твоих аниме"
+        subtitle="Время эфира в Японии. Перевод и озвучка могут появиться позже."
+        href="/notifications"
+        linkLabel="Уведомления"
+      />
 
       <div className="personal-schedule-grid">
         {showLoading ? (
@@ -164,6 +149,7 @@ export function HomeRetentionSections() {
     hasPersonalHistory,
     hasWatchHistory,
     continueWatchingItems,
+    userId,
   } = useHomeFeedRuntime();
 
   const {
@@ -187,16 +173,18 @@ export function HomeRetentionSections() {
         </DeferredMount>
       )}
 
-      <DeferredMount
-        className="home-deferred home-deferred--pulse"
-        minHeight={96}
-        rootMargin="460px 0px"
-        ariaLabel="Твой прогресс AnimeBox"
-      >
-        <HomePersonalPulse />
-      </DeferredMount>
+      {(hasWatchHistory || hasPersonalHistory) && (
+        <DeferredMount
+          className="home-deferred home-deferred--pulse"
+          minHeight={96}
+          rootMargin="460px 0px"
+          ariaLabel="Твой прогресс AnimeBox"
+        >
+          <HomePersonalPulse />
+        </DeferredMount>
+      )}
 
-      <DeferredMount
+      {userId && <DeferredMount
         className="home-deferred home-deferred--activation"
         minHeight={150}
         rootMargin="420px 0px"
@@ -206,7 +194,7 @@ export function HomeRetentionSections() {
           hasHistory={hasWatchHistory}
           hasContinue={continueWatchingItems.length > 0}
         />
-      </DeferredMount>
+      </DeferredMount>}
     </>
   );
 }

@@ -24,7 +24,9 @@ need('library guest auth', library, ['useAuthState','useAuthModal',"intent: 'tra
 need('compact notifications', notifications, ['episode-notification-compact','Уведомлять о новых сериях']);
 need('compact watch together', watchParty, ["status === 'idle' && mode === 'inline'",'Создать комнату']);
 if (smart.includes("return 'Длительность уточняется'")) failures.push('unknown duration filler remains');
-need('duration cleanup', smart, ['const durationLabel = formatDuration(anime.duration)','{durationLabel && (']);
+// Home 32 intentionally replaces duration with a compact year/format/score
+// line. Keep the no-filler guard above and require valid conditional metadata.
+need('compact metadata', smart, ['Number.isInteger(releaseYear) && releaseYear > 1900', 'formatLabel(anime.format)', 'ratingLabel ?', ".filter(Boolean).join(' · ')"]);
 need('card geometry', cardCss, ['Patch 18.6.6 — Recommendation Card Geometry','margin-top: auto !important','min-height: 2.8em']);
 need('media worker', mediaWorker, ['sourceSoftFailureResponse',"status: 204","'source-soft-fail'",'status: hit.status']);
 need('legacy proxy', proxy, ["'proxy-v4-placeholder'", "'image/svg+xml'"]);

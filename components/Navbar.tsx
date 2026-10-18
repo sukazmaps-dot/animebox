@@ -437,17 +437,18 @@ function NavbarContent() {
           })}
         </nav>
 
-        <div className="sidebar__divider" />
+        <div className="sidebar__membership-block sidebar__membership-block--compact">
+          {!authLoading && user ? <SidebarMembership /> : <SidebarMembershipFallback />}
+        </div>
 
-        <div className="sidebar__label">Поддержка</div>
-
-        <div className="sidebar__membership-block">
-          {!authLoading && user ? (
-            <SidebarMembership />
-          ) : (
-            <SidebarMembershipFallback />
-          )}
-
+        <details className="sidebar__more">
+          <summary className="sidebar__more-trigger">
+            <Icon name="menu" />
+            <span>Ещё</span>
+          </summary>
+          <div className="sidebar__more-content">
+            <div className="sidebar__label">Поддержка</div>
+            <nav className="sidebar__nav" aria-label="Поддержка AnimeBox">
           <Link
             href="/support"
             className={`sidebar__item sidebar__support ${
@@ -462,10 +463,7 @@ function NavbarContent() {
               <small>Stars, Boosty и другие способы</small>
             </span>
           </Link>
-        </div>
-
-        <div className="sidebar__divider sidebar__divider--service" />
-
+            </nav>
         <nav className="sidebar__nav sidebar__nav--muted" aria-label="Сервисы">
           <a
             href={telegramUrl}
@@ -508,6 +506,8 @@ function NavbarContent() {
             <span>Настройки</span>
           </Link>
         </nav>
+          </div>
+        </details>
 
         {!authLoading && user && (
           <div className="sidebar__account">
@@ -543,7 +543,7 @@ function NavbarContent() {
       </aside>
 
       {/* Topbar keeps only global actions: search, notifications, account. */}
-      <header className="topbar">
+      <header className={pathname === '/' ? 'topbar topbar--home' : 'topbar'}>
         <form
           ref={searchFormRef}
           className="topbar__search"

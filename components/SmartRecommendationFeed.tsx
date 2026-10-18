@@ -1322,6 +1322,7 @@ export default function SmartRecommendationFeed({
     );
   }
 
+  const visibleAcrossRails = new Set<number>();
   return (
     <div className="smart-feed">
       <div
@@ -1348,12 +1349,24 @@ export default function SmartRecommendationFeed({
               rail.items.length === 0
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
+            const displayItems = rail.items.filter(item => !visibleAcrossRails.has(item.anime.id));
+            // Hide only finished sparse rows. Recoverable windows and errors
+            // must keep their retry action visible while more pages exist.
+            // Preserve the interleaved personal schedule slot.
+            const hideSparse = !showRailSkeleton && !railLoading &&
+              !railFailed && !hasMore && displayItems.length < 4;
+            // Preserve the mounted row slot and keys for session-stable rail
+            // order; CSS hides the sparse surface without unmounting its data.
+            displayItems.forEach(item => visibleAcrossRails.add(item.anime.id));
 
             return (
               <Fragment key={`${rail.id}:${rowVersion}`}>
               <section
                 ref={(node) => registerSparseRailSection(rail.id, node)}
                 className="smart-feed__personal-rail"
+                hidden={hideSparse}
+                aria-hidden={hideSparse || undefined}
+                style={hideSparse ? { display: 'none' } : undefined}
                 data-recommendation-rail-id={rail.id}
                 data-recommendation-rail-items={rail.items.length}
                 data-recommendation-rail-sparse={
@@ -1380,6 +1393,7 @@ export default function SmartRecommendationFeed({
                 <ScrollRow
                   className="smart-feed__rail"
                   ariaLabel={rail.title}
+                  arrowRequiresOverflow
                   stepRatio={0.82}
                   hasMore={rail.items.length > 0 ? railHasMore : false}
                   loading={railLoading}
@@ -1392,7 +1406,7 @@ export default function SmartRecommendationFeed({
                     recordRailVirtualMetrics(rail.id, metrics)
                   }
                 >
-                  {rail.items.map((recommendation, index) => (
+                  {displayItems.map((recommendation, index) => (
                     <div
                       className="smart-feed__slide"
                       key={`${rail.id}:${recommendation.anime.id}`}
@@ -1431,7 +1445,7 @@ export default function SmartRecommendationFeed({
                     className="smart-feed__rail-retry"
                     onClick={() => void ensureRailDepth(rail, { retry: true, bootstrap: rail.items.length < MIN_INITIAL_RAIL_ITEMS })}
                   >
-                    {railFailed ? 'Не удалось загрузить ещё · Повторить' : 'Продолжить поиск карточек'}
+                    {railFailed ? 'Не удалось загрузить ещё · Повторить' : 'Показать больше похожих аниме'}
                   </button>
                 )}
               </section>

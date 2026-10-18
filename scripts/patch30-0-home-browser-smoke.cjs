@@ -122,6 +122,7 @@ const logPath = path.join(os.tmpdir(), 'animebox30-browser-' + process.pid + '.l
         overflow: data.overflow,
         src: data.src,
         cardWidth: data.card.w,
+        continueCard: data.continueCard,
         buttonHeights: data.buttons.map(b => b.r.h)
       }));
       assert(!data.overflow, 'page overflow');

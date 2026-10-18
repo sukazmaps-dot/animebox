@@ -1,166 +1,60 @@
-.section {
-  min-width: 0;
-  margin-top: 0;
-}
-
-.section :global(.continue-smart-grid) {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
+.section { min-width: 0; }
+/* One genuine card geometry across desktop and phone. The component's
+   styles.card was previously undefined, leaving legacy global borders in charge. */
 .card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
   min-width: 0;
+  min-height: 112px;
+  padding: 9px 12px 12px;
+  border: 1px solid var(--ab-ui-border);
+  border-radius: 12px;
+  background: var(--ab-ui-surface);
 }
-
-.section a:focus-visible {
-  outline: 2px solid var(--ab-ui-accent);
-  outline-offset: 4px;
+.section .card :global(.continue-smart-card__poster) {
+  width: 62px;
+  height: 92px;
+  border-radius: 5px;
 }
+.section .card :global(.continue-smart-card__body) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-right: 0;
+}
+.section .card :global(.continue-smart-card__arrow) {
+  display: none;
+}
+.section .card :global(.continue-smart-card__arrow)::after {
+  content: none;
+}
+.section .card :global(.continue-smart-card__eyebrow),
+.section .card :global(.continue-smart-card__body) small {
+  font-size: 11px;
+}
+.section a:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
+.section :global(.continue-smart-grid) { display: flex; gap: 12px; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0 10px; scroll-snap-type: x mandatory; overscroll-behavior-inline: contain; scrollbar-width: none; }
+.section :global(.continue-smart-grid)::-webkit-scrollbar { display: none; }
+.section :global(.continue-smart-card) { flex: 0 0 320px; width: 320px; max-width: 100%; scroll-snap-align: start; position: relative; overflow: hidden; }
+.section :global(.continue-smart-card__progress) { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; margin: 0; background: var(--ab-ui-border); }
+.section :global(.continue-smart-card__progress) i { display: block; height: 100%; }
+.section :global(.continue-smart-card__arrow) { display: none; }
+@media (max-width: 768px) {
+  .section :global(.continue-smart-card) { flex-basis: min(86vw, 320px); width: min(86vw, 320px); }
 
-@media (max-width: 600px) {
-  .section {
-    overflow: visible;
-  }
-
-  .section :global(.section-head) {
-    align-items: flex-end;
-    gap: 12px;
-    margin-bottom: 11px;
-  }
-
-  .section :global(.section-link) {
-    flex: 0 0 auto;
-    margin-bottom: 2px;
-    font-size: 11px;
-  }
-
-  :global(.home-page) .section :global(.continue-smart-grid) {
-    display: flex !important;
-    grid-template-columns: none !important;
-    gap: 10px !important;
-    overflow-x: auto;
-    overflow-y: hidden;
-    margin-inline: 0;
-    padding: 2px 0 10px;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: 0;
-    overscroll-behavior-inline: contain;
-    scrollbar-width: none;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  :global(.home-page) .section :global(.continue-smart-grid)::-webkit-scrollbar {
-    display: none;
-  }
-
+  /* The Patch 30 legacy fixture still wraps these cards in .home-page.
+     Patch 14.3 gave that old layout a borderless, square table treatment
+     with !important; restore the component-owned card surface instead.
+     No legacy rule is applied to the cinematic production root. */
   :global(.home-page) .section .card,
   :global(.home-page) .section .card:first-child {
-    flex: 0 0 100%;
-    width: 100%;
-    max-width: none;
-    height: 112px !important;
-    min-height: 112px !important;
-    max-height: 112px;
-    grid-column: auto !important;
-    grid-template-columns: 62px minmax(0, 1fr) 22px !important;
-    align-items: center;
-    gap: 10px !important;
-    padding: 10px !important;
-    border-radius: 14px !important;
     border: 1px solid var(--ab-ui-border) !important;
+    border-radius: 12px !important;
     background: var(--ab-ui-surface) !important;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-
-  :global(.home-page) .section .card :global(.continue-smart-card__poster) {
-    width: 62px !important;
-    height: 86px !important;
-    flex: 0 0 62px !important;
-    border-radius: 10px;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__poster) > div:first-child,
-  :global(.home-page) .section .card :global(.continue-smart-card__image) {
-    width: 100% !important;
-    height: 100% !important;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__body) {
-    min-width: 0;
-    align-self: center;
-    padding-right: 0;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__eyebrow) {
-    margin-bottom: 4px;
-    font-size: 8px;
-    letter-spacing: .055em;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__body) strong {
-    display: -webkit-box;
-    overflow: hidden;
-    font-size: 13px;
-    line-height: 1.3;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__progress) {
-    height: 3px;
-    margin-top: 7px;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__body) small {
-    margin-top: 5px;
-    overflow: hidden;
-    font-size: 9px;
-    line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__arrow) {
-    display: grid !important;
-    place-items: center;
-    width: 22px !important;
-    min-width: 22px;
-    height: 34px;
-    overflow: hidden;
-    color: var(--ab-ui-accent);
-    font-size: 0 !important;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__arrow)::after {
-    content: '→';
-    font-size: 19px;
-    line-height: 1;
   }
 }
-
-@media (max-width: 390px) {
-  :global(.home-page) .section .card,
-  :global(.home-page) .section .card:first-child {
-    grid-template-columns: 58px minmax(0, 1fr) 20px !important;
-    height: 106px !important;
-    min-height: 106px !important;
-    max-height: 106px;
-    gap: 8px !important;
-    padding: 9px !important;
-  }
-
-  :global(.home-page) .section .card :global(.continue-smart-card__poster) {
-    width: 58px !important;
-    height: 80px !important;
-    flex-basis: 58px !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :global(.home-page) .section :global(.continue-smart-grid) {
-    scroll-behavior: auto;
-  }
-}
+@media (prefers-reduced-motion: reduce) { .section :global(.continue-smart-grid) { scroll-behavior: auto; } }

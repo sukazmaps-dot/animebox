@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 
 import AnimeCard from '@/components/AnimeCard';
 import type { Anime } from '@/types/anime';
@@ -10,16 +11,20 @@ type HomeAnimeRailProps = {
   ariaLabel: string;
   /** Progress is supplied by the existing Home feed; never fetch per card. */
   watchedEpisodes?: ReadonlyMap<number, number>;
+  displayTitles?: ReadonlyMap<number, string>;
+  allHref?: string;
 };
 
 export default function HomeAnimeRail({
   items,
   ariaLabel,
   watchedEpisodes,
+  displayTitles,
+  allHref,
 }: HomeAnimeRailProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
-  const [canGoForward, setCanGoForward] = useState(items.length > 5);
+  const [canGoForward, setCanGoForward] = useState(false);
 
   const updateControls = useCallback(() => {
     const viewport = viewportRef.current;
@@ -135,6 +140,7 @@ export default function HomeAnimeRail({
         className="home-anime-rail__arrow home-anime-rail__arrow--prev"
         onClick={() => move(-1)}
         disabled={!canGoBack}
+        hidden={!canGoBack}
         aria-label={`Предыдущие: ${ariaLabel}`}
       >
         ‹
@@ -143,15 +149,24 @@ export default function HomeAnimeRail({
       <div
         ref={viewportRef}
         className="home-anime-rail__viewport"
+        role="region"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowRight") { event.preventDefault(); move(1); }
+          if (event.key === "ArrowLeft") { event.preventDefault(); move(-1); }
+        }}
         aria-label={ariaLabel}
       >
         {items.map((anime) => (
           <AnimeCard
             key={anime.id}
             anime={anime}
+            displayTitle={displayTitles?.get(anime.id)}
+            imageLoading="lazy"
             watchedEpisode={watchedEpisodes?.get(anime.id) ?? null}
           />
         ))}
+        {allHref && <Link className="home-anime-rail__view-all" href={allHref}>Смотреть все <span aria-hidden="true">→</span></Link>}
       </div>
 
       <button
@@ -159,6 +174,7 @@ export default function HomeAnimeRail({
         className="home-anime-rail__arrow home-anime-rail__arrow--next"
         onClick={() => move(1)}
         disabled={!canGoForward}
+        hidden={!canGoForward}
         aria-label={`Следующие: ${ariaLabel}`}
       >
         ›

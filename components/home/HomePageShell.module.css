@@ -2,19 +2,25 @@
    home-page/home-grid selector chain; shared cards retain their behavior. */
 .page {
   --ab-ui-radius: 6px;
+  --page-w: 1440px;
+  --gutter: 32px;
+  max-width: var(--page-w);
+  margin-inline: auto;
   --home-canvas: var(--ab-ui-canvas, #141218);
   min-width: 0;
   width: 100%;
   color: var(--ab-ui-text);
   background: var(--home-canvas);
 }
-.shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 40px; padding: 0 clamp(16px, 3vw, 48px) 40px; }
+.shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 40px; padding: 0 var(--gutter) 40px; }
 .shelves > :first-child { margin-top: 0; }
 .page :global(.section) { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .page :global(.section-head) { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 18px; }
-.page :global(.section-title) { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ab-ui-text); font-size: clamp(20px, 2vw, 28px); font-weight: 650; line-height: 1.25; letter-spacing: -.025em; }
+.page :global(.section-title) { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ab-ui-text); font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -.025em; }
 .page :global(.section-title__icon), .page :global(.smart-section-eyebrow) { display: none; }
-.page :global(.section-link) { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: 44px; color: var(--ab-ui-muted); font-size: 12px; line-height: 1.4; text-decoration: none; }
+.page :global(.section-title)::before { content: ''; flex: 0 0 3px; align-self: stretch; min-height: 20px; border-radius: 3px; background: var(--ab-ui-accent); }
+.page :global(.section) { scroll-margin-top: 86px; }
+.page :global(.section-link) { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: 44px; color: var(--ab-ui-muted); font-size: 13px; line-height: 1.4; text-decoration: none; }
 .page :global(.section-link):hover { color: var(--ab-ui-text); }
 .discovery { display: block; margin: 0; min-width: 0; }
 .page :global(.smart-feed-heading) { min-width: 0; }
@@ -23,41 +29,99 @@
 .page :global(.smart-feed__rail-heading) h3 { font-size: 17px; font-weight: 600; }
 /* Shelves need a title; implementation copy and duplicate badges add noise. */
 .page :global(.smart-feed__rail-heading) p, .page :global(.smart-feed__rail-badge) { display: none; }
-.page :global(.home-anime-rail__viewport) { grid-auto-columns: calc((100% - 64px) / 5); gap: 16px; scroll-snap-type: x proximity; }
+/* Home-only compact poster rails: 1-2 items retain natural fixed width,
+   not stretched grid columns. A partial next poster intentionally suggests swipe. */
+.page :global(.smart-feed__slide) { width: 170px; max-width: 170px; flex: 0 0 170px; }
+.page :global(.smart-feed__slide > .smart-card) { min-width: 0; height: auto; }
+.page :global(.smart-card__body) { padding-top: 8px; gap: 4px; }
+.page :global(.smart-card__title) { font-size: 13px; line-height: 1.35; min-height: 2.7em; }
+.page :global(.smart-card__meta) { font-size: 11px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page :global(.smart-card__rating) { display: none; }
+.page :global(.smart-feed__rail) { min-width: 0; }
+.page :global(.smart-feed__rail > button[aria-label^="Прокрутить"]) { top: -40px; right: 0; left: auto; width: 32px; height: 32px; transform: none; }
+.page :global(.smart-feed__rail > button[aria-label="Прокрутить назад"]) { right: 40px; }
+.page :global(.smart-feed__rail > button[aria-label^="Прокрутить"]:hover) { transform: none; }
+.page :global(.smart-feed__rail-heading) { padding-right: 82px; }
+/* Root cause of the 28px dark strip in the user screenshot: legacy
+   patch12-4-5-identity-foundation.css adds a fixed ::after fade over cards.
+   The former .home-page override no longer matches the cinematic route.
+   The next poster itself is the scroll affordance; don't obscure it. */
+.page :global(.smart-feed__rail::after) { display: none; }
+
+.page :global(.smart-feed__rail [role="region"]) { scroll-padding-inline: 2px; -webkit-mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent); }
+
+.page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; gap: 16px; scroll-snap-type: x proximity; }
 .page :global(.anime-card), .page :global(.smart-card) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .page :global(.anime-card__image-wrap), .page :global(.smart-card__poster) { overflow: hidden; border-radius: 6px; }
-.page :global(.anime-card__body) { padding: 12px 0 0; }
-.page :global(.anime-card__body) h3 { font-size: 14px; line-height: 1.4; font-weight: 550; }
+.page :global(.anime-card__body) { padding: 7px 0 0; display: grid; grid-template-rows: 2.8em minmax(0, auto); }
+.page :global(.anime-card__body) h3 { font-size: 14px; line-height: 1.4; font-weight: 550; min-height: 2.8em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.page :global(.anime-card__meta) { white-space: nowrap; min-height: 1.5em; }
 .page :global(.anime-card__meta) { margin-top: 6px; font-size: 11px; color: var(--ab-ui-muted); }
 .page :global(.anime-card__shine) { display: none; }
-.page :global(.home-anime-rail__arrow) { min-width: 44px; width: 44px; height: 44px; border-radius: 6px; box-shadow: none; }
-.page :global(.continue-smart-grid) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 0; border: 0; background: transparent; }
-.page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { display: grid; grid-template-columns: 68px minmax(0, 1fr) 20px; grid-column: auto; gap: 14px; min-height: 126px; height: auto; padding: 12px; border: 1px solid var(--ab-ui-border); border-radius: 6px; background: var(--ab-ui-surface); box-shadow: none; }
-.page :global(.continue-smart-card__poster) { width: 68px; height: 102px; border-radius: 4px; }
+.page :global(.home-anime-rail__arrow:disabled) { visibility: hidden; pointer-events: none; }
+.page :global(.home-anime-rail__viewport) { min-height: 0; }
+.page :global(.home-anime-rail) { position: relative; }
+.page :global(.home-anime-rail__arrow) { position: absolute; top: -53px; width: 32px; min-width: 32px; height: 32px; border-radius: 6px; box-shadow: none; z-index: 2; }
+.page :global(.home-anime-rail__arrow--prev) { left: auto; right: 40px; }
+.page :global(.home-anime-rail__arrow--next) { left: auto; right: 0; }
+.page :global(.home-catalog-section > header) { padding-right: 92px; }
+.page :global(.home-anime-rail__viewport) { -webkit-mask-image: linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 24px), transparent); }
+.page :global(.continue-smart-grid) { display: flex; gap: 12px; padding: 2px 0 10px; border: 0; background: transparent; }
+.page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px; box-sizing: border-box; flex: 0 0 320px; width: 320px; max-width: 100%; min-height: 112px; box-shadow: none; }
+.page :global(.continue-smart-card__poster) { width: 62px; height: 92px; border-radius: 4px; }
 .page :global(.continue-smart-card__body) strong { font-size: 14px; line-height: 1.4; }
 .page :global(.continue-smart-card__body) small { font-size: 11px; }
-.page :global(.continue-smart-card__eyebrow) { font-size: 10px; }
-.page :global(.personal-schedule-section) { margin-bottom: 32px; }
+.page :global(.continue-smart-card__eyebrow) { font-size: 11px; }
+.page :global(.personal-schedule-section) { margin-bottom: 0; }
+.page :global(.personal-schedule-grid) { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; }
+.page :global(.personal-schedule-card) { width: min(100%, 520px); max-width: 720px; flex: 0 1 520px; }
+.page :global(.personal-schedule-grid) :global(.schedule-item) { max-width: 100%; }
 .page :global(.personal-schedule-section) :global(.section-head) p { color: var(--ab-ui-muted); font-size: 12px; }
 .page :global(.schedule__cards) { gap: 10px; }
-.links { display: flex; flex-wrap: wrap; gap: 8px 28px; border-top: 1px solid var(--ab-ui-border); padding-top: 16px; }
-.links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ab-ui-muted); font-size: 13px; }
-.links a:hover { color: var(--ab-ui-text); }
-.support { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+.support { min-width: 0; }
 .page a:focus-visible, .page button:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
-@media (min-width: 1600px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: calc((100% - 80px) / 6); } }
-@media (max-width: 1100px) { .page :global(.continue-smart-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 1024px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: calc((100% - 36px) / 4); gap: 12px; } }
+@media (min-width: 1600px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; } }
+
+@media (max-width: 1024px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; gap: 12px; } }
 @media (max-width: 768px) {
-  .shelves { gap: 32px; padding-inline: 16px; }
+  .page { --gutter: 16px; }
+  .shelves { gap: 28px; padding-inline: var(--gutter); }
   .page :global(.section-head) { gap: 12px; margin-bottom: 12px; }
-  .page :global(.section-title) { font-size: 21px; }
-  .page :global(.section-link) { font-size: 11px; }
-  .page :global(.home-anime-rail__viewport) { grid-auto-columns: 42%; gap: 10px; }
+  .page :global(.section-title) { font-size: 20px; }
+  .page :global(.section-link) { font-size: 13px; }
+  .page :global(.home-anime-rail__viewport) { grid-auto-columns: 130px; gap: 10px; }
+  .page :global(.smart-feed__slide) { width: 130px; max-width: 130px; flex-basis: 130px; }
+  .page :global(.smart-feed__rail [role="region"]) { margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
+  .page :global(.home-anime-rail__viewport) { margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
+  .page :global(.home-catalog-section > header) { padding-right: 0; }
+  .page :global(.home-anime-rail__arrow) { display: none; }
+  .page :global(.smart-feed__rail-heading) { padding-right: 0; }
+  .page :global(.smart-feed__rail-heading) h3 { font-size: 16px; }
+  .page :global(.smart-card__title) { font-size: 12px; }
+  .page :global(.smart-card__meta) { font-size: 11px; }
+
   .page :global(.anime-card__body) h3 { font-size: 13px; }
   .page :global(.continue-smart-grid) { display: flex; overflow-x: auto; gap: 12px; scroll-snap-type: x proximity; overscroll-behavior-inline: contain; padding-bottom: 8px; }
-  .page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { flex: 0 0 min(92%, 380px); min-width: 0; scroll-snap-align: start; grid-template-columns: 62px minmax(0, 1fr) 16px; gap: 10px; }
+  .page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { flex: 0 0 86vw; min-width: 0; max-width: 360px; scroll-snap-align: start; }
   .page :global(.continue-smart-card__poster) { width: 62px; height: 93px; }
-  .support { grid-template-columns: minmax(0, 1fr); }
+  .support { min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .page :global(.home-anime-rail__viewport) { scroll-behavior: auto; } }
+
+/* Mobile card overflow repair: poster, title and actions share the same 130px rail track. */
+.page :global(.smart-feed__slide),
+.page :global(.smart-feed__slide > .smart-card) { min-width: 0; box-sizing: border-box; }
+.page :global(.smart-card__body) { min-width: 0; }
+.page :global(.smart-card__title) { display: -webkit-box; min-height: 0; max-width: 100%; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.page :global(.smart-card__reason) { display: none; }
+.page :global(.smart-card__actions) { min-width: 0; }
+@media (max-width: 768px) {
+  /* The track itself scrolls; clipping its wrapper cut the peek card at the section edge. */
+  .page :global(.smart-feed__rail) { overflow: visible; }
+  .page :global(.smart-feed__slide) { width: 130px; max-width: 130px; flex: 0 0 130px; }
+  .page :global(.smart-card__body) { padding: 7px 0 0; }
+  .page :global(.smart-card__title) { font-size: 12px; line-height: 1.35; }
+}
+
+.page :global(.home-anime-rail__view-all) { display: flex; flex: 0 0 170px; width: 170px; min-height: 240px; justify-content: center; align-items: center; gap: 6px; border: 1px solid var(--ab-ui-border); border-radius: 8px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 13px; font-weight: 650; text-decoration: none; }
+@media(max-width:768px) { .page :global(.home-anime-rail__view-all) { flex-basis: 130px; width: 130px; min-height: 195px; } }

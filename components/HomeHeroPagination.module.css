@@ -28,7 +28,7 @@
 }
 
 .pagination.cinematic {
-  inset: auto 24px 24px auto;
+  inset: auto auto 12px 0;
   background: rgb(20 18 24 / 72%);
   border-radius: 6px;
   backdrop-filter: none;
@@ -81,9 +81,10 @@
 
 @media (max-width: 768px) {
   .pagination { inset: auto auto 10px 14px; }
-  .pagination.cinematic { inset: auto 12px 12px auto; }
+  .pagination.cinematic { inset: auto auto 8px 0; }
 }
 @media (max-width: 390px) {
   .pagination { left: 6px; max-width: calc(100% - 12px); padding-inline: 4px; gap: 4px; }
+  .pagination.cinematic { left: 0; max-width: calc(100% - 8px); }
   .counter { flex-basis: 38px; }
 }

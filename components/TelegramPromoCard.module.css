@@ -73,7 +73,7 @@
 /* Only the home footer joins the common service-card layout. */
 .footer .footerContent { display: flex; flex: 1; min-height: 0; gap: .875rem; }
 .footer .brand small { font-size: .6875rem; letter-spacing: .06em; font-weight: 760; }
-.footer .brand b { font-size: .625rem; }
+.footer .brand b { font-size: .6875rem; }
 .footer .benefits { margin-bottom: .25rem; }
 .footer .brand { padding-right: 3.5rem; }
 .footer .dismiss {
@@ -88,3 +88,17 @@
 .card.card .dismiss { background:var(--ab-ui-raised)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-text)!important; }
 .card.card :is(.brand b,.copy p) { color:var(--ab-ui-muted)!important; opacity:1; }
 .card.card :is(.brandMark,.benefits span,.cta) { background:var(--ab-ui-selected)!important; border-color:var(--ab-ui-border)!important; color:var(--ab-ui-text)!important; }
+
+/* Patch 32.0.1: home-footer placement is a slim companion to Support. */
+.footer.footer { display: flex; align-items: center; min-height: 64px; height: auto; padding: 8px 14px; border-radius: 8px; }
+.footer .footerContent { display: grid; width: 100%; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; }
+.footer .brand { display: flex; min-width: 0; margin: 0; padding: 0; }
+.footer .brandMark { flex-basis: 32px; width: 32px; height: 32px; }
+.footer .brand > span:last-child { display: none; }
+.footer .copy { min-width: 0; }
+.footer .copy h3 { margin: 0; font-size: 13px; line-height: 1.25; font-weight: 700; }
+.footer .copy p { margin-top: 3px; font-size: 11px; line-height: 1.25; }
+.footer .cta { align-self: center; min-height: 44px; margin: 0; padding: 0 9px; border-radius: 7px; font-size: 12px; white-space: nowrap; }
+.footer .dismiss { display: none; }
+@media (min-width: 769px) { .footer .copy p { display: none; } }
+@media (max-width: 480px) { .footer .footerContent { grid-template-columns: 32px minmax(0, 1fr); } .footer .cta { grid-column: 2; justify-self: start; } }

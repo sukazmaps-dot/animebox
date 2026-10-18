@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import SectionHeader from '@/components/home/SectionHeader';
+
 import type { HomeChatTeaserMessage } from '@/types/chat';
 import { premiumMediaStyle } from '@/lib/premium-studio';
 import styles from './HomeChatTeaser.module.css';
@@ -31,7 +33,8 @@ export default function HomeChatTeaser() {
   const [messages, setMessages] = useState<HomeChatTeaserMessage[]>([]);
 
   useEffect(() => {
-    if (window.matchMedia('(max-width: 768px)').matches) return;
+    // The home chat strip is already lazily mounted near the viewport.
+    // Mobile visitors need the same latest-three preview as desktop.
 
     const controller = new AbortController();
     let timer: number | null = null;
@@ -59,7 +62,7 @@ export default function HomeChatTeaser() {
             !controller.signal.aborted &&
             Array.isArray(data.messages)
           ) {
-            setMessages(data.messages);
+            setMessages(data.messages.filter(message => !message.deleted_at).slice(0, 3));
           }
         })
         .catch((error) => {
@@ -81,24 +84,23 @@ export default function HomeChatTeaser() {
       if (idleHandle !== null) idleWindow.cancelIdleCallback?.(idleHandle);
     };
   }, []);
+  const recentMessages = messages.filter(message => !message.deleted_at && message.body?.trim()).slice(0, 3);
+
   return (
     <>
     <section className={styles.card} aria-labelledby="home-chat-title">
       <div className={styles.glow} aria-hidden="true" />
-      <div className={styles.head}>
-        <div>
-          <span className={styles.eyebrow}>ANIMEBOX CHAT</span>
-          <h2 id="home-chat-title">Общий чат</h2>
-          <p>Флудилка, онгоинги и компания для совместного просмотра.</p>
-        </div>
-        <Link href="/chat" className={styles.openLink}>
-          Открыть чат <span aria-hidden="true">→</span>
-        </Link>
-      </div>
+      <SectionHeader
+        title="Общий чат"
+        id="home-chat-title"
+        subtitle="Онгоинги, общение и компания для совместного просмотра."
+        href="/chat"
+        linkLabel="Открыть чат"
+      />
 
-      {messages.length ? (
+      {recentMessages.length ? (
         <div className={styles.messages}>
-          {messages.map((message) => {
+          {recentMessages.map((message) => {
             const badge = badgeFor(message);
             return (
               <Link key={message.id} href="/chat" className={styles.message}>
@@ -116,7 +118,7 @@ export default function HomeChatTeaser() {
                     <small>{relativeTime(message.created_at)}</small>
                   </span>
                   <span className={styles.body}>
-                    {message.deleted_at ? 'Сообщение удалено.' : message.body}
+                    {message.body}
                   </span>
                 </span>
               </Link>

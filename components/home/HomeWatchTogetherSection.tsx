@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import SectionHeader from '@/components/home/SectionHeader';
+
 import HomeWatchTogetherDeferred from '@/components/home/HomeWatchTogetherDeferred';
 import styles from './HomeWatchTogetherSection.module.css';
 
@@ -7,20 +9,14 @@ import styles from './HomeWatchTogetherSection.module.css';
 export default function HomeWatchTogetherSection() {
   return (
     <section className={styles.section} aria-labelledby="home-watch-together-title" id="animebox-watch-together">
-      <div className={styles.heading}>
-        <div className={styles.headingCopy}>
-          <h2 id="home-watch-together-title">Смотреть вместе</h2>
-          <p>Открытые комнаты и синхронный просмотр с друзьями.</p>
-        </div>
-        <div className={styles.headingActions}>
-          <Link className={styles.primaryAction} href="/watch-together">
-            Создать комнату <span aria-hidden="true">↗</span>
-          </Link>
-          <Link className={styles.secondaryAction} href="/watch-together">
-            Все комнаты →
-          </Link>
-        </div>
-      </div>
+      <SectionHeader
+        title="Смотреть вместе"
+        id="home-watch-together-title"
+        subtitle="Открытые комнаты и синхронный просмотр с друзьями."
+        href="/watch-together"
+        linkLabel="Все комнаты"
+        actions={<Link className={styles.primaryAction} href="/watch-together">Создать комнату ↗</Link>}
+      />
       <HomeWatchTogetherDeferred />
     </section>
   );

@@ -1,10 +1,28 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
+import SectionHeader from '@/components/home/SectionHeader';
+import { getAnimeTitle } from '@/lib/anime-display';
+import type { Anime } from '@/types/anime';
 
 import HomeAnimeRail from '@/components/HomeAnimeRail';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
+
+function distinctVisibleTitles(items: Anime[]): ReadonlyMap<number, string> {
+  const result = new Map<number, string>();
+  const used = new Set<string>();
+  for (const anime of items) {
+    const original = getAnimeTitle(anime);
+    const prefix = original.slice(0, 34).toLocaleLowerCase('ru-RU');
+    const alternative = anime.title?.romaji || anime.title?.english || anime.title?.native;
+    const display = used.has(prefix)
+      ? (alternative && alternative.toLocaleLowerCase('ru-RU') !== original.toLocaleLowerCase('ru-RU')
+          ? alternative : `№${anime.id} · ${original}`)
+      : original;
+    used.add(prefix);
+    result.set(anime.id, display);
+  }
+  return result;
+}
 
 export default function HomeCatalogSections() {
   const {
@@ -15,35 +33,22 @@ export default function HomeCatalogSections() {
     popularError,
     ongoingError,
     personalEpisodeByAnime,
+    smartRecommendations,
   } = useHomeFeedRuntime();
+
+  // Personal recommendations take precedence. Public groups retain their
+  // server order and never issue per-card requests to fill exclusions.
+  const reserved = new Set(smartRecommendations.map(item => item.anime.id));
+  const popularItems = popular.filter(item => !reserved.has(item.id)).slice(0, 10);
+  for (const item of popularItems) reserved.add(item.id);
+  const ongoingItems = fallbackItems.filter(item => !reserved.has(item.id)).slice(0, 10);
+  const popularTitles = distinctVisibleTitles(popularItems);
+  const ongoingTitles = distinctVisibleTitles(ongoingItems);
 
   return (
     <>
-      <section className="section home-catalog-section home-catalog-section--popular">
-        <div className="section-head">
-          <h2 className="section-title">
-            <span
-              className="section-title__icon section-title__icon--asset"
-              aria-hidden="true"
-            >
-              <Image
-                src="/brand/icons/sections/popular.svg"
-                alt=""
-                width={16}
-                height={16}
-                sizes="16px"
-              />
-            </span>
-            Популярные аниме
-          </h2>
-
-          <Link
-            className="section-link"
-            href="/search"
-          >
-            Смотреть все →
-          </Link>
-        </div>
+      {(popularLoading || popularError || popularItems.length >= 4) && <section className="section home-catalog-section home-catalog-section--popular">
+        <SectionHeader title="Популярные аниме" href="/search" linkLabel="Смотреть все" />
 
         {popularLoading ? (
           <div className="loading-grid">
@@ -61,38 +66,17 @@ export default function HomeCatalogSections() {
           </div>
         ) : (
           <HomeAnimeRail
-            items={popular.slice(0, 10)}
+            items={popularItems}
+            displayTitles={popularTitles}
+            allHref="/search"
             ariaLabel="Популярные аниме"
             watchedEpisodes={personalEpisodeByAnime}
           />
         )}
-      </section>
+      </section>}
 
-      <section className="section home-catalog-section home-catalog-section--ongoing">
-        <div className="section-head">
-          <h2 className="section-title">
-            <span
-              className="section-title__icon section-title__icon--asset"
-              aria-hidden="true"
-            >
-              <Image
-                src="/brand/icons/sections/ongoing.svg"
-                alt=""
-                width={16}
-                height={16}
-                sizes="16px"
-              />
-            </span>
-            Продолжающиеся
-          </h2>
-
-          <Link
-            className="section-link"
-            href="/schedule"
-          >
-            Расписание →
-          </Link>
-        </div>
+      {(ongoingLoading || ongoingError || ongoingItems.length >= 4) && <section className="section home-catalog-section home-catalog-section--ongoing">
+        <SectionHeader title="Продолжающиеся" href="/schedule" linkLabel="Расписание" />
 
         {ongoingLoading && fallbackItems.length === 0 ? (
           <div className="loading-grid">
@@ -110,12 +94,14 @@ export default function HomeCatalogSections() {
           </div>
         ) : (
           <HomeAnimeRail
-            items={fallbackItems.slice(0, 10)}
+            items={ongoingItems}
+            displayTitles={ongoingTitles}
+            allHref="/schedule"
             ariaLabel="Продолжающиеся аниме"
             watchedEpisodes={personalEpisodeByAnime}
           />
         )}
-      </section>
+      </section>}
     </>
   );
 }

@@ -25,6 +25,9 @@ import type {
 import type { Anime } from '@/types/anime';
 
 import Icon from '@/components/Icon';
+import { communityRequest } from '@/lib/community-client';
+import { useAuthState } from '@/components/AuthStateProvider';
+import { useAuthModal } from '@/components/AuthModalProvider';
 
 import {
   normalizeImageUrl,
@@ -397,6 +400,12 @@ export default function HomeHeroCarousel({
 
   const [paused, setPaused] =
     useState(false);
+  const { user } = useAuthState();
+  const { openAuth } = useAuthModal();
+  const [savingAnimeId, setSavingAnimeId] = useState<number | null>(null);
+  const [savedAnimeId, setSavedAnimeId] = useState<number | null>(null);
+  const [saveErrorId, setSaveErrorId] = useState<number | null>(null);
+
 
 
   // Do not rotate the largest above-the-fold content before the visitor has
@@ -568,6 +577,8 @@ export default function HomeHeroCarousel({
   const year = anime.startDate?.year;
   const validYear = typeof year === 'number' && Number.isInteger(year) && year >= 1900 && year <= 2100;
   const genre = localizeDetailGenres(anime.genres ?? [])[0]?.label;
+  const rawAge = anime.ageRating ?? anime.contentRating;
+  const ageLabel = typeof rawAge === 'string' && rawAge.length < 16 ? rawAge : null;
 
   const bannerImage = imageAttempts.backdrop[0]?.src ?? null;
 
@@ -807,6 +818,7 @@ export default function HomeHeroCarousel({
           <div className={cinematic ? cinematicStyles.facts : factStyles.facts}>
             {validYear && <span>{year}</span>}
             {genre && <span>{genre}</span>}
+            {ageLabel && <span aria-label={`Возрастной рейтинг: ${ageLabel}`}>{ageLabel}</span>}
             {score != null && <span className={factStyles.score} aria-label={`Рейтинг: ${score.toFixed(1)} из 10`}>★ {score.toFixed(1)}</span>}
           </div>
         )}
@@ -842,11 +854,39 @@ export default function HomeHeroCarousel({
           >
             Подробнее
           </Link>
+
+          {cinematic && <button
+            type="button"
+            className={cinematicStyles.bookmark}
+            aria-label={savedAnimeId === anime.id ? 'Добавлено в список' : 'Добавить в список'}
+            title={saveErrorId === anime.id ? 'Не получилось добавить, повтори' : 'В список'}
+            disabled={savingAnimeId === anime.id || savedAnimeId === anime.id}
+            onClick={async () => {
+              if (!user?.id) { openAuth({ mode: 'login', intent: 'account', next: '/' }); return; }
+              if (savingAnimeId === anime.id || savedAnimeId === anime.id) return;
+              setSavingAnimeId(anime.id);
+              try {
+                await communityRequest('library', { animeId: anime.id, status: 'planned' });
+                setSavedAnimeId(anime.id);
+                setSaveErrorId(null);
+                window.dispatchEvent(new Event('library-updated'));
+              } catch { setSaveErrorId(anime.id); }
+              finally { setSavingAnimeId(null); }
+            }}
+          >
+            <span aria-hidden="true">{savedAnimeId === anime.id ? '✓' : '▯'}</span>
+          </button>}
+
         </div>
         {!cinematic && <Link href="/watch-together" className={homeSocialStyles.link}>
           <span aria-hidden="true">✦</span> Смотреть вместе с друзьями →
         </Link>}
       </div>
+
+      {cinematic && slides.length > 1 && <>
+        <button type="button" className={`${cinematicStyles.arrow} ${cinematicStyles.arrowLeft}`} aria-label="Предыдущий тайтл" onClick={showPreviousSlide}>‹</button>
+        <button type="button" className={`${cinematicStyles.arrow} ${cinematicStyles.arrowRight}`} aria-label="Следующий тайтл" onClick={showNextSlide}>›</button>
+      </>}
 
       <HomeHeroPagination
         slides={slides.map((slide) => ({ id: slide.id, title: getAnimeTitle(slide) }))}

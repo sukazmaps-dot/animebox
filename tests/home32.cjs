@@ -9,12 +9,19 @@ const shell = read('components/home/HomePageShell.tsx');
 assert(!shell.includes("'use client'"), 'Server shell retained');
 assert(shell.includes('data-home-layout="cinematic"'));
 assert(!shell.includes('<HomeRightRail') && !shell.includes('<HomeShortcuts'), 'No duplicate side panels');
+// Patch 32.0.1: schedule is promoted above discovery; chat precedes secondary retention.
+// Keep the exactly-once and strict-order guard rather than removing it.
 let previous = -1;
-for (const slot of ['HomeHeroSection', 'HomeContinueSection', 'HomeDiscoverySection', 'HomeCatalogSections', 'HomeScheduleSection', 'HomeWatchTogetherSection', 'HomeRetentionSections', 'HomeDeferredChat', 'HomeDeferredSupport']) {
+for (const slot of ['HomeHeroSection', 'HomeContinueSection', 'HomeScheduleSection', 'HomeDiscoverySection', 'HomeCatalogSections', 'HomeWatchTogetherSection', 'HomeDeferredChat', 'HomeRetentionSections', 'HomeDeferredSupport']) {
   const matches = [...shell.matchAll(new RegExp('<' + slot + ' \\/>', 'g'))];
   assert.equal(matches.length, 1, 'Exactly one ' + slot);
   assert(matches[0].index > previous, 'Order ' + slot); previous = matches[0].index;
 }
+// Patch 32.0.1 mobile topbar: only / stops pinning search over scroll content.
+const navbar = read('components/Navbar.tsx');
+const globalCss = read('app/globals.css');
+assert(navbar.includes("pathname === '/' ? 'topbar topbar--home'"), 'Home route owns a distinct mobile topbar');
+assert(globalCss.includes('.topbar.topbar--home { position: absolute; top: 0; }'), 'Only home unpins mobile search');
 const page = read('app/page.tsx');
 assert(page.includes('revalidate = 900') && page.includes('canonical: SITE_URL'));
 assert(!/import '\.\/(home-visual-repair|patch29-1|patch30-)/.test(page), 'Legacy home replays detached');
@@ -38,6 +45,20 @@ function load(file, imports) {
   });
   return module.exports;
 }
+// Patch 32.0.1: server catalogue safety is metadata-only and never guessed
+// from unknown posters; duplicate IDs are removed before first-screen render.
+const { uniqueHomeGroups, isHomePublicSafe } = load('lib/home-public-filter.ts', {});
+const anime = id => ({ id, title: { russian: String(id) }, genres: ['Drama'] });
+assert.deepEqual(uniqueHomeGroups([anime(1), anime(1), anime(2)], [anime(2), anime(3)]).ongoing.map(x => x.id), [3]);
+assert(isHomePublicSafe(anime(10)), 'Unknown content rating must not be guessed');
+assert(!isHomePublicSafe({ ...anime(11), isAdult: true }));
+assert(!isHomePublicSafe({ ...anime(12), ageRating: '18+' }));
+assert(!isHomePublicSafe({ ...anime(13), genres: ['Hentai'] }));
+const { formatHomeScheduleCountdown } = load('lib/home-schedule-time.ts', {});
+assert.equal(formatHomeScheduleCountdown(0, 1000), 'Вышло');
+assert.equal(formatHomeScheduleCountdown(100 + (5 * 86400 + 8 * 3600), 100_000), 'через 5 дн. 8 ч');
+assert.equal(formatHomeScheduleCountdown(100 + (2 * 3600 + 23 * 60), 100_000), 'через 2 ч 23 мин');
+
 const moods = load('lib/recommendation-moods.ts', {});
 const Picker = load('components/HomeMoodPicker.tsx', {
   '@/lib/recommendation-moods': moods,

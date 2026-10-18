@@ -50,10 +50,19 @@ fs.mkdirSync(output, { recursive: true });
     assert.equal(preflight.status, 200, 'Local production fixture must not redirect: ' + preflight.status + ' ' + preflight.headers.get('location'));
     await preflight.body?.cancel();
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
-    const cases = [360, 390, 412, 768, 1024, 1366, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
+    const cases = [360, 376, 390, 412, 430, 768, 1024, 1366, 1440, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width === 376 ? 869 : width === 430 ? 932 : width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
     cases.push({ width: 844, height: 390, theme: 'dark', mode: 'normal' }, { width: 1366, height: 900, theme: 'dark', mode: 'poster' });
     for (const c of cases) {
-      const page = await browser.newPage({ viewport: { width: c.width, height: c.height }, reducedMotion: 'reduce' });
+      // The phone fixture must advertise coarse pointer/no-hover. A resized
+      // desktop Chromium hides hover-only bookmark controls and masks mobile bugs.
+      const touchPhone = c.width <= 430 && c.height > c.width;
+      const page = await browser.newPage({
+        viewport: { width: c.width, height: c.height },
+        isMobile: touchPhone,
+        hasTouch: touchPhone,
+        deviceScaleFactor: 1,
+        reducedMotion: 'reduce',
+      });
       const errors = [];
       const navigations = [];
       page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations.push(frame.url()); });
@@ -71,6 +80,13 @@ fs.mkdirSync(output, { recursive: true });
       await page.route('**/*', route => {
         const request = route.request(), url = request.url();
         if (request.resourceType() === 'image' && (url.includes('qa-images.test') || url.includes('/api/image?'))) return route.fulfill({ contentType: 'image/svg+xml', body: svg });
+        if (url.startsWith(origin + '/api/recommendations?')) {
+          // A normal terminal page must satisfy the production response schema.
+          // The generic API stub lacks pagination fields and exercises errors,
+          // leaving artificial retry rows in the normal-state screenshots.
+          const params = new URL(url).searchParams;
+          return route.fulfill({ json: { items: [], page: Number(params.get('page')) || 1, bucket: Number(params.get('bucket')) || 0, hasMore: false, nextPage: null, nextCursor: null } });
+        }
         if (url.startsWith(origin + '/api/')) return route.fulfill({ json: { items: [], data: [], results: [], ok: true, hasMore: false } });
         if (url.startsWith(origin)) return route.continue();
         return route.abort();
@@ -113,16 +129,101 @@ fs.mkdirSync(output, { recursive: true });
         }
         for (const r of geometry.radios) assert(r.height >= 44 && r.width >= 44, name + ' mood touch target');
         assert.equal(geometry.radios.length, 5, 'All five moods retained');
+        // Patch 32.0.1: detect the real mobile bug reported in the field:
+        // poster cards used to carry a tall duplicated reason + wide buttons
+        // which overhung the last partially visible card.
+        // Shared page grid: hero artwork and visible section container have
+        // the same left/right edges, regardless of sidebar width and theme.
+        const aligned = await page.evaluate(() => {
+          const a = document.querySelector('[data-home-hero]')?.getBoundingClientRect();
+          const b = document.querySelector('section.schedule')?.getBoundingClientRect();
+          return !a || !b ? null : { left: Math.abs(a.left - b.left), right: Math.abs(a.right - b.right) };
+        });
+        assert(aligned && aligned.left <= 1 && aligned.right <= 1, name + ' hero/schedule gutter alignment');
+        const heroOverlaps = await page.evaluate(() => {
+          const hero = document.querySelector('[data-home-hero]');
+          const targets = [...hero.querySelectorAll('h1, .home-hero-scene__facts, .home-hero-scene__summary, a, [role="group"]')].filter(el => el.getClientRects().length);
+          return [...hero.querySelectorAll('button[aria-label="Предыдущий тайтл"], button[aria-label="Следующий тайтл"]')].some(arrow => {
+            const a = arrow.getBoundingClientRect();
+            return targets.some(el => { const b = el.getBoundingClientRect(); return Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top); });
+          });
+        });
+        assert(!heroOverlaps, name + ' hero navigation overlaps text or actions');
+        const compact = await page.evaluate(() => {
+          const box = el => el.getBoundingClientRect();
+          // Sparse rows retain DOM identity for recommendation-order stability,
+          // but are hidden with display:none. Do not measure their 0x0 posters.
+          const cards = [...document.querySelectorAll('.smart-feed__slide:not(.smart-feed__slide--skeleton) .smart-card')]
+            .filter(card => card.getClientRects().length > 0);
+          const errors = [];
+          const hiddenRails = [...document.querySelectorAll('.smart-feed__personal-rail[hidden]')];
+          for (const rail of hiddenRails) {
+            if (rail.getClientRects().length > 0) errors.push('hidden sparse rail occupies layout');
+          }
+          for (const card of cards.slice(0, 8)) {
+            const poster = card.querySelector('.smart-card__poster');
+            const actions = card.querySelector('.smart-card__actions');
+            const title = card.querySelector('.smart-card__title');
+            if (!poster || !actions || !title) continue;
+            const a = box(actions), p = box(poster);
+            if (a.x < p.x - 2 || a.right > p.right + 2 || a.y < p.y - 2 || a.bottom > p.bottom + 2) errors.push('poster overlay overflow');
+            if (innerWidth <= 430) {
+              const visible = [...actions.querySelectorAll('button')].filter(button => {
+                const cs = getComputedStyle(button);
+                return cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity || '1') > 0.1 && cs.pointerEvents !== 'none';
+              });
+              if (visible.length !== 1 || Number(getComputedStyle(actions).opacity) < 0.5) errors.push('mobile poster must show exactly one visible bookmark');
+            }
+            if (getComputedStyle(card.querySelector('.smart-card__reason') || card).getPropertyValue('display') !== 'none' && card.querySelector('.smart-card__reason')) errors.push('duplicated reason tag');
+            if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push(`mobile poster must be 130px (poster=${p.width.toFixed(2)} slide=${box(card.parentElement).width.toFixed(2)} card=${box(card).width.toFixed(2)} media=${box(card.querySelector('.anime-card-content__media') || poster).width.toFixed(2)})`);
+          }
+          for (const row of document.querySelectorAll('.smart-feed__rail')) {
+            if (getComputedStyle(row, '::after').display !== 'none') errors.push('legacy dark fade over rightmost poster');
+            const track = row.querySelector('[role="region"]');
+            const right = row.querySelector('button[aria-label="Прокрутить вперёд"]');
+            if (track && right && track.scrollWidth <= track.clientWidth + 4) errors.push('arrow without actual overflow');
+          }
+          const continueTrack = document.querySelector('.continue-smart-grid');
+          if (continueTrack && getComputedStyle(continueTrack).display !== 'flex') errors.push('continue cards wrapped into grid');
+          const links = document.querySelector('nav[aria-label="Разделы AnimeBox"]');
+          if (links) errors.push('duplicate shortcuts navigation');
+          return { checked: cards.length, errors };
+        });
+        assert(compact.checked > 0, name + ' recommendation cards were rendered');
+        assert.deepEqual(compact.errors, [], name + ' compact mobile/desktop recommendation geometry');
+
         assert.equal(await page.locator('.continue-smart-card').count(), history ? 1 : 0, name + ' real history only');
-        if (history) assert((await page.locator('.continue-smart-card').getAttribute('href')).includes('ep=7'), 'Resume episode');
+        if (history) {
+          assert((await page.locator('.continue-smart-card').getAttribute('href')).includes('ep=7'), 'Resume episode');
+          const resumeGeometry = await page.locator('.continue-smart-card').first().evaluate(card => {
+            const poster = card.querySelector('.continue-smart-card__poster')?.getBoundingClientRect();
+            const body = card.querySelector('.continue-smart-card__body')?.getBoundingClientRect();
+            return { posterRight: poster?.right ?? 0, bodyLeft: body?.left ?? 0, cardWidth: card.getBoundingClientRect().width };
+          });
+          assert(resumeGeometry.posterRight <= resumeGeometry.bodyLeft + 1, name + ' resume poster overlaps copy');
+          assert(resumeGeometry.cardWidth <= (c.width <= 768 ? c.width * 0.86 + 5 : 321), name + ' resume card width');
+        }
         if (c.mode === 'poster') { assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .6, 'Poster is bounded'); }
         if (c.width === 1366 && c.mode === 'normal') {
+          // With all catalogue IDs already represented in personalized rails,
+          // the duplicate-free public row is intentionally hidden. The old
+          // mandatory click assumed a duplicate catalogue was always present.
           const rail = page.locator('.home-anime-rail__viewport').first();
-          await page.locator('.home-anime-rail__arrow--next').first().click();
-          await page.waitForFunction(() => document.querySelector('.home-anime-rail__viewport').scrollLeft > 0);
-          assert(await rail.evaluate(e => e.scrollLeft > 0), 'Rail navigation');
+          if (await rail.count()) {
+            const next = page.locator('.home-anime-rail__arrow--next:not([hidden])').first();
+            if (await next.count()) {
+              await next.click();
+              await page.waitForFunction(() => document.querySelector('.home-anime-rail__viewport').scrollLeft > 0);
+              assert(await rail.evaluate(e => e.scrollLeft > 0), 'Rail navigation');
+            }
+          } else {
+            assert(await page.locator('.smart-card').count() >= 4, 'Sparse catalogue replaced by ranked cards');
+          }
         }
-        if ([390, 1366, 1920].includes(c.width)) await page.screenshot({ path: path.join(output, name + '-initial.png'), fullPage: true });
+        if ([376, 390, 430, 1366, 1920].includes(c.width)) {
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.screenshot({ path: path.join(output, name + '-initial.png'), fullPage: true });
+        }
         if (c.width === 1366 && c.mode === 'normal') {
           const menu = page.locator('.smart-card__dismiss').first();
           await menu.click();
@@ -154,7 +255,7 @@ fs.mkdirSync(output, { recursive: true });
         // Full-page screenshots captured at scrollY=0 intentionally show the
         // unmounted lazy placeholders. Inspect a scrolled, settled page too:
         // real visitors approach these sections and trigger IntersectionObserver.
-        if ((c.width === 390 || c.width === 1366) && c.mode === 'normal') {
+        if ([390, 1366, 1920].includes(c.width) && c.mode === 'normal') {
           const mounts = page.locator('[data-home-layout="cinematic"] .deferred-mount');
           const count = await mounts.count();
           for (let i = 0; i < count; i++) {
@@ -172,12 +273,25 @@ fs.mkdirSync(output, { recursive: true });
             const area = document.querySelector('[data-home-layout="cinematic"]');
             const watch = area.querySelector('[id="animebox-watch-together"]');
             const nav = area.querySelector('nav[aria-label="Разделы AnimeBox"]');
-            return { height: document.documentElement.scrollHeight,
+            const promoErrors = [];
+            const promoCards = [...area.querySelectorAll('.home-deferred--support > section, .home-deferred--telegram > section')];
+            for (const card of promoCards) {
+              const box = card.getBoundingClientRect(), host = card.parentElement.getBoundingClientRect();
+              if (box.bottom > host.bottom + 2) promoErrors.push('promo exceeds deferred host');
+              for (const action of card.querySelectorAll('a')) {
+                const r = action.getBoundingClientRect();
+                if (r.top < box.top - 2 || r.bottom > box.bottom + 2 || r.right > box.right + 2) promoErrors.push('promo action clipped');
+              }
+            }
+            return { height: document.documentElement.scrollHeight, promoErrors,
               watchBottom: bottom(watch), navTop: top(nav), navBottom: bottom(nav),
               ready: [...area.querySelectorAll('.deferred-mount')].map(node => node.getAttribute('data-ready')) };
           });
           fs.writeFileSync(path.join(output, name + '-settled-geometry.json'), JSON.stringify(settled, null, 2));
           assert(settled.ready.every(state => state === 'true'), name + ' deferred sections never mounted');
+          assert.deepEqual(settled.promoErrors, [], name + ' footer promo content containment');
+          assert.equal(await page.locator('.smart-feed__rail-retry:visible').count(), 0, name + ' normal terminal page must not manufacture recommendation errors');
+          await page.evaluate(() => window.scrollTo(0, 0));
           await page.screenshot({ path: path.join(output, name + '-settled.png'), fullPage: true });
         }
         assert.deepEqual(errors, [], name + ' browser errors');
@@ -188,7 +302,7 @@ fs.mkdirSync(output, { recursive: true });
         throw error;
       } finally {
         await page.evaluate(() => scrollTo(0, 0)).catch(() => {});
-        if ([390, 1366, 1920].includes(c.width) || errors.length || navigations.length > 1) {
+        if ([376, 390, 430, 1366, 1920].includes(c.width) || errors.length || navigations.length > 1) {
           await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true }).catch(error => console.error('Screenshot cleanup:', error.message));
         }
         await page.close();

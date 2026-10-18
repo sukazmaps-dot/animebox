@@ -1,10 +1,10 @@
 .card {
   position: relative;
   overflow: hidden;
-  margin-top: 22px;
-  padding: 20px 0;
+  margin-top: 0;
+  padding: 0;
   border: 0;
-  border-top: 1px solid var(--ab-ui-border);
+  border-top: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -15,14 +15,14 @@
 }
 
 @media (max-width: 768px) {
-  .card { display: none; }
+  .card { display: block; }
 
   .mobileFab {
+    display: none;
     position: fixed;
     right: 18px;
     bottom: calc(var(--ab-mobile-nav-height, 62px) + 30px + env(safe-area-inset-bottom));
     z-index: 45;
-    display: grid;
     place-items: center;
     width: 50px;
     height: 50px;
@@ -96,16 +96,16 @@
 .messages {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .message {
   display: flex;
   min-width: 0;
   gap: 10px;
-  padding: 12px;
+  padding: 9px 12px;
   border: 1px solid rgba(255, 255, 255, .07);
   border-radius: 9px;
   background: var(--ab-ui-surface);
@@ -121,9 +121,9 @@
 }
 
 .avatar {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .1);
@@ -131,6 +131,7 @@
 
 .copy {
   min-width: 0;
+  flex: 1;
 }
 
 .meta {
@@ -155,7 +156,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--ab-ui-accent) 10%, transparent);
   color: var(--ab-ui-accent);
-  font-size: 8px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 850;
 }
@@ -163,7 +164,10 @@
 .meta small {
   margin-left: auto;
   color: var(--ab-ui-muted);
-  font-size: 9px;
+  font-size: 11px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .body {
@@ -213,7 +217,7 @@
 
 .empty small {
   margin-top: 3px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .empty > :last-child {
@@ -226,7 +230,7 @@
   gap: 7px;
   margin-top: 13px;
   color: var(--ab-ui-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .liveDot {
@@ -239,12 +243,12 @@
 
 @media (max-width: 820px) {
   .messages { grid-template-columns: 1fr; }
-  .message:nth-child(n + 3) { display: none; }
+  .message:nth-child(n + 4) { display: none; }
 }
 
 @media (max-width: 560px) {
-  .card { margin-top: 16px; padding: 16px; border-radius: 20px; }
+  .card { margin-top: 0; padding: 14px 0; border-radius: 0; }
   .head { align-items: center; }
   .head p { display: none; }
-  .openLink { min-height: 34px; padding: 0 10px; }
+  .openLink { min-height: 44px; padding: 0 10px; }
 }

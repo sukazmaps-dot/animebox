@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuthState } from '@/components/AuthStateProvider';
 import AnimeBoxStar from './AnimeBoxStar';
 import BoostySupport from './BoostySupport';
+import homeBannerStyles from '@/components/home/HomeSupportBanner.module.css';
 
 import {
   MONETIZATION_ENABLED,
@@ -70,22 +71,14 @@ export function SupportAnimeBoxCard() {
   if (!MONETIZATION_ENABLED) return null;
 
   return (
-    <section className="panel home-utility-card home-utility-card--support home-service-card">
-      <div className="home-service-card__head">
-        <span className="home-service-card__icon" aria-hidden="true">
-          <AnimeBoxStar size={19} />
-        </span>
-        <span className="home-service-card__eyebrow">Поддержка</span>
+    <section className={homeBannerStyles.card} aria-label="Поддержка AnimeBox">
+      <span className={homeBannerStyles.icon} aria-hidden="true"><AnimeBoxStar size={19} /></span>
+      <div className={homeBannerStyles.copy}>
+        <span className={homeBannerStyles.eyebrow}>Поддержка</span>
+        <strong>AnimeBox держится на сообществе</strong>
+        <p>Помоги оплачивать серверы и выпускать новые функции.</p>
       </div>
-
-      <div className="home-service-card__copy">
-        <h2>AnimeBox держится на сообществе</h2>
-        <p>Поддержка помогает оплачивать серверы и быстрее выпускать новые функции.</p>
-      </div>
-
-      <Link className="btn home-service-card__action" href="/support">
-        Подробнее <span aria-hidden="true">↗</span>
-      </Link>
+      <Link className={homeBannerStyles.action} href="/support">Подробнее <span aria-hidden="true">↗</span></Link>
     </section>
   );
 }
