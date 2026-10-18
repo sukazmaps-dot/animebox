@@ -151,6 +151,35 @@ fs.mkdirSync(output, { recursive: true });
         assert.equal(await position.getAttribute('aria-pressed'), 'true');
         const after = await page.locator('[data-home-hero]').evaluate(hero => ({ title: hero.querySelector('h1').getBoundingClientRect().bottom, cta: hero.querySelector('a').getBoundingClientRect().top }));
         assert(after.title <= after.cta, 'Long title overlaps CTA');
+        // Full-page screenshots captured at scrollY=0 intentionally show the
+        // unmounted lazy placeholders. Inspect a scrolled, settled page too:
+        // real visitors approach these sections and trigger IntersectionObserver.
+        if ((c.width === 390 || c.width === 1366) && c.mode === 'normal') {
+          const mounts = page.locator('[data-home-layout="cinematic"] .deferred-mount');
+          const count = await mounts.count();
+          for (let i = 0; i < count; i++) {
+            await mounts.nth(i).scrollIntoViewIfNeeded();
+            await page.waitForFunction(index => {
+              const elements = document.querySelectorAll('[data-home-layout="cinematic"] .deferred-mount');
+              return elements[index]?.getAttribute('data-ready') === 'true';
+            }, i, { timeout: 20000 });
+          }
+          // Allow dynamic components to render after the mount becomes ready.
+          await page.waitForTimeout(400);
+          const settled = await page.evaluate(() => {
+            const top = el => el ? Math.round(el.getBoundingClientRect().top + scrollY) : null;
+            const bottom = el => el ? Math.round(el.getBoundingClientRect().bottom + scrollY) : null;
+            const area = document.querySelector('[data-home-layout="cinematic"]');
+            const watch = area.querySelector('[id="animebox-watch-together"]');
+            const nav = area.querySelector('nav[aria-label="Разделы AnimeBox"]');
+            return { height: document.documentElement.scrollHeight,
+              watchBottom: bottom(watch), navTop: top(nav), navBottom: bottom(nav),
+              ready: [...area.querySelectorAll('.deferred-mount')].map(node => node.getAttribute('data-ready')) };
+          });
+          fs.writeFileSync(path.join(output, name + '-settled-geometry.json'), JSON.stringify(settled, null, 2));
+          assert(settled.ready.every(state => state === 'true'), name + ' deferred sections never mounted');
+          await page.screenshot({ path: path.join(output, name + '-settled.png'), fullPage: true });
+        }
         assert.deepEqual(errors, [], name + ' browser errors');
         console.log('PASS', name);
       } catch (error) {
