@@ -25,7 +25,7 @@ assert(globalCss.includes('.topbar.topbar--home { position: absolute; top: 0; }'
 const page = read('app/page.tsx');
 assert(page.includes('revalidate = 900') && page.includes('canonical: SITE_URL'));
 assert(!/import '\.\/(home-visual-repair|patch29-1|patch30-)/.test(page), 'Legacy home replays detached');
-for (const file of ['components/home/HomePageShell.module.css', 'components/home/HomeCinematicHero.module.css', 'components/HomeMoodPicker.module.css']) {
+for (const file of ['components/home/HomePageShell.module.css', 'components/home/HomeCinematicHero.module.css', 'components/HomeMoodPicker.module.css', 'components/home/HomeTonightPick.module.css']) {
   const css = postcss.parse(read(file));
   css.walkDecls(decl => assert(!decl.important, file + ' introduces !important'));
   assert(Buffer.byteLength(read(file)) < 16000, 'CSS module budget');

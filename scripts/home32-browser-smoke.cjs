@@ -149,6 +149,35 @@ fs.mkdirSync(output, { recursive: true });
           });
         });
         assert(!heroOverlaps, name + ' hero navigation overlaps text or actions');
+        // The new decision surface uses the real ranked provider and actual
+        // media component; verify its geometry and choice in the same matrix.
+        const tonight = page.locator('[data-home-tonight="ready"]');
+        await tonight.waitFor();
+        const tonightGeometry = await tonight.evaluate(card => {
+          const box = card.getBoundingClientRect();
+          const title = card.querySelector('h3').getBoundingClientRect();
+          const actions = [...card.querySelectorAll('a, button')].map(el => el.getBoundingClientRect());
+          return {
+            width: box.width, viewport: innerWidth,
+            titleContained: title.left >= box.left && title.right <= box.right + 1,
+            actionsContained: actions.every(r => r.left >= box.left && r.right <= box.right + 1 && r.bottom <= box.bottom + 1),
+            touchTargets: actions.every(r => r.width >= 44 && r.height >= 44),
+          };
+        });
+        assert(tonightGeometry.width <= tonightGeometry.viewport, name + ' tonight card exceeds viewport');
+        assert(tonightGeometry.titleContained && tonightGeometry.actionsContained, name + ' tonight content containment');
+        assert(tonightGeometry.touchTargets, name + ' tonight touch targets');
+        const firstTonightId = await tonight.getAttribute('data-tonight-anime-id');
+        const anotherTonight = tonight.getByRole('button', { name: 'Другой вариант', exact: true });
+        assert(await anotherTonight.isEnabled(), name + ' real fixture offers another ranked candidate');
+        await anotherTonight.click();
+        await page.waitForFunction(id => document.querySelector('[data-home-tonight="ready"]')?.getAttribute('data-tonight-anime-id') !== id, firstTonightId);
+        assert(await anotherTonight.evaluate(button => button === document.activeElement), name + ' changing pick must retain keyboard focus');
+        assert((await tonight.getByRole('link', { name: 'Смотреть', exact: true }).getAttribute('href')).includes('/watch?ep=1'), name + ' canonical watch action');
+        if ([390, 1366, 1920].includes(c.width)) {
+          await tonight.screenshot({ path: path.join(output, name + '-tonight.png') });
+        }
+
         const compact = await page.evaluate(() => {
           const box = el => el.getBoundingClientRect();
           // Sparse rows retain DOM identity for recommendation-order stability,
@@ -178,10 +207,16 @@ fs.mkdirSync(output, { recursive: true });
             if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push(`mobile poster must be 130px (poster=${p.width.toFixed(2)} slide=${box(card.parentElement).width.toFixed(2)} card=${box(card).width.toFixed(2)} media=${box(card.querySelector('.anime-card-content__media') || poster).width.toFixed(2)})`);
           }
           for (const row of document.querySelectorAll('.smart-feed__rail')) {
+            // Session-stable sparse slots retain their child DOM after the
+            // parent is hidden. Their old arrow is not a visible affordance;
+            // continue to validate every row that actually occupies layout.
+            if (row.getClientRects().length === 0) continue;
             if (getComputedStyle(row, '::after').display !== 'none') errors.push('legacy dark fade over rightmost poster');
             const track = row.querySelector('[role="region"]');
             const right = row.querySelector('button[aria-label="Прокрутить вперёд"]');
-            if (track && right && track.scrollWidth <= track.clientWidth + 4) errors.push('arrow without actual overflow');
+            if (track && right && track.scrollWidth <= track.clientWidth + 4) {
+              errors.push(`arrow without actual overflow: ${row.closest('section')?.getAttribute('data-recommendation-rail-id')} (${track.scrollWidth}/${track.clientWidth})`);
+            }
           }
           const continueTrack = document.querySelector('.continue-smart-grid');
           if (continueTrack && getComputedStyle(continueTrack).display !== 'flex') errors.push('continue cards wrapped into grid');
@@ -244,6 +279,7 @@ fs.mkdirSync(output, { recursive: true });
         await page.waitForSelector('section[aria-labelledby="mood-picker-title"][aria-busy="false"]');
         await page.waitForSelector('.smart-feed__stage[aria-busy="false"]');
         await page.waitForSelector('.smart-card');
+        await page.waitForSelector('[data-home-tonight="ready"][data-tonight-mood="adventure"]');
         assert.equal(await page.locator('[role="radiogroup"] img').count(), 0, 'Compact moods request no artwork');
         const position = page.getByRole('button', { name: /^Показать:/ }).nth(1);
         const title = (await position.getAttribute('aria-label')).replace('Показать: ', '');
