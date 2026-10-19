@@ -53,7 +53,13 @@
    carousel shelves. Keep their real cards, identity and feedback actions. */
 .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"]) {
   display: grid;
-  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
+  /* A terminal 1–2-title rail must size to its real cards, not stretch
+     across the full desktop track and leave an empty bordered panel. */
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 100%;
+  justify-self: start;
+  grid-template-columns: minmax(160px, 210px) max-content;
   align-items: start;
   column-gap: 16px;
   min-height: 0;
