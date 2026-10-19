@@ -169,7 +169,7 @@
     "profile-inspector:check": "node tests/profile-inspector-31-18.cjs",
     "railway-cost:check": "node tests/railway-cost.cjs && node tests/loading-budgets.cjs && npm run hotfix31-15:check && npm run hotfix31-16:check",
     "railway-cost:memory": "node --expose-gc scripts/railway-memory-drill.cjs",
-    "home32:check": "node tests/home32.cjs && node tests/home-tonight-pick.cjs",
+    "home32:check": "node tests/home32.cjs && node tests/home-tonight-pick.cjs && node tests/home32-layout-regression.cjs",
     "home32:browser": "node scripts/home32-browser-smoke.cjs",
     "poster-reliability:check": "node tests/poster-source-reliability.cjs && node tests/patch32-1-1-reliability.cjs"
   },
