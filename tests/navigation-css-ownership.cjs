@@ -28,7 +28,7 @@ function declarations(root, selector, property, firstRuleOnly = false) {
     visited = true;
     rule.walkDecls(property, (decl) => {
       if (decl.prop === property)
-        matches.push({ value: decl.value.trim(), important: decl.important });
+        matches.push({ value: decl.value.trim(), important: Boolean(decl.important) });
     });
   });
   return matches;
