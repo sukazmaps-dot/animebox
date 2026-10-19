@@ -62,6 +62,8 @@ assert.deepEqual(homeTonightCandidates([item(1, { moodTier: 'none' }), b], 'comf
 const personal = item(4, { explanations: [{ key: 'liked_reference', text: 'Похоже на любимое аниме' }] });
 assert.equal(homeTonightReason(personal, 'any', false), 'Один из вариантов текущей подборки.');
 assert.equal(homeTonightReason(personal, 'any', true), 'Похоже на любимое аниме');
+assert.equal(homeTonightReason(item(5, { explanations: [{ key: 'taste_genres', text: 'Совпадает со вкусом: Drama' }] }), 'any', true), 'Совпадает со вкусом: Драма');
+assert.equal(homeTonightReason(item(5, { explanations: [{ key: 'liked_reference', text: 'Похоже на «Drama»' }] }), 'any', true), 'Похоже на «Drama»', 'localization must not rewrite a referenced title');
 assert.equal(homeTonightReason(item(5, { explanations: [personal.explanations[0], { key: 'mood_match', text: 'Под выбранное настроение' }] }), 'comfort', false), 'Под выбранное настроение');
 
 const props = { items: [a, b, c], mood: 'any', busy: false, hasWatchHistory: false };
