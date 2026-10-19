@@ -12,7 +12,7 @@
   color: var(--ab-ui-text);
   background: var(--home-canvas);
 }
-.shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 40px; padding: 24px var(--gutter) 40px; }
+.shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 32px; padding: 24px var(--gutter) 28px; }
 .shelves > :first-child { margin-top: 0; }
 .page :global(.section) { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .page :global(.section-head) { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 18px; }
@@ -48,7 +48,47 @@
    The next poster itself is the scroll affordance; don't obscure it. */
 .page :global(.smart-feed__rail::after) { display: none; }
 
-.page :global(.smart-feed__rail [role="region"]) { scroll-padding-inline: 2px; -webkit-mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent); }
+.page :global(.smart-feed__rail [role="region"]) { scroll-padding-inline: 2px; -webkit-mask-image: none; mask-image: none; }
+/* Terminal 1–2-title collections are small recommendations, not empty full
+   carousel shelves. Keep their real cards, identity and feedback actions. */
+.page :global(.smart-feed__personal-rail[data-recommendation-compact="true"]) {
+  display: grid;
+  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 16px;
+  min-height: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ab-ui-border);
+  border-radius: 8px;
+  background: var(--ab-ui-surface);
+}
+.page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail-heading) {
+  min-width: 0;
+  margin: 0;
+  padding: 7px 0 0;
+}
+.page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail) {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+.page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail [role="region"]) {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0 6px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__slide) {
+  width: 124px;
+  max-width: 124px;
+  flex: 0 0 124px;
+}
+.page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail-retry) {
+  grid-column: 2;
+}
+
 
 .page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; gap: 16px; scroll-snap-type: x proximity; }
 .page :global(.anime-card), .page :global(.smart-card) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
@@ -65,7 +105,7 @@
 .page :global(.home-anime-rail__arrow--prev) { left: auto; right: 40px; }
 .page :global(.home-anime-rail__arrow--next) { left: auto; right: 0; }
 .page :global(.home-catalog-section > header) { padding-right: 92px; }
-.page :global(.home-anime-rail__viewport) { -webkit-mask-image: linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 24px), transparent); }
+.page :global(.home-anime-rail__viewport) { -webkit-mask-image: none; mask-image: none; }
 .page :global(.continue-smart-grid) { display: flex; gap: 12px; padding: 2px 0 10px; border: 0; background: transparent; }
 .page :global(.continue-smart-card), .page :global(.continue-smart-card):first-child { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px; box-sizing: border-box; flex: 0 0 320px; width: 320px; max-width: 100%; min-height: 112px; box-shadow: none; }
 .page :global(.continue-smart-card__poster) { width: 62px; height: 92px; border-radius: 4px; }
@@ -78,19 +118,30 @@
 .page :global(.personal-schedule-grid) :global(.schedule-item) { max-width: 100%; }
 .page :global(.personal-schedule-section) :global(.section-head) p { color: var(--ab-ui-muted); font-size: 12px; }
 .page :global(.schedule__cards) { gap: 10px; }
-.support { min-width: 0; }
+.support { min-width: 0; margin-top: -8px; }
 .page a:focus-visible, .page button:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
 @media (min-width: 1600px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; } }
 
 @media (max-width: 1024px) { .page :global(.home-anime-rail__viewport) { grid-auto-columns: 170px; gap: 12px; } }
 @media (max-width: 768px) {
   .page { --gutter: 16px; }
-  .shelves { gap: 28px; padding-inline: var(--gutter); }
+  .shelves { gap: 22px; padding-inline: var(--gutter); padding-bottom: 20px; }
   .page :global(.section-head) { gap: 12px; margin-bottom: 12px; }
   .page :global(.section-title) { font-size: 20px; }
   .page :global(.section-link) { font-size: 13px; }
   .page :global(.home-anime-rail__viewport) { grid-auto-columns: 130px; gap: 10px; }
   .page :global(.smart-feed__slide) { width: 130px; max-width: 130px; flex-basis: 130px; }
+  .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"]) {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 10px;
+    padding: 12px;
+  }
+  .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail-heading) {
+    padding: 0;
+  }
+  .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail-retry) {
+    grid-column: 1;
+  }
   .page :global(.smart-feed__rail [role="region"]) { margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
   .page :global(.home-anime-rail__viewport) { margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
   .page :global(.home-catalog-section > header) { padding-right: 0; }
