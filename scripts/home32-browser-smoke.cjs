@@ -371,10 +371,25 @@ fs.mkdirSync(output, { recursive: true });
             const watch = area.querySelector('[id="animebox-watch-together"]');
             const nav = area.querySelector('nav[aria-label="Разделы AnimeBox"]');
             const promoErrors = [];
+            const promoStrip = area.querySelector('section[aria-label="Поддержка и Telegram AnimeBox"]');
             const promoCards = [...area.querySelectorAll('.home-deferred--support > section, .home-deferred--telegram > section')];
+            if (promoStrip) {
+              const close = promoStrip.querySelector('button[aria-label="Скрыть блок поддержки и Telegram"]');
+              const heading = promoStrip.firstElementChild;
+              const headerRect = heading?.getBoundingClientRect();
+              const closeRect = close?.getBoundingClientRect();
+              if (!headerRect || !closeRect || closeRect.top < headerRect.top - 2 || closeRect.bottom > headerRect.bottom + 2) {
+                promoErrors.push('dismiss button is detached from promo header');
+              }
+              if (innerWidth <= 430 && headerRect && promoCards.length) {
+                const first = promoCards[0].getBoundingClientRect();
+                if (first.top - headerRect.bottom > 22) promoErrors.push('mobile promo reserves empty row below close');
+              }
+            }
             for (const card of promoCards) {
               const box = card.getBoundingClientRect(), host = card.parentElement.getBoundingClientRect();
               if (box.bottom > host.bottom + 2) promoErrors.push('promo exceeds deferred host');
+              if (innerWidth <= 430 && box.height > 180) promoErrors.push('mobile promo is taller than compact card budget');
               for (const action of card.querySelectorAll('a')) {
                 const r = action.getBoundingClientRect();
                 if (r.top < box.top - 2 || r.bottom > box.bottom + 2 || r.right > box.right + 2) promoErrors.push('promo action clipped');
