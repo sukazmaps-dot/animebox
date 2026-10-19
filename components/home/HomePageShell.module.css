@@ -139,6 +139,12 @@
   .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail-heading) {
     padding: 0;
   }
+  /* Keep the same poster/touch geometry as standard mobile rails. */
+  .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__slide) {
+    width: 130px;
+    max-width: 130px;
+    flex: 0 0 130px;
+  }
   .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__rail-retry) {
     grid-column: 1;
   }
