@@ -5,10 +5,10 @@
 .card, .loading, .empty { min-width: 0; box-sizing: border-box; min-height: 400px; margin: 0; }
 .card { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 20px; padding: 32px; background: #141218; color: #fff; border-radius: 10px; }
 .artwork { position: absolute; z-index: -1; inset: 0; pointer-events: none; }
-.artworkHost { position: absolute; inset: 0 0 0 30%; width: 70%; height: 100%; background: #141218; }
+.artworkHost { position: absolute; z-index: 0; inset: 0 0 0 30%; width: 70%; height: 100%; background: #141218; }
 .artworkImage { object-fit: cover; object-position: 65% 35%; }
 .artwork[data-hero-art='poster'] .artworkImage { object-fit: contain; object-position: right center; }
-.shade { position: absolute; inset: 0; background: linear-gradient(90deg, #141218 0%, rgb(20 18 24 / 96%) 25%, rgb(20 18 24 / 72%) 47%, rgb(20 18 24 / 8%) 100%), linear-gradient(0deg, rgb(20 18 24 / 75%), transparent 65%); }
+.shade { position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg, #141218 0%, rgb(20 18 24 / 96%) 25%, rgb(20 18 24 / 72%) 47%, rgb(20 18 24 / 8%) 100%), linear-gradient(0deg, rgb(20 18 24 / 75%), transparent 65%); }
 .body { min-width: 0; width: min(68%, 680px); }
 .eyebrow { color: #d7c5ff; font-size: 11px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
 .title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 10px 0 12px; color: #fff; font-size: clamp(28px, 3.2vw, 42px); line-height: 1.08; font-weight: 700; letter-spacing: -.035em; overflow-wrap: anywhere; text-wrap: balance; }
