@@ -53,4 +53,5 @@ next-env.d.ts
 
 .vercel
 .env*
-\n/artifacts/css-inventory/\n
+
+/artifacts/css-inventory/
