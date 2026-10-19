@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import SectionHeader from '@/components/home/SectionHeader';
+import Link from 'next/link';
+import heroStyles from './HomeTonightPick.module.css';
 
 import styles from './HomePageShell.module.css';
 
@@ -55,7 +57,10 @@ export default function HomeDiscoverySection() {
         className="section smart-feed-section"
         aria-busy={recommendationsLoading}
       >
-        <SectionHeader id="home-tonight-title" title="Что посмотреть сегодня?" href="/search" linkLabel="Весь каталог" />
+        <header className={heroStyles.heading}>
+          <h1 id="home-tonight-title">Что посмотреть сегодня?</h1>
+          <Link href="/search">Весь каталог →</Link>
+        </header>
 
         <HomeMoodPicker
           value={mood}

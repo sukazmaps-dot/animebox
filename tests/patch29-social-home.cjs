@@ -29,7 +29,7 @@ const old = fs.readFileSync('components/HomeRetentionHub.tsx', 'utf8');
 const hero = fs.readFileSync('components/HomeHeroCarousel.tsx', 'utf8');
 const lobby = fs.readFileSync('components/home/HomeWatchTogetherLobby.tsx', 'utf8');
 const deferred = fs.readFileSync('components/home/HomeWatchTogetherDeferred.tsx', 'utf8');
-assert(shell.indexOf('<HomeHeroSection />') < shell.indexOf('<HomeWatchTogetherSection />'));
+assert(!shell.includes('HomeHeroSection'), 'Single decision hero replaces the carousel');
 assert(shell.indexOf('<HomeDiscoverySection />') < shell.indexOf('<HomeCatalogSections />'));
 // Composition priorities: social entry now precedes the long ranked/catalogue rails.
 assert(shell.indexOf('<HomeDiscoverySection />') < shell.indexOf('<HomeWatchTogetherSection />'));

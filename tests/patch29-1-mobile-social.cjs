@@ -8,7 +8,7 @@ const lobby = read('components/home/HomeWatchTogetherLobby.tsx');
 const css = read('app/patch29-1-home-mobile.css');
 const socialCss = read('components/home/HomeWatchTogetherSection.module.css');
 const page = read('app/page.tsx');
-const slots = ['<HomeHeroSection />', '<HomeContinueSection />', '<HomeDiscoverySection />', '<HomeWatchTogetherSection />', '<HomeRecommendationSection />', '<HomeCatalogSections />'];
+const slots = ['<HomeContinueSection />', '<HomeDiscoverySection />', '<HomeWatchTogetherSection />', '<HomeRecommendationSection />', '<HomeCatalogSections />'];
 for (const slot of slots) assert(shell.includes(slot), 'missing homepage slot ' + slot);
 assert.deepEqual([...slots].sort((a, b) => shell.indexOf(a) - shell.indexOf(b)), slots, 'wrong homepage order');
 assert(resume.includes('useHomeFeedRuntime()'), 'resume must reuse runtime state');

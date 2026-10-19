@@ -321,7 +321,7 @@
   position: fixed;
   z-index: 260;
   left: 50%;
-  bottom: max(18px, env(safe-area-inset-bottom));
+  bottom: calc(var(--ab-mobile-nav-height, 0px) + max(18px, var(--ab-shell-safe-bottom, env(safe-area-inset-bottom, 0px))));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -349,7 +349,7 @@
 }
 
 .home-page .smart-feed__feedback-undo button, [data-home-layout="cinematic"] .smart-feed__feedback-undo button {
-  min-height: 32px;
+  min-height: 44px;
   padding: 0 11px;
   border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   border-radius: 9px;
@@ -420,7 +420,7 @@ html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__fe
   }
 
   .home-page .smart-feed__feedback-undo, [data-home-layout="cinematic"] .smart-feed__feedback-undo {
-    bottom: max(10px, env(safe-area-inset-bottom));
+    bottom: calc(var(--ab-mobile-nav-height, 0px) + max(18px, var(--ab-shell-safe-bottom, env(safe-area-inset-bottom, 0px))));
     width: calc(100vw - 20px);
     justify-content: space-between;
   }
@@ -504,36 +504,8 @@ html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__fe
   text-align: left;
 }
 
-/* Mobile: one visible bookmark, 44px hit area around a 32px mark.
-   Long-press opens the existing feedback dialog; keyboard focus reveals
-   the otherwise visually hidden overflow action. */
+/* Phone actions remain discoverable without long-press. Both controls keep
+   their own 44px hit target; long-press is an optional shortcut to the dialog. */
 @media (max-width: 768px) {
-  /* Phone controls are always visible, even when a desktop browser emulates a narrow viewport. */
-  [data-home-layout="cinematic"] .smart-card .smart-card__actions { width: 44px !important; opacity: 1; visibility: visible; pointer-events: auto; }
-  [data-home-layout="cinematic"] .smart-card .smart-card__plan {
-    position: relative;
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-  [data-home-layout="cinematic"] .smart-card .smart-card__plan::before {
-    content: '';
-    display: block !important;
-    position: absolute;
-    inset: 6px;
-    border-radius: 6px;
-    border: 1px solid rgb(255 255 255 / 35%);
-    background: rgb(20 18 28 / 85%);
-  }
-  [data-home-layout="cinematic"] .smart-card .smart-card__plan-icon { z-index: 1; }
-  [data-home-layout="cinematic"] .smart-card .smart-card__dismiss {
-    position: absolute;
-    inset: 0 auto auto 0;
-    opacity: 0;
-    pointer-events: none;
-  }
-  [data-home-layout="cinematic"] .smart-card .smart-card__dismiss:focus-visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
+  [data-home-layout="cinematic"] .smart-card .smart-card__actions { opacity: 1; visibility: visible; pointer-events: auto; }
 }
