@@ -3,6 +3,7 @@ import type { TasteMood } from '@/lib/personalization';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { isHomePublicSafe } from '@/lib/home-public-filter';
 import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
+import { localizeDetailGenres } from '@/lib/anime-detail-genres';
 
 /** Consume the ranked pool without re-ranking or changing rail ownership. */
 export function homeTonightCandidates(items: RankedRecommendation[], mood: TasteMood) {
@@ -23,6 +24,14 @@ export function homeTonightReason(item: RankedRecommendation, mood: TasteMood, h
   const publicReasons = new Set(['mood_match', 'community_quality', 'short_finished', 'ongoing', 'discovery', 'hidden_gem']);
   const evidence = (mood !== 'any' ? explanations.find(reason => reason.key === 'mood_match') : null)
     ?? explanations.find(reason => hasWatchHistory || publicReasons.has(reason.key));
-  const reason = cleanSeoText(evidence?.text || (hasWatchHistory ? item.reason : ''));
+  let reason = cleanSeoText(evidence?.text || (hasWatchHistory ? item.reason : ''));
+  // Only generated genre evidence is localized. Never rewrite referenced
+  // anime titles or other free text that happens to contain a genre name.
+  if (evidence?.key === 'taste_genres' || evidence?.key === 'completed_taste') {
+    for (const genre of [...item.anime.genres].sort((a, b) => b.length - a.length)) {
+      const localized = localizeDetailGenres([genre])[0]?.label;
+      if (localized && localized !== genre) reason = reason.replaceAll(genre, localized);
+    }
+  }
   return truncateSeoText(reason || 'Один из вариантов текущей подборки.', 160);
 }
