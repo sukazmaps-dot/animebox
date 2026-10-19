@@ -59,9 +59,31 @@ const RAIL_SKELETON_COUNT = 3;
 const MAX_RAIL_DOM_ITEMS = 36;
 const RAIL_VIRTUAL_OVERSCAN = 8;
 const MIN_INITIAL_RAIL_ITEMS = 5;
-const SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS = 1;
+const SPARSE_RAIL_BOOTSTRAP_PAGE_HOPS = 2;
 const ZERO_RAIL_BOOTSTRAP_PAGE_HOPS = 3;
 const SPARSE_RAIL_ROOT_MARGIN = '520px 0px';
+const MAX_VISIBLE_RAIL_FILL_ITEMS = 12;
+
+// Five cards may fill a phone, but leave a full half-screen blank on desktop.
+// Measure the actual rendered rail, not screen width, since AnimeBox has sidebars.
+function getVisibleRailFillTarget(section: HTMLElement | undefined): number {
+  const track = section?.querySelector<HTMLElement>('[role="region"]');
+  const slide = track?.querySelector<HTMLElement>('.smart-feed__slide');
+  if (!track || !slide) return MIN_INITIAL_RAIL_ITEMS;
+  const cardWidth = slide.getBoundingClientRect().width;
+  const viewportWidth = track.clientWidth;
+  if (!Number.isFinite(cardWidth) || cardWidth <= 0 || viewportWidth <= 0) {
+    return MIN_INITIAL_RAIL_ITEMS;
+  }
+  const gap = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
+    ? Number.parseFloat(window.getComputedStyle(track).columnGap) || 0
+    : 0;
+  const safeGap = Number.isFinite(gap) ? Math.max(0, gap) : 0;
+  return Math.min(
+    MAX_VISIBLE_RAIL_FILL_ITEMS,
+    Math.max(MIN_INITIAL_RAIL_ITEMS, Math.ceil((viewportWidth + safeGap) / (cardWidth + safeGap)) + 1),
+  );
+}
 
 type CachedPage = {
   expiresAt: number;
@@ -531,6 +553,7 @@ export default function SmartRecommendationFeed({
   const railVirtualMetricsRef = useRef<Map<RecommendationRailId, ScrollRowVirtualMetrics>>(new Map());
   const sparseRailSectionRefs = useRef<Map<RecommendationRailId, HTMLElement>>(new Map());
   const sparseRailPrimedRef = useRef<Set<RecommendationRailId>>(new Set());
+  const sparseRailPrimedTargetRef = useRef<Map<RecommendationRailId, number>>(new Map());
   const consumedPointerKeysRef = useRef<Set<string>>(new Set());
 
   const [sessionId, setSessionId] = useState(() => createSessionId());
@@ -565,6 +588,8 @@ export default function SmartRecommendationFeed({
     () => readCachedTasteGraph(),
   );
   const latestTasteGraphRef = useRef<TasteGraph | null>(tasteGraph);
+  // Keep existing state-hook ordering intact for mounted rail/session recovery.
+  const [railViewportRevision, setRailViewportRevision] = useState(0);
 
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
@@ -632,6 +657,7 @@ export default function SmartRecommendationFeed({
         railVirtualMetricsRef.current = new Map();
         sparseRailSectionRefs.current = new Map();
         sparseRailPrimedRef.current = new Set();
+        sparseRailPrimedTargetRef.current = new Map();
         consumedPointerKeysRef.current = new Set();
         railLoadingRef.current = new Set();
         setLocallyHidden(new Set());
@@ -712,6 +738,7 @@ export default function SmartRecommendationFeed({
       sharedBatchPromiseRef.current = null;
       railLoadingRef.current.clear();
       sparseRailPrimedRef.current.clear();
+      sparseRailPrimedTargetRef.current.clear();
       transitionTokenRef.current += 1;
 
       if (transitionTimerRef.current !== null) {
@@ -999,7 +1026,7 @@ export default function SmartRecommendationFeed({
   const ensureRailDepth = useCallback(
     async (
       rail: RecommendationRail,
-      options: { bootstrap?: boolean; retry?: boolean } = {},
+      options: { bootstrap?: boolean; retry?: boolean; targetCount?: number } = {},
     ) => {
       const bootstrap = options.bootstrap === true;
       if (
@@ -1061,8 +1088,9 @@ export default function SmartRecommendationFeed({
           virtualized: rail.items.length > MAX_RAIL_DOM_ITEMS,
         },
       });
+      const bootstrapTarget = Math.max(MIN_INITIAL_RAIL_ITEMS, Math.min(MAX_VISIBLE_RAIL_FILL_ITEMS, options.targetCount ?? MIN_INITIAL_RAIL_ITEMS));
       const targetLimit = bootstrap
-        ? Math.max(currentLimit, MIN_INITIAL_RAIL_ITEMS)
+        ? Math.max(currentLimit, bootstrapTarget)
         : Math.max(currentLimit, rail.items.length) +
           RECOMMENDATION_RAIL_BATCH_SIZE;
 
@@ -1074,7 +1102,7 @@ export default function SmartRecommendationFeed({
       }
 
       let remaining = bootstrap
-        ? Math.max(0, MIN_INITIAL_RAIL_ITEMS - rail.items.length)
+        ? Math.max(0, bootstrapTarget - rail.items.length)
         : Math.max(0, targetLimit - rail.items.length);
       let claimedForRail = 0;
       let pagesScanned = 0;
@@ -1142,7 +1170,7 @@ export default function SmartRecommendationFeed({
         }
 
         if (
-          claimedForRail === 0 &&
+          remaining > 0 &&
           hasMoreRef.current
         ) {
           // Pause only this rail for the current candidate window. A later
@@ -1180,7 +1208,7 @@ export default function SmartRecommendationFeed({
             has_more: hasMoreRef.current,
             exhausted:
               !hasMoreRef.current ||
-              (claimedForRail === 0 && hasMoreRef.current),
+              (remaining > 0 && hasMoreRef.current),
             pool_size: filtered.length,
             rail_items: targetLimit,
             rendered_items:
@@ -1244,26 +1272,50 @@ export default function SmartRecommendationFeed({
   );
 
   useEffect(() => {
+    let frame: number | null = null;
+    const onResize = () => {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        setRailViewportRevision((current) => current + 1);
+      });
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isMoodSwapping || !hasMore) return;
 
     const sparseRails = new Map(
-      rails.filter((rail) =>
-        rail.items.length < MIN_INITIAL_RAIL_ITEMS &&
-        !loadingRails.has(rail.id) &&
-        !exhaustedRails.has(rail.id) &&
-        !railErrors.has(rail.id) &&
-        !sparseRailPrimedRef.current.has(rail.id),
-      ).map((rail) => [rail.id, rail] as const),
+      rails.filter((rail) => {
+        const target = getVisibleRailFillTarget(sparseRailSectionRefs.current.get(rail.id));
+        return (
+          (rail.items.length < MIN_INITIAL_RAIL_ITEMS || rail.items.length < target) &&
+          !loadingRails.has(rail.id) &&
+          !exhaustedRails.has(rail.id) &&
+          !railErrors.has(rail.id) &&
+          (!sparseRailPrimedRef.current.has(rail.id) ||
+            (sparseRailPrimedTargetRef.current.get(rail.id) ?? 0) < target)
+        );
+      }).map((rail) => [rail.id, rail] as const),
     );
     if (!sparseRails.size) return;
 
     const prime = (railId: RecommendationRailId) => {
       const rail = sparseRails.get(railId);
-      if (!rail || sparseRailPrimedRef.current.has(railId)) return;
+      if (!rail) return;
+      const target = getVisibleRailFillTarget(sparseRailSectionRefs.current.get(railId));
+      if (sparseRailPrimedRef.current.has(railId) &&
+          (sparseRailPrimedTargetRef.current.get(railId) ?? 0) >= target) return;
       sparseRailPrimedRef.current.add(railId);
+      sparseRailPrimedTargetRef.current.set(railId, target);
       // Rows share candidate requests, but never wait for another row's
       // complete multi-page search before they can use those candidates.
-      void ensureRailDepth(rail, { bootstrap: true });
+      void ensureRailDepth(rail, { bootstrap: true, targetCount: target });
     };
 
     const observer = typeof IntersectionObserver === 'undefined' ? null :
@@ -1306,7 +1358,7 @@ export default function SmartRecommendationFeed({
       window.removeEventListener('scroll', scheduleCheck);
       window.removeEventListener('resize', scheduleCheck);
     };
-  }, [ensureRailDepth, exhaustedRails, hasMore, isMoodSwapping, loadingRails, railErrors, rails]);
+  }, [ensureRailDepth, exhaustedRails, hasMore, isMoodSwapping, loadingRails, railErrors, rails, railViewportRevision]);
 
   if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {
     return (
@@ -1397,7 +1449,16 @@ export default function SmartRecommendationFeed({
                   stepRatio={0.82}
                   hasMore={rail.items.length > 0 ? railHasMore : false}
                   loading={railLoading}
-                  onEndReached={() => void ensureRailDepth(rail)}
+                  onEndReached={() => {
+                    const target = getVisibleRailFillTarget(sparseRailSectionRefs.current.get(rail.id));
+                    // The short-row fallback and viewport bootstrap share the
+                    // same bounded target; only browsing a full row grows it.
+                    if (rail.items.length < target) {
+                      void ensureRailDepth(rail, { bootstrap: true, targetCount: target });
+                    } else {
+                      void ensureRailDepth(rail);
+                    }
+                  }}
                   endReachedRequiresInteraction
                   virtualize
                   virtualMaxItems={MAX_RAIL_DOM_ITEMS}
@@ -1443,7 +1504,14 @@ export default function SmartRecommendationFeed({
                   <button
                     type="button"
                     className="smart-feed__rail-retry"
-                    onClick={() => void ensureRailDepth(rail, { retry: true, bootstrap: rail.items.length < MIN_INITIAL_RAIL_ITEMS })}
+                    onClick={() => {
+                      const target = getVisibleRailFillTarget(sparseRailSectionRefs.current.get(rail.id));
+                      void ensureRailDepth(rail, {
+                        retry: true,
+                        bootstrap: rail.items.length < target,
+                        targetCount: target,
+                      });
+                    }}
                   >
                     {railFailed ? 'Не удалось загрузить ещё · Повторить' : 'Показать больше похожих аниме'}
                   </button>

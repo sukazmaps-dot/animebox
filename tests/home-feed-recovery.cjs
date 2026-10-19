@@ -12,10 +12,19 @@ const React = require('react');
 const { create, act } = require('react-test-renderer');
 
 global.IS_REACT_ACT_ENVIRONMENT = true;
+let viewportWidth = 390;
+let sectionTop = 0;
+const windowListeners = new Map();
 global.window = {
   innerHeight: 800, sessionStorage: { getItem: () => null, setItem() {}, removeItem() {}, length: 0 },
   setTimeout, clearTimeout, requestAnimationFrame: (fn) => setTimeout(fn, 0), cancelAnimationFrame: clearTimeout,
-  addEventListener() {}, removeEventListener() {}, matchMedia: () => ({ matches: true }),
+  addEventListener(name, fn) {
+    if (!windowListeners.has(name)) windowListeners.set(name, new Set());
+    windowListeners.get(name).add(fn);
+  },
+  removeEventListener(name, fn) { windowListeners.get(name)?.delete(fn); },
+  getComputedStyle: () => ({ columnGap: '12px' }),
+  matchMedia: () => ({ matches: true }),
 };
 // No IntersectionObserver: the visibility path must still bootstrap rows.
 delete global.IntersectionObserver;
@@ -50,7 +59,15 @@ async function settle() { for (let n = 0; n < 5; n++) await act(async () => { aw
 async function mount(Feed) {
   let tree;
   await act(async () => { tree = create(React.createElement(Feed, { items: [], mood: 'any', hasWatchHistory: false }), {
-    createNodeMock: (element) => element.type === 'section' ? { getBoundingClientRect: () => ({ top: 0, bottom: 300 }) } : null,
+    // Production now measures real rail/slide geometry. Keep the original
+    // recovery cases and give the fixture the same DOM surface as a section.
+    createNodeMock: (element) => element.type === 'section' ? {
+      getBoundingClientRect: () => ({ top: sectionTop, bottom: sectionTop + 300 }),
+      querySelector: () => ({
+        get clientWidth() { return viewportWidth; },
+        querySelector: () => ({ getBoundingClientRect: () => ({ width: 170 }) }),
+      }),
+    } : null,
   }); });
   return tree;
 }
@@ -89,4 +106,49 @@ async function mount(Feed) {
   assert.ok(tree.root.findAllByType('article').some((x) => x.props['data-id'] === 301));
   await act(async () => tree.unmount());
   console.log('PASS: real feed mounts without IntersectionObserver, deduplicates simultaneous rows, retries errors and resumes a sparse candidate window.');
+
+  // Two genuinely mounted feed rows share each page and fill the measured
+  // desktop width, then increase their target after resize without a storm.
+  calls = 0; viewportWidth = 1460;
+  global.fetch = async (url) => {
+    calls++;
+    const page = Number(new URL(url, 'https://test.local').searchParams.get('page'));
+    const items = ['top_match', 'endless'].flatMap((lane, laneIndex) =>
+      Array.from({ length: 10 }, (_, index) => ({ id: page * 100 + laneIndex * 10 + index, lane })),
+    );
+    return { ok: true, json: async () => ({ ...payload(items, true, page + 1), page }) };
+  };
+  tree = await mount(loadFeed()); await settle();
+  const rowCounts = () => tree.root.findAllByType('section')
+    .filter(x => x.props['data-recommendation-rail-id'])
+    .map(x => x.props['data-recommendation-rail-items']);
+  assert.deepEqual(rowCounts(), [10, 10], 'desktop rows fill measured width plus one card');
+  const beforeResize = calls;
+  const resize = async () => {
+    await act(async () => { for (const fn of [...windowListeners.get('resize') ?? []]) fn(); });
+    await settle();
+  };
+  await resize(); await resize();
+  assert.equal(calls, beforeResize, 'repeated same-size resize cannot refetch the candidate window');
+  viewportWidth = 2200;
+  await resize();
+  assert.deepEqual(rowCounts(), [12, 12], 'wider rows refill up to the bounded target');
+  const afterWidening = calls;
+  assert.ok(afterWidening <= beforeResize + 1, 'rows share the cached next page and only prefetch its successor');
+  await resize();
+  assert.equal(calls, afterWidening);
+  const ids = tree.root.findAllByType('article').map(x => x.props['data-id']);
+  assert.equal(new Set(ids).size, ids.length, 'refill must not duplicate titles across rows');
+  await act(async () => tree.unmount());
+  assert.ok([...windowListeners.values()].every(set => set.size === 0), 'unmount cleans all viewport listeners');
+
+  // An offscreen row must not chase matching titles automatically. The one
+  // shared speculative page is existing feed behavior, independent of rails.
+  sectionTop = 3000; calls = 0;
+  tree = await mount(loadFeed()); await settle();
+  assert.deepEqual(rowCounts(), [0, 0]);
+  assert.equal(calls, 1, 'offscreen bootstrap adds no requests beyond the existing shared prefetch');
+  await act(async () => tree.unmount());
+  sectionTop = 0; viewportWidth = 390;
+  console.log('PASS: desktop density, shared pagination, bounded resize refill, unique cards, offscreen rows and listener cleanup.');
 })().catch((error) => { console.error(error); process.exitCode = 1; });
