@@ -207,10 +207,16 @@ fs.mkdirSync(output, { recursive: true });
             if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push(`mobile poster must be 130px (poster=${p.width.toFixed(2)} slide=${box(card.parentElement).width.toFixed(2)} card=${box(card).width.toFixed(2)} media=${box(card.querySelector('.anime-card-content__media') || poster).width.toFixed(2)})`);
           }
           for (const row of document.querySelectorAll('.smart-feed__rail')) {
+            // Session-stable sparse slots retain their child DOM after the
+            // parent is hidden. Their old arrow is not a visible affordance;
+            // continue to validate every row that actually occupies layout.
+            if (row.getClientRects().length === 0) continue;
             if (getComputedStyle(row, '::after').display !== 'none') errors.push('legacy dark fade over rightmost poster');
             const track = row.querySelector('[role="region"]');
             const right = row.querySelector('button[aria-label="Прокрутить вперёд"]');
-            if (track && right && track.scrollWidth <= track.clientWidth + 4) errors.push('arrow without actual overflow');
+            if (track && right && track.scrollWidth <= track.clientWidth + 4) {
+              errors.push(`arrow without actual overflow: ${row.closest('section')?.getAttribute('data-recommendation-rail-id')} (${track.scrollWidth}/${track.clientWidth})`);
+            }
           }
           const continueTrack = document.querySelector('.continue-smart-grid');
           if (continueTrack && getComputedStyle(continueTrack).display !== 'flex') errors.push('continue cards wrapped into grid');
