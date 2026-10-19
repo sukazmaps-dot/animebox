@@ -52,6 +52,9 @@ jobs:
       - name: Franchise CSS Module ownership
         run: npm run franchise-css:check
 
+      - name: Franchise copy CSS Module ownership
+        run: npm run franchise-copy-css:check
+
       - name: Railway 31.19 cache, image memory and cancellation regression
         run: npm run railway-cost:check
 
