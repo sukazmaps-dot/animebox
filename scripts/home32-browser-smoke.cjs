@@ -240,8 +240,13 @@ fs.mkdirSync(output, { recursive: true });
             if (panel.width > Math.min(innerWidth - 20, 580) + 2) {
               errors.push('compact recommendation stretches beyond card-sized panel: ' + panel.width.toFixed(1));
             }
-            if (innerWidth > 768 && panel.right - box(track).right > 40) {
-              errors.push('compact recommendation leaves blank space after poster track');
+            // A visible retry CTA may be wider than a single poster. Count it
+            // as genuine content rather than reporting a false empty shelf.
+            const retry = section.querySelector('.smart-feed__rail-retry');
+            const rightMostContent = Math.max(box(track).right,
+              retry ? box(retry).right : 0);
+            if (innerWidth > 768 && panel.right - rightMostContent > 40) {
+              errors.push('compact recommendation leaves blank space after content');
             }
           }
           for (const row of document.querySelectorAll('.smart-feed__rail')) {
