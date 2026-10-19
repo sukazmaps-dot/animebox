@@ -32,6 +32,11 @@ const cssFiles = files.filter((file) => file.endsWith('.css'));
 const cssSet = new Set(cssFiles);
 const owners = new Map(cssFiles.map((file) => [file, new Set()]));
 const missing = [];
+// Existing unused legacy component; the active implementation is components/ui/ScrollRow.tsx.
+// Keep the broken reference visible in reports and reject any additional missing CSS imports.
+const knownLegacyMissing = new Set([
+  'components/ScrollRow.tsx->components/ScrollRow.module.css',
+]);
 const records = [];
 const selectors = new Map();
 const variables = new Map();
@@ -155,6 +160,8 @@ const counts = {
   selectorOverlapCandidates: overlaps.length,
   withoutStaticImport: withoutStaticImport.length,
   missingLocalImports: missing.length,
+  newMissingLocalImports: missing.filter((item) =>
+    !knownLegacyMissing.has(item.importer + '->' + item.target)).length,
 };
 const report = {
   schemaVersion: 1, sourceSha: process.env.GITHUB_SHA || null,
@@ -205,10 +212,13 @@ if (saveReport) {
 console.log('[CSS inventory] ' + counts.cssFiles + ' CSS files, ' + counts.cssModules +
   ' modules, ' + counts.rootCssImports + ' root imports, ' +
   counts.important + ' !important, ' + overlaps.length + ' selector overlap candidates.');
-for (const item of missing.slice(0, 30))
-  console.warn('[CSS inventory] Missing import: ' + item.importer + ' → ' + item.target);
+for (const item of missing.slice(0, 30)) {
+  const existing = knownLegacyMissing.has(item.importer + '->' + item.target);
+  console.warn('[CSS inventory] ' + (existing ? 'Known legacy missing import: ' : 'Missing import: ') +
+    item.importer + ' → ' + item.target);
+}
 for (const error of errors) console.error('[CSS inventory] Invalid CSS: ' + error);
-if (check && (missing.length || errors.length || rootImports.length > 76)) {
+if (check && (counts.newMissingLocalImports || errors.length || rootImports.length > 76)) {
   if (rootImports.length > 76) console.error('[CSS inventory] Root import budget exceeded');
   process.exitCode = 1;
 }
