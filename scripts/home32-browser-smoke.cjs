@@ -249,6 +249,7 @@ fs.mkdirSync(output, { recursive: true });
           return { checked: cards.length, errors };
         });
         assert(compact.checked > 0, name + ' recommendation cards were rendered');
+        if (compact.errors.length) console.error('HOME32 compact geometry:', name, JSON.stringify(compact.errors));
         assert.deepEqual(compact.errors, [], name + ' compact mobile/desktop recommendation geometry');
 
         assert.equal(await page.locator('.continue-smart-card').count(), history ? 1 : 0, name + ' real history only');
