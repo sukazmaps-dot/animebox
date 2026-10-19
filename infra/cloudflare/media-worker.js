@@ -1,4 +1,6 @@
-const MEDIA_WORKER_VERSION = 'media-shield-v7-no-storage-default';
+const MEDIA_WORKER_VERSION = 'media-shield-v8-curated-r2';
+const CURATED_R2_WIDTHS = new Set([240, 360]);
+const CURATED_R2_MAX_BYTES = 192 * 1024;
 const ORIGIN_RELAY_TIMEOUT_MS = 2_000;
 const ORIGIN_RELAY_CACHE_TTL_SECONDS = 600;
 const CANONICAL_IMAGE_RELAY = 'https://youranimebox.com/api/image';
@@ -326,6 +328,26 @@ function rasterMatchesMime(bytes, contentType) {
   if (mime === 'image/gif') return b.length >= 6 && (ascii(0, 'GIF87a') || ascii(0, 'GIF89a'));
   if (mime === 'image/avif') return b.length >= 16 && ascii(4, 'ftyp') && (ascii(8, 'avif') || ascii(8, 'avis'));
   return false;
+}
+
+// Persist only two actually transformed, size-bounded WebP poster variants.
+// Existing R2 objects remain readable, but raw fallback/relay/HEAD and other
+// width/quality/format combinations never create new objects.
+function shouldWriteCuratedR2Poster(env, method, variant, origin, bytes, contentType) {
+  return Boolean(
+    env.MEDIA_BUCKET &&
+    env.MEDIA_R2_WRITES_ENABLED === 'true' &&
+    method === 'GET' &&
+    variant &&
+    CURATED_R2_WIDTHS.has(variant.width) &&
+    variant.quality === 70 &&
+    variant.resolvedFormat === 'webp' &&
+    origin.transformed === true &&
+    /^image\/webp(?:;|$)/i.test(contentType) &&
+    bytes.byteLength > 0 &&
+    bytes.byteLength <= CURATED_R2_MAX_BYTES &&
+    rasterMatchesMime(bytes, contentType)
+  );
 }
 
 function originRelayEnabled(env) {
@@ -778,6 +800,9 @@ async function handleRequest(request, env, ctx) {
         softFail: true,
         r2: Boolean(env.MEDIA_BUCKET),
         r2WritesEnabled: env.MEDIA_R2_WRITES_ENABLED === 'true',
+        r2WritePolicy: 'curated-webp-v1',
+        r2WriteWidths: [...CURATED_R2_WIDTHS],
+        r2MaxWriteBytes: CURATED_R2_MAX_BYTES,
         originPipelineBudgetMs: ORIGIN_PIPELINE_BUDGET_MS,
         transformTimeoutMs: TRANSFORM_FETCH_TIMEOUT_MS,
         rawTimeoutMs: RAW_FETCH_TIMEOUT_MS,
@@ -981,9 +1006,9 @@ async function handleRequest(request, env, ctx) {
     );
     if (etag) headers.set('ETag', etag);
 
-    // Existing objects remain readable. Attached buckets must not implicitly
-    // enable paid object storage; writes require an explicit operator opt-in.
-    if (env.MEDIA_BUCKET && env.MEDIA_R2_WRITES_ENABLED === 'true') {
+    // R2 is opt-in. Only small, verified 240/360 WebP transforms qualify;
+    // never persist raw originals or multiply all responsive variant combinations.
+    if (shouldWriteCuratedR2Poster(env, request.method, variant, origin, bytes, contentType)) {
       ctx.waitUntil(
         env.MEDIA_BUCKET.put(key, bytes, {
           httpMetadata: {
@@ -995,7 +1020,7 @@ async function handleRequest(request, env, ctx) {
             source: source.toString(),
             variant: variant?.token || 'original',
           },
-        }),
+        }).catch(() => undefined),
       );
     }
 
