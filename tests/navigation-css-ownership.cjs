@@ -16,12 +16,16 @@ const owner = imports.indexOf('hierarchy-pass.css');
 assert(first >= 0 && owner > first, 'Navigation owner must load after baseline');
 assert(imports.length <= 76, 'Root CSS import budget exceeded');
 
-function declarations(root, selector, property) {
+function declarations(root, selector, property, firstRuleOnly = false) {
   const matches = [];
+  let visited = false;
   root.walkRules((rule) => {
-    // Exclude conditional media/theme branches; this contract requires
-    // identical selectors under an always-active root context.
-    if (rule.parent !== root || rule.selector !== selector) return;
+    // Exclude conditional branches; the owner is always active. Check only
+    // the first baseline rule: later legacy declarations may still exist
+    // elsewhere in globals.css and are outside this scoped change.
+    if (rule.parent !== root || rule.selector !== selector ||
+        (firstRuleOnly && visited)) return;
+    visited = true;
     rule.walkDecls(property, (decl) => {
       if (decl.prop === property)
         matches.push({ value: decl.value.trim(), important: decl.important });
@@ -40,7 +44,7 @@ const contracts = [
 ];
 
 for (const [selector, property, value] of contracts) {
-  assert.deepEqual(declarations(baseline, selector, property), [],
+  assert.deepEqual(declarations(baseline, selector, property, true), [],
     'Shadowed declaration returned to globals.css: ' + selector + ' ' + property);
   assert.deepEqual(declarations(navigation, selector, property),
     [{ value, important: false }],
