@@ -15,24 +15,24 @@ function read(path) {
 
 const layout = read('app/layout.tsx');
 const foundation = read('app/patch14-1-visual-foundation.css');
-const antiAi = read('app/patch14-1-1-anti-ai-design.css');
+const editorialStyles = read('app/styles/editorial-refinements.css');
 
 const foundationNeedle = "import './patch14-1-visual-foundation.css';";
-const antiAiNeedle = "import './patch14-1-1-anti-ai-design.css';";
+const editorialNeedle = "import './styles/editorial-refinements.css';";
 
 if (!layout.includes(foundationNeedle)) {
   failures.push('layout.tsx: Visual Foundation stylesheet is not imported.');
 }
 
-if (!layout.includes(antiAiNeedle)) {
-  failures.push('layout.tsx: Anti-AI stylesheet is not imported.');
+if (!layout.includes(editorialNeedle)) {
+  failures.push('layout.tsx: Editorial stylesheet is not imported.');
 }
 
 const foundationImport = layout.indexOf(foundationNeedle);
-const antiAiImport = layout.indexOf(antiAiNeedle);
+const editorialImport = layout.indexOf(editorialNeedle);
 
-if (foundationImport < 0 || antiAiImport < foundationImport) {
-  failures.push('layout.tsx: Anti-AI layer must load after Visual Foundation.');
+if (foundationImport < 0 || editorialImport < foundationImport) {
+  failures.push('layout.tsx: Editorial layer must load after Visual Foundation.');
 }
 
 for (const [label, needle] of [
@@ -68,8 +68,8 @@ for (const [label, needle] of [
   ['anime-card shine removal', '.anime-card__shine'],
   ['dashboard-label normalization', 'text-transform: none !important'],
 ]) {
-  if (!antiAi.includes(needle)) {
-    failures.push(`Anti-AI layer: missing ${label}.`);
+  if (!editorialStyles.includes(needle)) {
+    failures.push(`Editorial layer: missing ${label}.`);
   }
 }
 
@@ -80,4 +80,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('[AnimeBox Visual Foundation] Foundation + anti-AI invariants passed.');
+console.log('[AnimeBox Visual Foundation] Foundation + editorial invariants passed.');
