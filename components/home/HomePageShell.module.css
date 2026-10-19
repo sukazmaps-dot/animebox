@@ -131,6 +131,13 @@
   .page :global(.section-link) { font-size: 13px; }
   .page :global(.home-anime-rail__viewport) { grid-auto-columns: 130px; gap: 10px; }
   .page :global(.smart-feed__slide) { width: 130px; max-width: 130px; flex-basis: 130px; }
+  /* Keep the mobile touch-card width invariant in terminal 1–2-item shelves.
+     The desktop compact selector is more specific than the generic 130px rule. */
+  .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"] .smart-feed__slide) {
+    width: 130px;
+    max-width: 130px;
+    flex: 0 0 130px;
+  }
   .page :global(.smart-feed__personal-rail[data-recommendation-compact="true"]) {
     grid-template-columns: minmax(0, 1fr);
     row-gap: 10px;
