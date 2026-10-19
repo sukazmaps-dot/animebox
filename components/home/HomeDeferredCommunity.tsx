@@ -72,6 +72,21 @@ export function HomeDeferredSupport() {
 
   return (
     <section className={styles.strip} aria-label="Поддержка и Telegram AnimeBox">
+      <div className={styles.heading}>
+        <span>Сообщество AnimeBox</span>
+        <button
+          type="button"
+          className={styles.close}
+          aria-label="Скрыть блок поддержки и Telegram"
+          onClick={() => {
+            setDismissedHere(true);
+            try { window.localStorage.setItem(DISMISS_KEY, 'true'); } catch {
+              // Browsers with disabled storage still hide this visit's banner.
+            }
+            window.dispatchEvent(new Event(DISMISS_EVENT));
+          }}
+        >×</button>
+      </div>
       <DeferredMount
         className="home-deferred home-deferred--support"
         minHeight={68}
@@ -87,18 +102,6 @@ export function HomeDeferredSupport() {
       >
         <TelegramPromoCard placement="home_footer" />
       </DeferredMount>
-      <button
-        type="button"
-        className={styles.close}
-        aria-label="Скрыть блок поддержки и Telegram"
-        onClick={() => {
-          setDismissedHere(true);
-          try { window.localStorage.setItem(DISMISS_KEY, 'true'); } catch {
-            // Browsers with disabled storage still hide this visit's banner.
-          }
-          window.dispatchEvent(new Event(DISMISS_EVENT));
-        }}
-      >×</button>
     </section>
   );
 }
