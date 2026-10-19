@@ -273,7 +273,7 @@ export function buildRecommendationRailLayout(
     tasteGraph?: RailOrderTaste | null;
   },
 ): RecommendationRailLayout {
-  if (!recommendations.length) {
+  if (!recommendations.length && !options.hasMore) {
     return { rails: [], ownership: new Map() };
   }
 

@@ -950,6 +950,19 @@ export default function SmartRecommendationFeed({
 
   const handleHiddenRecommendation = useCallback(
     (animeId: number) => {
+      // Hiding a card creates a new vacancy at the same viewport target.
+      // Re-arm only its row; API errors still require an explicit retry.
+      const owner = railOwnershipRef.current.get(animeId);
+      if (owner) {
+        sparseRailPrimedRef.current.delete(owner);
+        sparseRailPrimedTargetRef.current.delete(owner);
+        setExhaustedRails((current) => {
+          if (!current.has(owner)) return current;
+          const next = new Set(current);
+          next.delete(owner);
+          return next;
+        });
+      }
       setLocallyHidden((current) => {
         const next = new Set(current);
         next.add(animeId);
@@ -1023,17 +1036,31 @@ export default function SmartRecommendationFeed({
     return () => window.clearTimeout(timer);
   }, [feedbackUndo]);
 
+  // The network cursor and the loaded pool have separate lifetimes. A final
+  // API page may still contain many cards beyond the current per-row limit.
+  const hasLocalRailCandidates = useCallback((rail: RecommendationRail) => {
+    const displayedIds = new Set(rail.items.map(({ anime }) => anime.id));
+    return filtered.some((item) => {
+      if (displayedIds.has(item.anime.id)) return false;
+      const owner = railOwnership.get(item.anime.id);
+      return owner === rail.id ||
+        (!owner && recommendationMatchesRail(item, rail));
+    });
+  }, [filtered, railOwnership]);
+
   const ensureRailDepth = useCallback(
     async (
       rail: RecommendationRail,
       options: { bootstrap?: boolean; retry?: boolean; targetCount?: number } = {},
     ) => {
       const bootstrap = options.bootstrap === true;
+      const localCandidates = hasLocalRailCandidates(rail);
       if (
         moodTransitionRef.current ||
-        !hasMoreRef.current ||
+        (!hasMoreRef.current && !localCandidates) ||
         railLoadingRef.current.has(rail.id) ||
-        (exhaustedRails.has(rail.id) && !options.retry)
+        (railErrors.has(rail.id) && !options.retry) ||
+        (exhaustedRails.has(rail.id) && !options.retry && !localCandidates)
       ) {
         return;
       }
@@ -1107,6 +1134,8 @@ export default function SmartRecommendationFeed({
       let claimedForRail = 0;
       let pagesScanned = 0;
 
+      const displayedIds = new Set(rail.items.map(({ anime }) => anime.id));
+      const claimedIds = new Set<number>();
       const claimCandidates = (
         candidates: RankedRecommendation[],
         relaxed: boolean,
@@ -1117,11 +1146,13 @@ export default function SmartRecommendationFeed({
 
         for (const item of candidates) {
           if (remaining <= 0) break;
-          if (railOwnershipRef.current.has(item.anime.id)) continue;
+          if (displayedIds.has(item.anime.id) || claimedIds.has(item.anime.id)) continue;
+          const owner = railOwnershipRef.current.get(item.anime.id);
+          if (owner && owner !== rail.id) continue;
 
-          const matches = relaxed
+          const matches = owner === rail.id || (relaxed
             ? recommendationMatchesRailRelaxed(item, rail)
-            : recommendationMatchesRail(item, rail);
+            : recommendationMatchesRail(item, rail));
 
           if (!matches) continue;
 
@@ -1130,6 +1161,7 @@ export default function SmartRecommendationFeed({
           // can steal the freshly fetched cards before the triggering rail
           // gets a chance to render them.
           railOwnershipRef.current.set(item.anime.id, rail.id);
+          claimedIds.add(item.anime.id);
           remaining -= 1;
           claimed += 1;
         }
@@ -1266,6 +1298,8 @@ export default function SmartRecommendationFeed({
       exhaustedRails,
       fetchNextCandidateBatch,
       filtered,
+      hasLocalRailCandidates,
+      railErrors,
       railLimits,
       tasteGraph,
     ],
@@ -1288,7 +1322,7 @@ export default function SmartRecommendationFeed({
   }, []);
 
   useEffect(() => {
-    if (isMoodSwapping || !hasMore) return;
+    if (isMoodSwapping) return;
 
     const sparseRails = new Map(
       rails.filter((rail) => {
@@ -1296,7 +1330,8 @@ export default function SmartRecommendationFeed({
         return (
           (rail.items.length < MIN_INITIAL_RAIL_ITEMS || rail.items.length < target) &&
           !loadingRails.has(rail.id) &&
-          !exhaustedRails.has(rail.id) &&
+          (hasMore || hasLocalRailCandidates(rail)) &&
+          (!exhaustedRails.has(rail.id) || hasLocalRailCandidates(rail)) &&
           !railErrors.has(rail.id) &&
           (!sparseRailPrimedRef.current.has(rail.id) ||
             (sparseRailPrimedTargetRef.current.get(rail.id) ?? 0) < target)
@@ -1358,7 +1393,7 @@ export default function SmartRecommendationFeed({
       window.removeEventListener('scroll', scheduleCheck);
       window.removeEventListener('resize', scheduleCheck);
     };
-  }, [ensureRailDepth, exhaustedRails, hasMore, isMoodSwapping, loadingRails, railErrors, rails, railViewportRevision]);
+  }, [ensureRailDepth, exhaustedRails, hasLocalRailCandidates, hasMore, isMoodSwapping, loadingRails, railErrors, rails, railViewportRevision]);
 
   if (filtered.length === 0 && !hasMore && loadingRails.size === 0) {
     return (
@@ -1389,7 +1424,9 @@ export default function SmartRecommendationFeed({
           {rails.map((rail, railIndex) => {
             const railLoading = loadingRails.has(rail.id);
             const railFailed = railErrors.has(rail.id);
-            const railHasMore = hasMore && !exhaustedRails.has(rail.id) && !railFailed;
+            const localCandidates = hasLocalRailCandidates(rail);
+            const railHasMore = !railFailed && (localCandidates ||
+              (hasMore && !exhaustedRails.has(rail.id)));
             const railAwaitingBootstrap =
               rail.items.length === 0 &&
               railHasMore &&

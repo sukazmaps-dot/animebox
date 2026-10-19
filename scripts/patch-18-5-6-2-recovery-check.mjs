@@ -56,7 +56,9 @@ function mediaHarness() {
 
 // Execute the production callback, transpiling its TypeScript signature only.
 const feed = read('components/SmartRecommendationFeed.tsx');
-const start = feed.indexOf('  const ensureRailDepth = useCallback(');
+// Include the production local-pool check now used by ensureRailDepth; keep
+// every stale-success/failure assertion below.
+const start = feed.indexOf('  const hasLocalRailCandidates = useCallback(');
 const end = feed.indexOf('\n  useEffect(() => {', start);
 const code = ts.transpile(feed.slice(start, end), { target: ts.ScriptTarget.ES2022 });
 function railHarness() {
@@ -65,7 +67,8 @@ function railHarness() {
   const c = {
     useCallback: (fn) => fn, moodTransitionRef: { current: false },
     requestGenerationRef: { current: 1 }, hasMoreRef: { current: true },
-    railLoadingRef: { current: new Set() }, exhaustedRails: new Set(),
+    railLoadingRef: { current: new Set() }, exhaustedRails: new Set(), railErrors: new Set(),
+    railOwnership: new Map(),
     railLimits: {}, pointerRef: { current: { page: 2 } },
     railVirtualMetricsRef: { current: new Map() }, tasteGraph: null, filtered: [],
     railOwnershipRef: { current: new Map() },
