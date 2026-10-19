@@ -128,6 +128,8 @@ export default function ScrollRow({
 
     endInteractionUnlockedRef.current = true;
     endRequestLatchRef.current = false;
+    // A short row may not emit scroll at all after a pointer/wheel event.
+    refreshAfterTouchRef.current();
   }, [endReachedRequiresInteraction]);
 
   const reportVirtualMetrics = useCallback(
@@ -295,11 +297,19 @@ export default function ScrollRow({
       scrollLeft + clientWidth < scrollWidth - EDGE_EPSILON,
     );
 
+    // Short rows cannot be swiped and may hide their arrows. Fill only rows
+    // actually on screen; overflowing rows still require deliberate browsing.
+    const bounds = track.getBoundingClientRect();
+    const visibleUnderfilled = clientWidth > 0 &&
+      scrollWidth <= clientWidth + EDGE_EPSILON &&
+      bounds.width > 0 && bounds.height > 0 &&
+      bounds.bottom > 0 && bounds.top < window.innerHeight;
+
     if (
       hasMore &&
       !loading &&
       onEndReached &&
-      endInteractionUnlockedRef.current &&
+      (endInteractionUnlockedRef.current || visibleUnderfilled) &&
       remaining <= threshold &&
       !endRequestLatchRef.current
     ) {
@@ -336,11 +346,13 @@ export default function ScrollRow({
     };
 
     track.addEventListener('scroll', scheduleScrollState, { passive: true });
+    window.addEventListener('scroll', scheduleScrollState, { passive: true });
 
     return () => {
       window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       track.removeEventListener('scroll', scheduleScrollState);
+      window.removeEventListener('scroll', scheduleScrollState);
 
       if (scrollFrameRef.current !== null) {
         window.cancelAnimationFrame(scrollFrameRef.current);
@@ -413,18 +425,12 @@ export default function ScrollRow({
     const root = trackRef.current;
     const target = sentinelRef.current;
 
-    if (!root || !target || !onEndReached || !hasMore || loading) return;
+    if (!root || !target || !onEndReached || !hasMore || loading ||
+        typeof IntersectionObserver === 'undefined') return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (
-          entry?.isIntersecting &&
-          endInteractionUnlockedRef.current &&
-          !endRequestLatchRef.current
-        ) {
-          endRequestLatchRef.current = true;
-          onEndReached();
-        }
+        if (entry?.isIntersecting) updateScrollState();
       },
       {
         root,
@@ -436,7 +442,7 @@ export default function ScrollRow({
     observer.observe(target);
 
     return () => observer.disconnect();
-  }, [endReachedRootMargin, hasMore, loading, onEndReached]);
+  }, [endReachedRootMargin, hasMore, loading, onEndReached, updateScrollState]);
 
   const scrollByDirection = useCallback(
     (direction: 'left' | 'right') => {

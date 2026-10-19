@@ -32,27 +32,30 @@ const listeners = new Map();
 const card = { hasAttribute: () => false, getBoundingClientRect: () => ({ width }) };
 const track = {
   children: [card], clientWidth: 800, scrollWidth: 21000,
+  getBoundingClientRect: () => ({ top: 100, bottom: 400, width: 800, height: 300 }),
   addEventListener(name, fn) { listeners.set(name, fn); },
   removeEventListener(name, fn) { if (listeners.get(name) === fn) listeners.delete(name); },
   scrollTo(options) { moves.push(options.left); },
 };
 Object.defineProperty(track, 'scrollLeft', { get: () => offset, set: value => { positionWrites++; offset = value; } });
 global.window = {
+  innerHeight: 900,
+  addEventListener() {}, removeEventListener() {},
   getComputedStyle: () => ({ columnGap: '10px' }),
   requestAnimationFrame: fn => { frames.push(fn); return frames.length; },
   cancelAnimationFrame() {},
 };
 global.ResizeObserver = class { observe() {} disconnect() {} };
-function render(count) {
+function render(count, props = {}) {
   refIndex = stateIndex = 0; effects.length = 0;
   return mod.exports.default({ children: Array.from({ length: count }, (_, id) => ({ id })),
-    virtualize: true, virtualMaxItems: 36 });
+    virtualize: true, virtualMaxItems: 36, ...props });
 }
-function measure(count) {
-  render(count); refs[0].current = track;
+function measure(count, props = {}) {
+  render(count, props); refs[0].current = track;
   effects[0]();
   while (frames.length) frames.shift()();
-  return render(count);
+  return render(count, props);
 }
 let tree = measure(30);
 let viewport = tree.props.children[0];
@@ -114,3 +117,28 @@ listeners.get('touchend')(); cleanupTouch();
 assert.equal(timers.size, 0, 'unmount clears the settling timer');
 global.setTimeout = realTimeout; global.clearTimeout = realClear;
 console.log('Mobile momentum: gesture window, touchend inertia, fast-fling coverage and cleanup passed.');
+
+// A wide viewport fits the entire initial batch: there is no scroll event or
+// visible arrow to unlock pagination. Only visible short rows may auto-fill.
+refs.length = states.length = 0;
+offset = 0; track.scrollWidth = track.clientWidth;
+let loads = 0;
+const paging = { hasMore: true, endReachedRequiresInteraction: true, onEndReached: () => loads++ };
+measure(5, paging);
+assert.equal(loads, 1, 'visible non-overflowing row fills without interaction');
+measure(5, paging);
+assert.equal(loads, 1, 'geometry checks share the in-flight latch');
+refs.length = states.length = 0;
+track.getBoundingClientRect = () => ({ top: 2000, bottom: 2300, width: 800, height: 300 });
+measure(5, paging);
+assert.equal(loads, 1, 'offscreen short row cannot eagerly fetch');
+track.getBoundingClientRect = () => ({ top: 100, bottom: 400, width: 800, height: 300 });
+track.scrollWidth = 1000;
+measure(5, paging);
+assert.equal(loads, 1, 'overflowing row retains the interaction gate');
+track.scrollWidth = 800;
+measure(5, { ...paging, loading: true });
+assert.equal(loads, 1, 'loading row cannot fetch twice');
+measure(5, { ...paging, hasMore: false });
+assert.equal(loads, 1, 'finished or failed row cannot auto-fetch');
+console.log('Pagination: visible short rows refill; offscreen, overflowing, busy and finished rows stay bounded.');

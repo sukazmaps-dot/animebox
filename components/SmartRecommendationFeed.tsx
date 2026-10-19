@@ -1336,8 +1336,8 @@ export default function SmartRecommendationFeed({
         <div className="smart-feed__rails">
           {rails.map((rail, railIndex) => {
             const railLoading = loadingRails.has(rail.id);
-            const railHasMore = hasMore && !exhaustedRails.has(rail.id);
             const railFailed = railErrors.has(rail.id);
+            const railHasMore = hasMore && !exhaustedRails.has(rail.id) && !railFailed;
             const railAwaitingBootstrap =
               rail.items.length === 0 &&
               railHasMore &&
