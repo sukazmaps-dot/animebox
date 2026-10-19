@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const postcss = require('postcss');
+const path = require('node:path');
 
 const foundation = postcss.parse(fs.readFileSync('app/patch17-4-2-ui-precision.css', 'utf8'));
 let mobileActive = 0;
@@ -35,4 +36,20 @@ assert(imports.indexOf('patch14-2-mobile-shell.css') >= 0, 'Mobile shell import 
 assert(imports.indexOf('patch14-2-mobile-shell.css') < imports.indexOf('patch17-4-2-ui-precision.css'),
   'Unexpected CSS order; audit the browser cascade.');
 assert(imports.length <= 76, 'Root CSS import budget exceeded');
+assert(imports.length === new Set(imports).size, 'Duplicate root CSS imports');
+for (const filename of imports) {
+  assert(fs.existsSync(path.resolve('app', filename)),
+    'Missing global CSS file: ' + filename);
+}
+const editorial = imports.indexOf('styles/editorial-refinements.css');
+const quiet = imports.indexOf('styles/quiet-interactions.css');
+assert(editorial > imports.indexOf('patch14-1-visual-foundation.css') &&
+       editorial < imports.indexOf('patch14-2-mobile-shell.css'),
+  'Editorial refinements lost their intended cascade position');
+assert(quiet > imports.indexOf('animebox-identity.css') &&
+       quiet < imports.indexOf('animebox-visual-language-v1.css'),
+  'Quiet interactions lost their intended cascade position');
+assert(!imports.includes('patch14-1-1-anti-ai-design.css') &&
+       !imports.includes('patch16-quiet-interactions.css'),
+  'Legacy patch-named CSS import reintroduced');
 console.log('[Patch 29.13] CSS ownership: desktop selection and mobile dock are isolated.');
