@@ -52,6 +52,9 @@ jobs:
       - name: Franchise CSS Module ownership
         run: npm run franchise-css:check
 
+      - name: Franchise copy CSS Module ownership
+        run: npm run franchise-copy-css:check
+
       - name: Railway 31.19 cache, image memory and cancellation regression
         run: npm run railway-cost:check
 
@@ -104,6 +107,24 @@ jobs:
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run anime-layout:check
+
+      - name: Phase 3D before-after browser and screenshot parity
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 280
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+          FRANCHISE_PARITY_SCREENSHOT_DIR: artifacts/franchise-phase3d
+        run: |
+          git fetch --no-tags --depth=1 origin 0c557678cd2a623e37f141c64538fba63bdf38bb
+          node scripts/franchise-copy-css-parity.mjs
+
+      - name: Upload franchise Phase 3D before-after screenshot pairs
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.number == 280
+        uses: actions/upload-artifact@v4
+        with:
+          name: franchise-phase3d-parity
+          path: artifacts/franchise-phase3d/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Chat frame browser layout regression
         env:
