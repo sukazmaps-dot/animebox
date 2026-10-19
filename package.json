@@ -136,7 +136,7 @@
     "media-origin-recovery:check": "node tests/media-origin-relay.mjs && node tests/telegram-health-sitemap.cjs",
     "home-geometry:check": "node tests/home-schedule-ssr.mjs",
     "seo-indexing-media:check": "node tests/seo-indexing-media-efficiency.mjs",
-    "home-tracker-recovery:check": "node tests/home-feed-recovery.cjs && node tests/tracker-posters.cjs && node tests/mood-schedule-recovery.cjs && node tests/tooltip-poster-reliability.cjs",
+    "home-tracker-recovery:check": "node tests/home-feed-recovery.cjs && node tests/patch32-2-rail-fill.cjs && node tests/tracker-posters.cjs && node tests/mood-schedule-recovery.cjs && node tests/tooltip-poster-reliability.cjs",
     "tracker-library-write:check": "node tests/tracker-library-write.cjs",
     "patch29:check": "node tests/patch29-social-home.cjs",
     "patch29-1:check": "node tests/patch29-1-mobile-social.cjs",
