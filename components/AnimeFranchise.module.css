@@ -14,7 +14,17 @@
   text-decoration: none;
   scroll-snap-align: start;
 }
+.season :global(.anime-franchise-v3__step) {
+  grid-row: 1 / span 3;
+  align-self: start;
+  color: var(--ab-ui-accent);
+  font-size: 11px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
 .season :global(.anime-franchise-v3__season-title) {
+  color: var(--ab-ui-muted);
+  text-overflow: ellipsis;
   white-space: normal !important;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -25,9 +35,17 @@
   overflow-wrap: anywhere;
 }
 .season :global(.anime-franchise-v3__season-label) {
+  color: var(--ab-ui-text);
+  font-size: 12px;
+  font-weight: 720;
   line-height: 1.4;
 }
+.season :global(.anime-franchise-v3__year) {
+  color: var(--ab-ui-muted);
+  font-size: 9px;
+}
 .season :global(.anime-franchise-v3__current) {
+  font-weight: 720;
   position: static;
   grid-column: 2;
   justify-self: start;

@@ -118,9 +118,42 @@ try {
             const title=document.querySelector('.detail_identity h1');
             const track = document.querySelector('.navrail_track');
             track.scrollTo({ left: track.scrollWidth, behavior: 'instant' });
+            // Phase 3D: sample the actual scoped module selectors in Chromium
+            // alongside the existing responsive geometry matrix.
+            const seasonCard = document.querySelector('.franchise_season');
+            const seasonChild = (name) => {
+              const node = seasonCard.querySelector('.anime-franchise-v3__' + name);
+              const style = getComputedStyle(node);
+              return { fontWeight: style.fontWeight, fontSize: style.fontSize,
+                gridRow: style.gridRow, whiteSpace: style.whiteSpace,
+                lineClamp: style.webkitLineClamp, color: style.color };
+            };
+            const seasonTypography = {
+              step: seasonChild('step'),
+              label: seasonChild('season-label'),
+              title: seasonChild('season-title'),
+              year: seasonChild('year'),
+            };
+            const currentTag = document.createElement('span');
+            currentTag.className = 'anime-franchise-v3__current';
+            currentTag.textContent = 'Сейчас';
+            seasonCard.append(currentTag);
+            const currentStyle = getComputedStyle(currentTag);
+            const currentGeometry = { position: currentStyle.position,
+              gridColumnStart: currentStyle.gridColumnStart,
+              fontWeight: currentStyle.fontWeight };
+            currentTag.remove();
             return { franchise: rect('.detail_franchise'), discussion: rect('.detail_discussion'), track: rect('.navrail_track'), trackWidth: track.clientWidth, trackScrollWidth: track.scrollWidth, trackScrollLeft: track.scrollLeft, title:rect('.detail_identity h1'),titleScroll:title.scrollWidth,titleWidth:title.clientWidth,ctaContrast, overlay:getComputedStyle(document.querySelector('.detail_hero'),'::after').backgroundImage, hero: rect('.detail_hero'), identity: rect('.detail_identity'), poster: document.querySelector('.detail_poster') && rect('.detail_poster'), actions: rect('.detail_actions'), description: rect('.detail_description'),
-              copy: rect('.synopsis_full'), watch: rect('.anime-detail-actions__watch'), controls };
+              copy: rect('.synopsis_full'), watch: rect('.anime-detail-actions__watch'), controls,
+              seasonTypography, currentGeometry };
           });
+          assert.equal(geometry.seasonTypography.step.fontWeight, '760', `${label}: step weight regressed`);
+          assert.equal(geometry.seasonTypography.label.fontWeight, '720', `${label}: season label weight regressed`);
+          assert.equal(geometry.seasonTypography.title.whiteSpace, 'normal', `${label}: season title must wrap`);
+          assert.equal(geometry.seasonTypography.title.lineClamp, '2', `${label}: two-line season title clamp missing`);
+          assert.equal(geometry.currentGeometry.position, 'static', `${label}: active season should remain in grid`);
+          assert.equal(geometry.currentGeometry.gridColumnStart, '2', `${label}: active season grid column changed`);
+          assert.equal(geometry.currentGeometry.fontWeight, '720', `${label}: active season emphasis missing`);
           assert(geometry.ctaContrast>=4.5, `${label}: watch text contrast ${geometry.ctaContrast}`);
           for (const key of ['franchise', 'discussion', 'track']) {
             assert(geometry[key].width > 0 && geometry[key].left >= -1 && geometry[key].right <= width + 1, `${label}: ${key} escapes viewport`);
