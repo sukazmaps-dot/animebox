@@ -11,6 +11,7 @@
     "player-hotfix:browser": "node scripts/player-mobile-overlay-browser-smoke.cjs",
     "patch30-1:check": "node tests/related-anime-taxonomy.cjs && node tests/anime-franchise-recovery.cjs && node scripts/patch30-1-streaming-quality-check.mjs",
     "css-cascade:check": "node scripts/css-cascade-ownership-check.cjs",
+    "nav-css:check": "node tests/navigation-css-ownership.cjs",
     "css-cascade:browser": "node scripts/css-cascade-browser-smoke.cjs",
     "route-layout:check": "node scripts/route-layout-contract-check.cjs",
     "route-layout:browser": "node scripts/route-layout-matrix-smoke.cjs",
