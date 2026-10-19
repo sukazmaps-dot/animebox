@@ -99,7 +99,7 @@ for (const file of cssFiles) {
       if (!selectors.has(selector)) selectors.set(selector, []);
       selectors.get(selector).push({
         file, line: rule.source && rule.source.start ? rule.source.start.line : 0,
-        context: context.reverse().join(' > ') || 'base',
+        context: context.slice().reverse().join(' > ') || 'base',
       });
     }
   });
