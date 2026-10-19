@@ -94,6 +94,11 @@ for (const file of cssFiles) {
   const localSelectors = new Set();
   ast.walkRules((rule) => {
     row.rules += 1;
+    // 'from', 'to' and percentage stops are keyframe selectors, not cascade selectors.
+    for (let ancestor = rule.parent; ancestor && ancestor.type !== 'root';
+      ancestor = ancestor.parent) {
+      if (ancestor.type === 'atrule' && /keyframes$/i.test(ancestor.name)) return;
+    }
     const context = [];
     for (let parent = rule.parent; parent && parent.type !== 'root'; parent = parent.parent)
       if (parent.type === 'atrule') context.push('@' + parent.name + ' ' + parent.params);
@@ -129,14 +134,21 @@ for (const file of cssFiles) {
 for (const row of records) row.importers = [...(owners.get(row.path) || [])].sort();
 
 const overlaps = [];
+const scopedSelectorReuse = [];
 for (const [selector, sites] of selectors) {
-  const affected = [...new Set(sites.map((site) => site.file))].sort();
-  if (affected.length > 1)
+  // CSS Module class names are hashed and don't conflict across module files.
+  // :global usage requires a later semantic audit and isn't inferred from simple names.
+  const globalSites = sites.filter((site) => !site.file.endsWith('.module.css'));
+  const affected = [...new Set(globalSites.map((site) => site.file))].sort();
+  if (affected.length > 1) {
     overlaps.push({
-      selector, fileCount: affected.length, occurrences: sites.length,
-      contexts: [...new Set(sites.map((site) => site.context))].sort(),
+      selector, fileCount: affected.length, occurrences: globalSites.length,
+      contexts: [...new Set(globalSites.map((site) => site.context))].sort(),
       files: affected,
     });
+  } else if (new Set(sites.map((site) => site.file)).size > 1) {
+    scopedSelectorReuse.push(selector);
+  }
 }
 overlaps.sort((a, b) => b.fileCount - a.fileCount ||
   b.occurrences - a.occurrences || a.selector.localeCompare(b.selector));
@@ -158,6 +170,7 @@ const counts = {
   declarations: records.reduce((sum, row) => sum + row.declarations, 0),
   important: records.reduce((sum, row) => sum + row.important, 0),
   selectorOverlapCandidates: overlaps.length,
+  scopedSelectorReuseCandidates: scopedSelectorReuse.length,
   withoutStaticImport: withoutStaticImport.length,
   missingLocalImports: missing.length,
   newMissingLocalImports: missing.filter((item) =>
@@ -179,7 +192,7 @@ if (saveReport) {
   const cell = (s) => String(s).replaceAll('|', '\\|').replaceAll('\n', ' ');
   const lines = [
     '# AnimeBox CSS inventory', '',
-    '> Generated review candidates. Repeated selectors do not necessarily mean broken CSS.', '',
+    '> Generated review candidates from global CSS only. CSS Modules are scoped, and keyframes are excluded.', '',
     '| Metric | Count |', '| --- | ---: |',
     ...Object.entries(counts).map(([key, value]) => '| ' + key + ' | ' + value + ' |'),
     '', '## Cross-file selector overlaps', '',
@@ -201,7 +214,9 @@ if (saveReport) {
     ...(missing.length ? missing.map((item) => '- ' + item.importer + ' → ' + item.target)
       : ['None']),
     '', '## Limitations', '',
-    '- Selector overlaps can be intentional theme, media, or cascade overrides.',
+    '- Global selector overlaps can be intentional theme, media, or cascade overrides.',
+    '- CSS Module class reuse is measured separately; it is normally isolated by scoped names.',
+    '- Keyframe stop names are excluded from selector overlap analysis.',
     '- No static import does not prove unused CSS: dynamic/runtime or external references may exist.',
     '- The report does not evaluate selector specificity, nesting or browser computed styles.',
     '- Do not modify or delete styles until owners and visual regressions are checked.',
