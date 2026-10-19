@@ -27,9 +27,9 @@ Phase 3C (PR #278, уже в main) перенёс геометрию карто�
 - `.anime-franchise-v3__step` — 6 деклараций;
 - `.anime-franchise-v3__season-label` — 3 декларации;
 - `.anime-franchise-v3__season-title` — 5 деклараций (из них `overflow`, `font-size`, `white-space` уже перекрыты CSS Module);
-- Составное правило `.anime-franchise-v3__year, .anime-franchise-v3__current` разделить: год переносится в Module, `current` получает исходные `color` и `font-size` без изменений.
+- Составное правило `.anime-franchise-v3__year, .anime-franchise-v3__current` разделить: год переносится в Module, а `font-size: 9px` для `current` объединяется с его существующим следующим правилом. Итоговый глобальный `current` сохраняет все свойства и эффективный акцентный цвет.
 
-Не затрагивать глобальное правило `.anime-franchise-v3__current` с `position, right, top, color, font-weight` и остальной CSS (таймлайн, hover, тема, related title).
+Глобальный `.anime-franchise-v3__current` сохраняет `position`, `right`, `top`, `color`, `font-weight`; в него переносится только ранее действовавший `font-size: 9px`. Поведение активного состояния и остальной CSS (таймлайн, hover, тема, related title) не меняются.
 
 **`components/AnimeFranchise.module.css`**
 
