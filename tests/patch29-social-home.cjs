@@ -31,7 +31,10 @@ const lobby = fs.readFileSync('components/home/HomeWatchTogetherLobby.tsx', 'utf
 const deferred = fs.readFileSync('components/home/HomeWatchTogetherDeferred.tsx', 'utf8');
 assert(shell.indexOf('<HomeHeroSection />') < shell.indexOf('<HomeWatchTogetherSection />'));
 assert(shell.indexOf('<HomeDiscoverySection />') < shell.indexOf('<HomeCatalogSections />'));
-assert(shell.indexOf('<HomeCatalogSections />') < shell.indexOf('<HomeWatchTogetherSection />'));
+// Composition priorities: social entry now precedes the long ranked/catalogue rails.
+assert(shell.indexOf('<HomeDiscoverySection />') < shell.indexOf('<HomeWatchTogetherSection />'));
+assert(shell.indexOf('<HomeWatchTogetherSection />') < shell.indexOf('<HomeRecommendationSection />'));
+assert(shell.indexOf('<HomeRecommendationSection />') < shell.indexOf('<HomeCatalogSections />'));
 assert(!old.includes("fetch('/api/watch-party/rooms"), 'legacy duplicate rooms fetch removed');
 assert(!lobby.includes('<iframe') && !lobby.includes("from 'peerjs'"), 'homepage must remain video-free');
 assert(lobby.includes('/api/watch-party/rooms/resolve?roomId='), 'join resolves secret only on click');

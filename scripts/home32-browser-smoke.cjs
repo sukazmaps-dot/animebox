@@ -101,6 +101,29 @@ fs.mkdirSync(output, { recursive: true });
         await page.waitForSelector('.smart-card', { timeout: 60000 });
         await page.waitForSelector('.smart-feed__stage[aria-busy="false"]');
         if (history) await page.waitForSelector('.continue-smart-card');
+        // Validate the rendered order, not just source strings. Both guest
+        // history and fresh sessions run in this responsive/theme matrix.
+        const composition = await page.evaluate(() => {
+          const selectors = ['[data-home-hero]', '.continue-watching-section', '#animebox-for-you',
+            '#animebox-watch-together', 'section.schedule', '#animebox-recommendations',
+            '.home-catalog-section', 'aside[aria-label="Сохрани свой прогресс"]'];
+          const nodes = selectors.map(selector => document.querySelector(selector)).filter(Boolean);
+          return {
+            ordered: nodes.every((node, index) => index === 0 ||
+              Boolean(nodes[index - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)),
+            decisions: document.querySelectorAll('#animebox-for-you').length,
+            feeds: document.querySelectorAll('#animebox-recommendations').length,
+            pickerInDecision: Boolean(document.querySelector('#animebox-for-you [role="radiogroup"]')),
+            feedOutsideDecision: !document.querySelector('#animebox-for-you .smart-feed__stage'),
+            personalSchedules: document.querySelectorAll('.personal-schedule-section').length,
+          };
+        });
+        assert(composition.ordered, name + ' rendered decision/social/schedule/feed/guest-prompt order');
+        assert.equal(composition.decisions, 1, name + ' exactly one decision');
+        assert.equal(composition.feeds, 1, name + ' exactly one ranked feed');
+        assert(composition.pickerInDecision && composition.feedOutsideDecision, name + ' choice is independent of long rails');
+        assert(composition.personalSchedules <= 1, name + ' no duplicated personal schedule');
+        assert.equal(await page.locator('#animebox-watch-together a').filter({ hasText: 'Создать комнату' }).getAttribute('href'), '/watch-together', name + ' room entry remains available');
         const geometry = await page.evaluate(() => {
           const rect = e => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom }; };
           const hero = document.querySelector('[data-home-hero]');

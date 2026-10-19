@@ -9,10 +9,10 @@ const shell = read('components/home/HomePageShell.tsx');
 assert(!shell.includes("'use client'"), 'Server shell retained');
 assert(shell.includes('data-home-layout="cinematic"'));
 assert(!shell.includes('<HomeRightRail') && !shell.includes('<HomeShortcuts'), 'No duplicate side panels');
-// Patch 32.0.1: schedule is promoted above discovery; chat precedes secondary retention.
-// Keep the exactly-once and strict-order guard rather than removing it.
+// Home composition priorities: the decision and social entry precede long rails.
+// Keep exactly-once/order checks; the server shell still owns all slots.
 let previous = -1;
-for (const slot of ['HomeHeroSection', 'HomeContinueSection', 'HomeScheduleSection', 'HomeDiscoverySection', 'HomeCatalogSections', 'HomeWatchTogetherSection', 'HomeDeferredChat', 'HomeRetentionSections', 'HomeDeferredSupport']) {
+for (const slot of ['HomeHeroSection', 'HomeContinueSection', 'HomeDiscoverySection', 'HomeWatchTogetherSection', 'HomeScheduleSection', 'HomeRecommendationSection', 'HomeCatalogSections', 'HomeGuestPrompt', 'HomeDeferredChat', 'HomeRetentionSections', 'HomeDeferredSupport']) {
   const matches = [...shell.matchAll(new RegExp('<' + slot + ' \\/>', 'g'))];
   assert.equal(matches.length, 1, 'Exactly one ' + slot);
   assert(matches[0].index > previous, 'Order ' + slot); previous = matches[0].index;
