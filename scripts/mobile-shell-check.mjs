@@ -38,13 +38,13 @@ if (
 }
 
 const mobileShellImport = layout.indexOf(importNeedle);
-const antiAiImport = layout.indexOf("import './patch14-1-1-anti-ai-design.css';");
+const editorialImport = layout.indexOf("import './styles/editorial-refinements.css';");
 if (
   mobileShellImport < 0 ||
-  antiAiImport < 0 ||
-  mobileShellImport < antiAiImport
+  editorialImport < 0 ||
+  mobileShellImport < editorialImport
 ) {
-  failures.push('layout.tsx: Mobile Shell must load after the shared anti-AI visual layer.');
+  failures.push('layout.tsx: Mobile Shell must load after the shared editorial visual layer.');
 }
 
 for (const [label, needle] of [
