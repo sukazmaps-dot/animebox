@@ -242,43 +242,6 @@
   background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
-.anime-franchise-v3__step {
-  grid-row: 1 / span 3;
-  align-self: start;
-  color: var(--ab-ui-accent);
-  font-size: 11px;
-  font-weight: 760;
-  font-variant-numeric: tabular-nums;
-}
-
-.anime-franchise-v3__season-label {
-  color: var(--ab-ui-text);
-  font-size: 12px;
-  font-weight: 720;
-}
-
-.anime-franchise-v3__season-title {
-  overflow: hidden;
-  color: var(--ab-ui-muted);
-  font-size: 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.anime-franchise-v3__year,
-.anime-franchise-v3__current {
-  color: var(--ab-ui-muted);
-  font-size: 9px;
-}
-
-.anime-franchise-v3__current {
-  position: absolute;
-  right: 10px;
-  top: 9px;
-  color: var(--ab-ui-accent);
-  font-weight: 720;
-}
-
 .anime-franchise-v3__related {
   border: 1px solid rgba(255, 255, 255, .07);
   border-radius: 8px 13px 8px 8px;
