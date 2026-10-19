@@ -91,10 +91,10 @@ const homeDiscoveryIndex = shell.indexOf('<HomeDiscoverySection />');
 const catalogueIndex = shell.indexOf('<HomeCatalogSections />');
 if (
   !(heroIndex >= 0 && resumeIndex > heroIndex &&
-    homeDiscoveryIndex > resumeIndex && catalogueIndex > homeDiscoveryIndex &&
-    socialIndex > catalogueIndex)
+    homeDiscoveryIndex > resumeIndex && socialIndex > homeDiscoveryIndex &&
+    catalogueIndex > socialIndex)
 ) {
-  failures.push('Streaming-first Hero/resume/discovery/catalogue/Watch Together order regressed.');
+  failures.push('Hero/resume/decision/Watch Together/catalogue order regressed.');
 }
 
 const discoveryIndex =
@@ -113,11 +113,15 @@ if (
   !(
     discoveryIndex >= 0 &&
     personalScheduleIndex >= 0 &&
-    !shell.includes('<HomePersonalScheduleSection />')
+    !shell.includes('<HomePersonalScheduleSection />') &&
+    shell.indexOf('<HomeRecommendationSection />') > globalScheduleIndex &&
+    discovery.indexOf('export function HomeRecommendationSection') < personalScheduleIndex &&
+    (discovery.match(/<HomePersonalScheduleSection \/>/g) ?? []).length === 1 &&
+    (discovery.match(/<SmartRecommendationFeed\s/g) ?? []).length === 1
   )
 ) {
   failures.push(
-    'Home hierarchy must keep personal schedule inside the single discovery surface before recommendations.',
+    'Home must keep one personal schedule and one ranked feed inside the recommendation section after the decision.',
   );
 }
 

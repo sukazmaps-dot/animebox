@@ -24,17 +24,17 @@ function ordered(markers, source = shell) {
   }
 }
 
-// Patch 32.0.1 editorial reordering: schedule now precedes discovery, and
-// community chat precedes secondary retention. Preserve strict relative order
-// and the original server-shell invariant instead of disabling this gate.
+// Home composition priorities: preserve strict order and the server shell;
+// choice/social now precede schedule and the single ranked feed.
 ordered([
   '<HomeHeroSection />',
-  '<HomeGuestPrompt />',
   '<HomeContinueSection />',
-  '<HomeScheduleSection />',
   '<HomeDiscoverySection />',
-  '<HomeCatalogSections />',
   '<HomeWatchTogetherSection />',
+  '<HomeScheduleSection />',
+  '<HomeRecommendationSection />',
+  '<HomeCatalogSections />',
+  '<HomeGuestPrompt />',
   '<HomeDeferredChat />',
   '<HomeRetentionSections />',
   '<HomeDeferredSupport />',

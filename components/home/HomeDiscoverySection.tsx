@@ -48,52 +48,72 @@ export default function HomeDiscoverySection() {
       smartRecommendations.length === 0);
 
   return (
+    <div className={styles.discovery}>
+      <section
+        id="animebox-for-you"
+        aria-labelledby="home-tonight-title"
+        className="section smart-feed-section"
+        aria-busy={recommendationsLoading}
+      >
+        <SectionHeader id="home-tonight-title" title="Что посмотреть сегодня?" href="/search" linkLabel="Весь каталог" />
+
+        <HomeMoodPicker
+          value={mood}
+          onChange={updateMood}
+          busy={moodSwitching}
+          compact
+        />
+
+        {recommendationsLoading ? <HomeTonightLoading mood={mood} /> : <HomeTonightPick
+          key={mood}
+          mood={mood}
+          items={mood === recommendationMood ? smartRecommendations : []}
+          busy={moodSwitching}
+          hasWatchHistory={hasWatchHistory}
+        />}
+      </section>
+    </div>
+  );
+}
+
+/** Reuses the same ranked runtime; separation lets the decision precede long rails. */
+export function HomeRecommendationSection() {
+  const {
+    hydrated,
+    recommendationsReady,
+    popularLoading,
+    ongoingLoading,
+    smartRecommendations,
+    recommendationMood,
+    hasWatchHistory,
+  } = useHomeFeedRuntime();
+  const recommendationsLoading = !hydrated || !recommendationsReady ||
+    (popularLoading && ongoingLoading && smartRecommendations.length === 0);
+
+  return (
     <>
       <HomePersonalScheduleSection />
-
-      <div className={styles.discovery}>
-        <section
-          id="animebox-for-you"
-          className="section smart-feed-section"
-          aria-busy={recommendationsLoading}
-        >
-          <SectionHeader title="Что посмотреть сегодня?" href="/search" linkLabel="Весь каталог" />
-
-          <HomeMoodPicker
-            value={mood}
-            onChange={updateMood}
-            busy={moodSwitching}
-            compact
+      <section id="animebox-recommendations" aria-labelledby="home-recommendations-title" className="section smart-feed-section" aria-busy={recommendationsLoading}>
+        <SectionHeader id="home-recommendations-title" title={hasWatchHistory ? 'Подборки для тебя' : 'Подборки по настроению'} />
+        {recommendationsLoading ? (
+          <RecommendationFeedSkeleton
+            railCount={2}
+            cardCount={5}
+            label="Загружаем персональные рекомендации"
           />
-
-          {recommendationsLoading ? <HomeTonightLoading mood={mood} /> : <HomeTonightPick
-            key={mood}
-            mood={mood}
-            items={mood === recommendationMood ? smartRecommendations : []}
-            busy={moodSwitching}
-            hasWatchHistory={hasWatchHistory}
-          />}
-
-          {recommendationsLoading ? (
-            <RecommendationFeedSkeleton
-              railCount={2}
-              cardCount={5}
-              label="Загружаем персональные рекомендации"
+        ) : (
+          <div
+            className="home-deferred home-deferred--recommendations"
+            data-loading-policy="instant-after-ranking"
+          >
+            <SmartRecommendationFeed
+              items={smartRecommendations}
+              mood={recommendationMood}
+              hasWatchHistory={hasWatchHistory}
             />
-          ) : (
-            <div
-              className="home-deferred home-deferred--recommendations"
-              data-loading-policy="instant-after-ranking"
-            >
-              <SmartRecommendationFeed
-                items={smartRecommendations}
-                mood={recommendationMood}
-                hasWatchHistory={hasWatchHistory}
-              />
-            </div>
-          )}
-        </section>
-      </div>
+          </div>
+        )}
+      </section>
     </>
   );
 }

@@ -5,7 +5,7 @@ import HomeHeroSection from '@/components/home/HomeHeroSection';
 import HomeGuestPrompt from '@/components/home/HomeGuestPrompt';
 import HomeContinueSection from '@/components/home/HomeContinueSection';
 import HomeWatchTogetherSection from '@/components/home/HomeWatchTogetherSection';
-import HomeDiscoverySection from '@/components/home/HomeDiscoverySection';
+import HomeDiscoverySection, { HomeRecommendationSection } from '@/components/home/HomeDiscoverySection';
 import HomeCatalogSections from '@/components/home/HomeCatalogSections';
 import HomeScheduleSection from '@/components/home/HomeScheduleSection';
 import {
@@ -33,12 +33,13 @@ export default function HomePageShell({
         <div className={styles.page} data-home-layout="cinematic">
           <HomeHeroSection />
           <div className={styles.shelves}>
-            <HomeGuestPrompt />
             <HomeContinueSection />
-            <HomeScheduleSection />
             <HomeDiscoverySection />
-            <HomeCatalogSections />
             <HomeWatchTogetherSection />
+            <HomeScheduleSection />
+            <HomeRecommendationSection />
+            <HomeCatalogSections />
+            <HomeGuestPrompt />
             <HomeDeferredChat />
             <HomeRetentionSections />
             <div className={styles.support}>
