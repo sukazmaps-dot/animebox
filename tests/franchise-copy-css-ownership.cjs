@@ -73,13 +73,9 @@ for (const property of ['font-size', 'line-height', 'white-space'])
   assert(title.get(property)?.important, 'Do not weaken clamped title override: ' + property);
 const current = expectRule(globalCss, '.anime-franchise-v3__current', {
   position: 'absolute', right: '10px', top: '9px',
-  color: 'var(--ab-ui-accent)', 'font-weight': '720',
+  color: 'var(--ab-ui-accent)', 'font-size': '9px', 'font-weight': '720',
 });
-assert.equal(current.size, 5, 'Global active marker changed unexpectedly');
-const micro = expectRule(globalCss, '.anime-franchise-v3__current', {
-  color: 'var(--ab-ui-accent)', 'font-weight': '720',
-});
-assert(micro.has('position'));
+assert.equal(current.size, 6, 'Global active marker changed unexpectedly');
 const currentLocal = expectRule(localCss, '.season :global(.anime-franchise-v3__current)', {
   position: 'static', 'grid-column': '2', 'justify-self': 'start',
   color: 'var(--ab-ui-accent)', 'font-size': '10px',
