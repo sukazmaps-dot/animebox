@@ -302,6 +302,13 @@ fs.mkdirSync(output, { recursive: true });
           assert(targets.every(height => height >= 44), 'Taste feedback touch targets');
           await dialog.getByRole('button', { name: /^Не сейчас/ }).click();
           await page.locator('.smart-feed__feedback-undo').waitFor();
+          const undoGeometry = await page.locator('.smart-feed__feedback-undo').evaluate(toast => {
+            const nav = document.querySelector('nav.mobile-nav');
+            const box = toast.getBoundingClientRect();
+            const button = toast.querySelector('button').getBoundingClientRect();
+            return { aboveNav: !nav || !nav.getClientRects().length || box.bottom <= nav.getBoundingClientRect().top, touch: button.height >= 44 };
+          });
+          assert(undoGeometry.aboveNav && undoGeometry.touch, name + ' undo clears mobile navigation and keeps 44px target');
           await page.locator('.smart-feed__feedback-undo button').click();
           await page.waitForFunction(() => !document.querySelector('.smart-feed__feedback-undo'));
         }
