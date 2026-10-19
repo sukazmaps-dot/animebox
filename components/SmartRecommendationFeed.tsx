@@ -1402,11 +1402,14 @@ export default function SmartRecommendationFeed({
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
             const displayItems = rail.items.filter(item => !visibleAcrossRails.has(item.anime.id));
-            // Hide only finished sparse rows. Recoverable windows and errors
-            // must keep their retry action visible while more pages exist.
-            // Preserve the interleaved personal schedule slot.
+            // Never suppress a real 1–3-title continuation. A terminal small
+            // collection gets a compact layout instead of a full-width void.
+            // An empty, recoverable row still exposes its retry control.
             const hideSparse = !showRailSkeleton && !railLoading &&
-              !railFailed && !hasMore && displayItems.length < 4;
+              !railFailed && !hasMore && displayItems.length === 0;
+            const compactSparse = displayItems.length > 0 && displayItems.length <= 2 &&
+              !railLoading && !showRailSkeleton &&
+              (!hasMore || exhaustedRails.has(rail.id));
             // Preserve the mounted row slot and keys for session-stable rail
             // order; CSS hides the sparse surface without unmounting its data.
             displayItems.forEach(item => visibleAcrossRails.add(item.anime.id));
@@ -1421,6 +1424,8 @@ export default function SmartRecommendationFeed({
                 style={hideSparse ? { display: 'none' } : undefined}
                 data-recommendation-rail-id={rail.id}
                 data-recommendation-rail-items={rail.items.length}
+                data-recommendation-visible-items={displayItems.length}
+                data-recommendation-compact={compactSparse ? 'true' : 'false'}
                 data-recommendation-rail-sparse={
                   rail.items.length < MIN_INITIAL_RAIL_ITEMS
                     ? 'true'
