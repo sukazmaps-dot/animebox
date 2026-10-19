@@ -41,6 +41,12 @@ assert(source.includes('data-recommendation-visible-items={displayItems.length}'
 
 const shell = read('components/home/HomePageShell.module.css');
 assert(shell.includes('data-recommendation-compact="true"'), 'compact layout must have scoped styles');
+const compactRule = shell.match(/\.page :global\(\.smart-feed__personal-rail\[data-recommendation-compact="true"\]\) \{([^}]+)\}/);
+assert(compactRule, 'compact collection must have a scoped desktop rule');
+for (const declaration of ['box-sizing: border-box', 'width: max-content', 'max-width: 100%', 'justify-self: start', 'grid-template-columns: minmax(160px, 210px) max-content']) {
+  assert(compactRule[1].includes(declaration), 'compact collection must shrink to real content: ' + declaration);
+}
+
 assert(shell.includes('-webkit-mask-image: none; mask-image: none;'),
   'poster peeks must not be dimmed by an old dark edge mask');
 assert(!/linear-gradient\(to right, transparent, #000 (?:20|24)px/.test(shell),
@@ -56,4 +62,4 @@ assert(community.includes('aria-label="Скрыть блок поддержки 
   'keep accessible dismiss control');
 assert(community.includes("window.localStorage.setItem(DISMISS_KEY, 'true')"),
   'keep persistent dismiss behavior');
-console.log('PASS Patch 32.6: terminal sparse rails, recoverable states, poster peeks and compact promo ownership');
+console.log('PASS Patch 32.6.1: terminal sparse rails shrink to poster content, mobile card size and promos retained');
