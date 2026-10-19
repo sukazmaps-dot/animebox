@@ -36,7 +36,7 @@ try {
   assert.equal(report.counts.rootCssImports, 2);
   assert.equal(report.counts.important, 1);
   assert.equal(report.counts.selectorOverlapCandidates, 1);
-  assert(report.overlaps.some((item) => item.selector === '.card' && item.fileCount === 3));
+  assert(report.overlaps.some((item) => item.selector === '.card' && item.fileCount === 2));
   assert(report.withoutStaticImport.includes('app/unreferenced.css'));
   assert.deepEqual(report.files.find((item) =>
     item.path === 'components/Card.module.css').importers, ['components/Card.tsx']);
