@@ -230,6 +230,20 @@ fs.mkdirSync(output, { recursive: true });
             if (getComputedStyle(card.querySelector('.smart-card__reason') || card).getPropertyValue('display') !== 'none' && card.querySelector('.smart-card__reason')) errors.push('duplicated reason tag');
             if (innerWidth <= 412 && Math.abs(p.width - 130) > 2) errors.push(`mobile poster must be 130px (poster=${p.width.toFixed(2)} slide=${box(card.parentElement).width.toFixed(2)} card=${box(card).width.toFixed(2)} media=${box(card.querySelector('.anime-card-content__media') || poster).width.toFixed(2)})`);
           }
+          // Terminal 1–2-title collections must not reserve a full-width
+          // bordered shelf (especially in Chrome's desktop-site phone mode).
+          for (const section of document.querySelectorAll('.smart-feed__personal-rail[data-recommendation-compact="true"]')) {
+            if (section.getClientRects().length === 0) continue;
+            const panel = box(section);
+            const track = section.querySelector('[role="region"]');
+            if (!track) { errors.push('compact collection missing poster track'); continue; }
+            if (panel.width > Math.min(innerWidth - 20, 580) + 2) {
+              errors.push('compact recommendation stretches beyond card-sized panel: ' + panel.width.toFixed(1));
+            }
+            if (innerWidth > 768 && panel.right - box(track).right > 40) {
+              errors.push('compact recommendation leaves blank space after poster track');
+            }
+          }
           for (const row of document.querySelectorAll('.smart-feed__rail')) {
             // Session-stable sparse slots retain their child DOM after the
             // parent is hidden. Their old arrow is not a visible affordance;
