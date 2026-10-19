@@ -3,6 +3,8 @@
 import AnimeIntentLink from '@/components/AnimeIntentLink';
 import AnimeCardContent from '@/components/AnimeCardContent';
 import { useEffect, useRef, useState } from 'react';
+import { useAuthState } from '@/components/AuthStateProvider';
+import { useAuthModal } from '@/components/AuthModalProvider';
 
 import AnimeImage, { type AnimeImageLoadState } from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
@@ -161,6 +163,8 @@ export default function SmartRecommendationCard({
     diversity,
   } = recommendation;
   const title = getAnimeTitle(anime);
+  const { user, loading: authLoading } = useAuthState();
+  const { openAuth } = useAuthModal();
   const rootRef = useRef<HTMLElement | null>(null);
   const feedbackDialogRef = useRef<HTMLDialogElement | null>(null);
   const [runtimeIdentity] = useState<RecommendationCardRuntimeIdentity>(
@@ -177,7 +181,7 @@ export default function SmartRecommendationCard({
     runtimeIdentity.impressionSent,
   );
   const hoverStartedAtRef = useRef<number | null>(null);
-  const [planState, setPlanState] = useState<'idle' | 'saving' | 'saved' | 'auth' | 'error'>('idle');
+  const [planState, setPlanState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [liked, setLiked] = useState(false);
   const [posterState, setPosterState] = useState<AnimeImageLoadState>('loading');
   const ratingLabel = formatAnimeScore(anime);
@@ -373,7 +377,14 @@ export default function SmartRecommendationCard({
   }
 
   async function addToPlans() {
-    if (planState === 'saving' || planState === 'saved') return;
+    if (authLoading || planState === 'saving' || planState === 'saved') return;
+
+    // A guest bookmark is an auth intent, not an API write. Never replace
+    // the bookmark with a dead "Войти" retry state.
+    if (!user) {
+      openAuth({ mode: 'login', intent: 'tracker', next: '/' });
+      return;
+    }
 
     setPlanState('saving');
 
@@ -391,7 +402,13 @@ export default function SmartRecommendationCard({
       });
     } catch (error) {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
-      setPlanState(message.includes('войди') ? 'auth' : 'error');
+      if (/войди|войти|авториз|unauthoriz|session|jwt/.test(message)) {
+        // A server-rejected/expired session must also open the real auth flow.
+        setPlanState('idle');
+        openAuth({ mode: 'login', intent: 'tracker', next: '/' });
+      } else {
+        setPlanState('error');
+      }
     }
   }
 
@@ -480,26 +497,21 @@ export default function SmartRecommendationCard({
       ? 'Сохраняем…'
       : planState === 'saved'
         ? 'Сохранено'
-        : planState === 'auth'
-          ? 'Войти'
-          : planState === 'error'
-            ? 'Повторить'
-            : 'В список';
+        : planState === 'error'
+          ? 'Повторить'
+          : 'В список';
 
   const planIcon =
     planState === 'saved'
       ? '✓'
-      : planState === 'auth'
-        ? '↗'
-        : planState === 'error'
-          ? '↻'
-          : '+';
+      : planState === 'error'
+        ? '↻'
+        : '+';
 
   const planClassName = [
     'smart-card__plan',
     planState === 'saved' ? 'is-saved' : '',
     planState === 'saving' ? 'is-saving' : '',
-    planState === 'auth' ? 'is-auth' : '',
     planState === 'error' ? 'is-error' : '',
   ]
     .filter(Boolean)
@@ -586,11 +598,13 @@ export default function SmartRecommendationCard({
             type="button"
             className={planClassName}
             onClick={() => void addToPlans()}
-            disabled={planState === 'saving' || planState === 'saved'}
+            disabled={authLoading || planState === 'saving' || planState === 'saved'}
             aria-label={
               planState === 'saved'
                 ? 'Добавлено в список «Буду смотреть»'
-                : 'Добавить в список «Буду смотреть»'
+                : !user
+                  ? 'Войти, чтобы добавить в список «Буду смотреть»'
+                  : 'Добавить в список «Буду смотреть»'
             }
             title={
               planState === 'saved'
