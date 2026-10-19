@@ -43,6 +43,8 @@ const shell = read('components/home/HomePageShell.module.css');
 assert(shell.includes('data-recommendation-compact="true"'), 'compact layout must have scoped styles');
 assert(shell.includes('-webkit-mask-image: none; mask-image: none;'),
   'poster peeks must not be dimmed by an old dark edge mask');
+assert(/@media \(max-width: 768px\)[\s\S]*?data-recommendation-compact="true"\] \.smart-feed__slide\)[\s\S]*?width: 130px;[\s\S]*?flex: 0 0 130px;/.test(shell),
+  'compact mobile rail must preserve the existing 130px poster invariant');
 assert(!/linear-gradient\(to right, transparent, #000 (?:20|24)px/.test(shell),
   'legacy poster edge masks must be removed, not overlaid');
 
