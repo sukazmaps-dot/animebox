@@ -217,16 +217,8 @@
 }
 
 .anime-franchise-v3__season {
-  position: relative;
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 2px 10px;
-  min-height: 86px;
-  padding: 12px 12px 11px;
   border: 1px solid rgba(255, 255, 255, .08);
-  border-radius: 8px 14px 8px 8px;
   background: var(--ab-ui-surface);
-  text-decoration: none;
   transition: border-color .18s ease, background .18s ease;
 }
 

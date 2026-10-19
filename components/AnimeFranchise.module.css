@@ -2,12 +2,16 @@
   gap: 16px;
 }
 .seasonsRail .season {
+  position: relative;
+  display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
+  gap: 2px 10px;
   min-width: 150px;
   min-height: 112px;
   align-content: start;
   padding: 14px;
   border-radius: 12px;
+  text-decoration: none;
   scroll-snap-align: start;
 }
 .season :global(.anime-franchise-v3__season-title) {
