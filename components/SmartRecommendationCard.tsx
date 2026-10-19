@@ -498,15 +498,15 @@ export default function SmartRecommendationCard({
       : planState === 'saved'
         ? 'Сохранено'
         : planState === 'error'
-            ? 'Повторить'
-            : 'В список';
+          ? 'Повторить'
+          : 'В список';
 
   const planIcon =
     planState === 'saved'
       ? '✓'
       : planState === 'error'
-          ? '↻'
-          : '+';
+        ? '↻'
+        : '+';
 
   const planClassName = [
     'smart-card__plan',
