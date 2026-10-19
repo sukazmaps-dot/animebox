@@ -49,6 +49,9 @@ jobs:
       - name: Navigation cascade ownership
         run: npm run nav-css:check
 
+      - name: Franchise CSS Module ownership
+        run: npm run franchise-css:check
+
       - name: Railway 31.19 cache, image memory and cancellation regression
         run: npm run railway-cost:check
 
