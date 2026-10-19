@@ -84,17 +84,18 @@ if (
   );
 }
 
-const heroIndex = shell.indexOf('<HomeHeroSection />');
+// Unified decision is the hero; real resume precedes it.
+const heroIndex = shell.indexOf('<HomeDiscoverySection />');
 const resumeIndex = shell.indexOf('<HomeContinueSection />');
 const socialIndex = shell.indexOf('<HomeWatchTogetherSection />');
 const homeDiscoveryIndex = shell.indexOf('<HomeDiscoverySection />');
 const catalogueIndex = shell.indexOf('<HomeCatalogSections />');
 if (
-  !(heroIndex >= 0 && resumeIndex > heroIndex &&
-    homeDiscoveryIndex > resumeIndex && socialIndex > homeDiscoveryIndex &&
+  !(resumeIndex >= 0 && heroIndex > resumeIndex &&
+    homeDiscoveryIndex === heroIndex && socialIndex > homeDiscoveryIndex &&
     catalogueIndex > socialIndex)
 ) {
-  failures.push('Hero/resume/decision/Watch Together/catalogue order regressed.');
+  failures.push('Resume/single decision hero/Watch Together/catalogue order regressed.');
 }
 
 const discoveryIndex =

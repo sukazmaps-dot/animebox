@@ -12,7 +12,7 @@ assert(!shell.includes('<HomeRightRail') && !shell.includes('<HomeShortcuts'), '
 // Home composition priorities: the decision and social entry precede long rails.
 // Keep exactly-once/order checks; the server shell still owns all slots.
 let previous = -1;
-for (const slot of ['HomeHeroSection', 'HomeContinueSection', 'HomeDiscoverySection', 'HomeWatchTogetherSection', 'HomeScheduleSection', 'HomeRecommendationSection', 'HomeCatalogSections', 'HomeGuestPrompt', 'HomeDeferredChat', 'HomeRetentionSections', 'HomeDeferredSupport']) {
+for (const slot of ['HomeContinueSection', 'HomeDiscoverySection', 'HomeWatchTogetherSection', 'HomeScheduleSection', 'HomeRecommendationSection', 'HomeCatalogSections', 'HomeGuestPrompt', 'HomeDeferredChat', 'HomeRetentionSections', 'HomeDeferredSupport']) {
   const matches = [...shell.matchAll(new RegExp('<' + slot + ' \\/>', 'g'))];
   assert.equal(matches.length, 1, 'Exactly one ' + slot);
   assert(matches[0].index > previous, 'Order ' + slot); previous = matches[0].index;

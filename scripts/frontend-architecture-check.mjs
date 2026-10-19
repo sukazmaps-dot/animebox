@@ -175,7 +175,6 @@ if (scheduleRuntimeLines > 560) {
 }
 
 for (const needle of [
-  '<HomeHeroSection />',
   '<HomeDiscoverySection />',
   '<HomeCatalogSections />',
   '<HomeScheduleSection />',

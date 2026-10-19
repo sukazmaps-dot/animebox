@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import AnimeImage from '@/components/AnimeImage';
+import HomeTonightArtwork from './HomeTonightArtwork';
+import HomeHeroBookmark from './HomeHeroBookmark';
 import AnimeIntentLink from '@/components/AnimeIntentLink';
 import type { RankedRecommendation } from '@/lib/recommendations';
 import type { TasteMood } from '@/lib/personalization';
@@ -63,14 +64,11 @@ export default function HomeTonightPick({ items, mood, busy, hasWatchHistory }: 
   });
 
   return (
-    <article ref={impressionRef} className={styles.card} data-home-tonight="ready" data-tonight-anime-id={anime.id} data-tonight-mood={mood}>
-      <AnimeIntentLink className={styles.poster} href={animeHref(anime)} aria-label={`Подробнее: ${title}`} onClick={() => trackClick('details')}>
-        <AnimeImage image={anime.coverImage ?? anime.image} alt="" englishName={title}
-          loading="near" fetchPriority="low" sizes="(max-width: 560px) 96px, 180px" preset="card" />
-      </AnimeIntentLink>
+    <article ref={impressionRef} className={styles.card} data-home-hero="single" data-home-tonight="ready" data-tonight-anime-id={anime.id} data-tonight-mood={mood}>
+      <HomeTonightArtwork key={anime.id} anime={anime} />
       <div className={styles.body} aria-live="polite" aria-atomic="true">
         <span className={styles.eyebrow}>Вариант на сегодня</span>
-        <h3 className={styles.title}>{title}</h3>
+        <h2 className={styles.title}>{title}</h2>
         <div className={styles.facts}>
           {score && <span>★ {score}</span>}
           {Number.isInteger(year) && Number(year) > 0 && <span>{year}</span>}
@@ -82,6 +80,7 @@ export default function HomeTonightPick({ items, mood, busy, hasWatchHistory }: 
       <div className={styles.actions}>
         <AnimeIntentLink className={styles.watch} href={animeWatchHref(anime)} onClick={() => trackClick('watch')}>Смотреть</AnimeIntentLink>
         <AnimeIntentLink className={styles.secondary} href={animeHref(anime)} onClick={() => trackClick('details')}>Подробнее</AnimeIntentLink>
+        <HomeHeroBookmark animeId={anime.id} />
         <button className={styles.another} type="button" disabled={candidates.length < 2}
           onClick={() => setChoice(next
             ? { selectedId: next.anime.id, skipped: [...choice.skipped, anime.id] }

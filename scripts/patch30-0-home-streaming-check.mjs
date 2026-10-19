@@ -27,7 +27,6 @@ function ordered(markers, source = shell) {
 // Home composition priorities: preserve strict order and the server shell;
 // choice/social now precede schedule and the single ranked feed.
 ordered([
-  '<HomeHeroSection />',
   '<HomeContinueSection />',
   '<HomeDiscoverySection />',
   '<HomeWatchTogetherSection />',
@@ -39,6 +38,7 @@ ordered([
   '<HomeRetentionSections />',
   '<HomeDeferredSupport />',
 ]);
+assert(!shell.includes('HomeHeroSection'), 'Old carousel must not be imported or mounted on home');
 assert(!shell.includes("'use client'"), 'Server shell cannot become a client island');
 assert(shell.includes('data-home-layout="cinematic"'), 'Home 32 scope missing');
 assert(shell.includes("import styles from './HomePageShell.module.css'"), 'Home CSS module owner missing');

@@ -12,7 +12,7 @@
   color: var(--ab-ui-text);
   background: var(--home-canvas);
 }
-.shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 40px; padding: 0 var(--gutter) 40px; }
+.shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 40px; padding: 24px var(--gutter) 40px; }
 .shelves > :first-child { margin-top: 0; }
 .page :global(.section) { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .page :global(.section-head) { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 18px; }

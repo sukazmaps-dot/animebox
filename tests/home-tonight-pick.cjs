@@ -11,9 +11,22 @@ const { create, act } = require('react-test-renderer');
 global.IS_REACT_ACT_ENVIRONMENT = true;
 
 const events = [];
+let authUser = null;
+let authLoading = false;
+const authPrompts = [];
+const libraryRequests = [];
+let saveLibrary = async () => {};
+let phone = false;
+const mediaListeners = new Set();
 let runtime;
 const mocks = {
-  '@/components/AnimeImage': { default: props => React.createElement('img', { alt: props.alt, 'data-priority': props.fetchPriority }) },
+  './HomeTonightArtwork': { default: () => React.createElement('img', { 'data-priority': 'high' }) },
+  './HomeHeroBookmark': { default: () => React.createElement('button', { 'aria-label': 'Добавить в список' }) },
+  'next/link': { default: ({ children, ...props }) => React.createElement('a', props, children) },
+  '@/components/AuthStateProvider': { useAuthState: () => ({ user: authUser, loading: authLoading }) },
+  '@/components/AuthModalProvider': { useAuthModal: () => ({ openAuth: props => authPrompts.push(props) }) },
+  '@/lib/community-client': { communityRequest: (path, body) => { libraryRequests.push({path, body}); return saveLibrary(); } },
+  '@/components/AnimeImage': { default: props => React.createElement('img', { alt: props.alt, 'data-priority': props.fetchPriority, 'data-image': props.image, 'data-loading': props.loading }) },
   '@/components/AnimeIntentLink': { default: ({ children, ...props }) => React.createElement('a', props, children) },
   '@/lib/product-events-client': { trackProductClientEvent: (...args) => events.push(args) },
   './useVisibleHomeImpression': { useVisibleHomeImpression: () => React.useRef(null) },
@@ -71,7 +84,7 @@ let html = renderToStaticMarkup(React.createElement(Pick, props));
 assert(html.includes('href="/anime/title-1/watch?ep=1"'));
 assert(html.includes('href="/anime/title-1"'));
 assert(html.includes('История о дороге домой.') && !html.includes('<b>История'));
-assert(html.includes('data-priority="low"'));
+assert(html.includes('data-priority="high"'));
 html = renderToStaticMarkup(React.createElement(Pick, { ...props, busy: true }));
 assert(html.includes('data-home-tonight="loading"') && !html.includes('<a '), 'busy state has no stale watch link');
 html = renderToStaticMarkup(React.createElement(Pick, { ...props, items: [] }));
@@ -86,7 +99,7 @@ assert(!html.includes('★') && !html.includes('2024') && !html.includes('Ист
   assert.equal(selected(), 1);
   await act(async () => tree.update(React.createElement(Pick, { ...props, items: [c, b, a] })));
   assert.equal(selected(), 1, 'background reorder cannot replace the pinned pick');
-  const another = () => tree.root.findByType('button');
+  const another = () => tree.root.findAllByType('button').find(button => ['Другой вариант', 'Начать заново'].includes(button.props.children));
   await act(async () => another().props.onClick()); assert.equal(selected(), 3);
   await act(async () => another().props.onClick()); assert.equal(selected(), 2);
   assert.equal(another().props.children, 'Начать заново', 'all candidates were shown without repeats');
@@ -122,5 +135,63 @@ assert(!html.includes('★') && !html.includes('2024') && !html.includes('Ист
   await act(async () => tree.update(React.createElement(Discovery)));
   assert.equal(selected(), 2, 'new mood uses its own ranked result');
   await act(async () => tree.unmount());
+  // Test actual artwork selection and subscription cleanup without networking.
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    matchMedia: () => ({ matches: phone, addEventListener: (_, fn) => mediaListeners.add(fn), removeEventListener: (_, fn) => mediaListeners.delete(fn) }),
+    dispatchEvent() {},
+  } });
+  try {
+    const Artwork = load('components/home/HomeTonightArtwork.tsx').default;
+    const artworkAnime = { ...a.anime, bannerImage: 'https://example.org/banner.jpg', coverImage: { extraLarge: 'https://example.org/poster.jpg' } };
+    await act(async () => { tree = create(React.createElement(Artwork, { anime: artworkAnime })); });
+    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.bannerImage);
+    assert.equal(tree.root.findByType('img').props['data-loading'], 'eager');
+    phone = true;
+    await act(async () => { for (const fn of mediaListeners) fn(); });
+    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'phone uses portrait');
+    phone = false;
+    await act(async () => { for (const fn of mediaListeners) fn(); });
+    await act(async () => tree.update(React.createElement(Artwork, { anime: { ...artworkAnime, bannerImage: null } })));
+    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'desktop without banner uses poster');
+    await act(async () => tree.unmount());
+    assert.equal(mediaListeners.size, 0, 'resize subscription cleaned up');
+
+    const Bookmark = load('components/home/HomeHeroBookmark.tsx').default;
+    await act(async () => { tree = create(React.createElement(Bookmark, { animeId: 1 })); });
+    await act(async () => tree.root.findByType('button').props.onClick());
+    assert.equal(authPrompts.length, 1, 'guest opens existing auth modal');
+    assert.equal(libraryRequests.length, 0, 'guest does not mutate library');
+    authUser = { id: 'viewer-a' };
+    await act(async () => tree.update(React.createElement(Bookmark, { animeId: 1 })));
+    let finish;
+    saveLibrary = () => new Promise(resolve => { finish = resolve; });
+    let saving;
+    await act(async () => {
+      saving = tree.root.findByType('button').props.onClick();
+      void tree.root.findByType('button').props.onClick();
+    });
+    assert.equal(libraryRequests.length, 1, 'double click deduplicated');
+    assert.equal(tree.root.findByType('button').props.disabled, true);
+    await act(async () => tree.update(React.createElement(Bookmark, { animeId: 2 })));
+    await act(async () => { finish(); await saving; });
+    assert.equal(tree.root.findByType('button').props['aria-pressed'], false, 'old save cannot mark new choice saved');
+    saveLibrary = async () => { throw Error('outage'); };
+    await act(async () => tree.root.findByType('button').props.onClick());
+    assert.equal(tree.root.findByType('span').props.role, 'status', 'save error is visible');
+    assert.equal(tree.root.findByType('button').props.disabled, false, 'failed save can retry');
+    saveLibrary = async () => {};
+    await act(async () => tree.root.findByType('button').props.onClick());
+    assert.deepEqual(libraryRequests.at(-1), { path: 'library', body: { animeId: 2, status: 'planned' } });
+    assert.equal(tree.root.findByType('button').props['aria-pressed'], true);
+    authUser = { id: 'viewer-b' };
+    await act(async () => tree.update(React.createElement(Bookmark, { animeId: 2 })));
+    assert.equal(tree.root.findByType('button').props['aria-pressed'], false, 'saved state isolated by account');
+    await act(async () => tree.unmount());
+  } finally {
+    if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
+    else delete globalThis.window;
+  }
+  console.log('PASS: real artwork responsive source/cleanup and bookmark guest, duplicate, pending-choice isolation, error/retry, account isolation.');
   console.log('PASS: tonight candidates, honest reasons, canonical links, loading/empty, stable picks, alternatives/reset, removed IDs, mood integration and click attribution.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
