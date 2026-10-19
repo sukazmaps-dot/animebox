@@ -321,7 +321,7 @@
   position: fixed;
   z-index: 260;
   left: 50%;
-  bottom: max(18px, env(safe-area-inset-bottom));
+  bottom: calc(var(--ab-mobile-nav-height, 0px) + max(18px, var(--ab-shell-safe-bottom, env(safe-area-inset-bottom, 0px))));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -349,7 +349,7 @@
 }
 
 .home-page .smart-feed__feedback-undo button, [data-home-layout="cinematic"] .smart-feed__feedback-undo button {
-  min-height: 32px;
+  min-height: 44px;
   padding: 0 11px;
   border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 28%, transparent);
   border-radius: 9px;
@@ -420,7 +420,7 @@ html[data-animebox-theme='light'] [data-home-layout="cinematic"] .smart-card__fe
   }
 
   .home-page .smart-feed__feedback-undo, [data-home-layout="cinematic"] .smart-feed__feedback-undo {
-    bottom: max(10px, env(safe-area-inset-bottom));
+    bottom: calc(var(--ab-mobile-nav-height, 0px) + max(18px, var(--ab-shell-safe-bottom, env(safe-area-inset-bottom, 0px))));
     width: calc(100vw - 20px);
     justify-content: space-between;
   }
