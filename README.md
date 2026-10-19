@@ -69,4 +69,4 @@ npm run build
 
 ---
 
-Разработчик: **Жанабай Сулейман** · [Telegram](https://t.me/kazuminyan)
+Разработчик: **kazumeq* · [Telegram](https://t.me/kazuminyan)
