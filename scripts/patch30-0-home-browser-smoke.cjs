@@ -195,16 +195,21 @@ const logPath = path.join(os.tmpdir(), 'animebox30-browser-' + process.pid + '.l
         assert.equal(await dialog.locator('.smart-card__feedback--like').getAttribute('aria-pressed'), 'true');
         await p.keyboard.press('Escape');
         let attempts = 0;
-        await p.route('**/api/community/library', r => r.fulfill(++attempts === 1
-          ? { status: 500, json: { error: 'Test error' } }
-          : { json: { ok: true } }));
+        await p.route('**/api/community/library', r => { attempts++; return r.fulfill({ json: { ok: true } }); });
         const save = card.locator('.smart-card__plan');
+        await p.waitForFunction(() => !document.querySelector('.smart-card__plan')?.disabled);
         await save.click();
-        await p.waitForFunction(() => document.querySelector('.smart-card__plan')?.textContent.includes('Повторить'));
+        const auth = p.locator('.auth-modal-v2');
+        await auth.waitFor();
+        assert.equal(attempts, 0, 'guest bookmark must not write to library');
+        assert(await p.getByRole('button', { name: 'Закрыть окно входа' }).isVisible(), 'guest bookmark must open real auth modal');
+        await p.getByRole('button', { name: 'Закрыть окно входа' }).click();
+        await auth.waitFor({ state: 'detached' });
         await save.click();
-        await p.waitForFunction(() => document.querySelector('.smart-card__plan')?.textContent.includes('Сохранено'));
-        assert.equal(attempts, 2);
-        assert(await save.isDisabled());
+        await auth.waitFor();
+        assert.equal(attempts, 0, 'repeated guest bookmark must still open auth without writes');
+        await p.getByRole('button', { name: 'Закрыть окно входа' }).click();
+        await auth.waitFor({ state: 'detached' });
         await menu.click();
         await dialog.locator('.smart-card__feedback--watched').click();
         assert.equal(await p.locator('.smart-card').count(), 3, 'watched callback did not hide card');
