@@ -311,6 +311,31 @@ fs.mkdirSync(output, { recursive: true });
           assert(undoGeometry.aboveNav && undoGeometry.touch, name + ' undo clears mobile navigation and keeps 44px target');
           await page.locator('.smart-feed__feedback-undo button').click();
           await page.waitForFunction(() => !document.querySelector('.smart-feed__feedback-undo'));
+          if (c.width === 390) {
+            let guestLibraryWrites = 0;
+            await page.route('**/api/community/library', route => {
+              guestLibraryWrites++;
+              return route.fulfill({ json: { saved: true } });
+            });
+            const bookmark = page.locator('.smart-card__plan').first();
+            await page.waitForFunction(() => {
+              const button = document.querySelector('.smart-card__plan');
+              return button && !button.disabled;
+            });
+            await bookmark.click();
+            const authModal = page.locator('.auth-modal-v2');
+            await authModal.waitFor();
+            assert.equal(guestLibraryWrites, 0, name + ' guest bookmark must not send a library mutation');
+            assert(await page.getByRole('button', { name: 'Закрыть окно входа' }).isVisible(),
+              name + ' bookmark must open actual login dialog');
+            await page.getByRole('button', { name: 'Закрыть окно входа' }).click();
+            await authModal.waitFor({ state: 'detached' });
+            await bookmark.click();
+            await authModal.waitFor();
+            assert.equal(guestLibraryWrites, 0, name + ' guest retry must not send library mutations');
+            await page.getByRole('button', { name: 'Закрыть окно входа' }).click();
+            await authModal.waitFor({ state: 'detached' });
+          }
         }
         const moods = page.getByRole('radio');
         await moods.nth(1).click();
