@@ -1,8 +1,8 @@
 /* =========================================================
-   AnimeBox Patch 14.1.1 — Anti-AI Design Pass
+   AnimeBox — Editorial Interface Refinements
 
    Purpose:
-   - remove generic "premium AI dashboard" motifs;
+   - reduce decorative dashboard treatments;
    - make hierarchy come from content, spacing and type;
    - reserve violet for state/action instead of ambient decoration;
    - stop turning every feature into a floating rounded card.
@@ -36,7 +36,7 @@
   color: var(--ab-muted-2) !important;
 }
 
-/* Generic "AI badge" pills become compact labels, not glowing capsules. */
+/* Badges use compact labels instead of decorative capsules. */
 .pill {
   min-height: 24px;
   padding-inline: 8px;
@@ -377,7 +377,7 @@
 
 /* =========================================================
    ANIME CARDS
-   Poster + title first. Remove decorative shine / AI gloss.
+   Poster + title first. Remove decorative shine and excessive gloss.
    ========================================================= */
 
 .anime-card__shine {
