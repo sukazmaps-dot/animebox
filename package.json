@@ -14,6 +14,7 @@
     "css:inventory": "node scripts/css-inventory.cjs --report",
     "css:inventory:check": "node tests/css-inventory.cjs && node scripts/css-inventory.cjs --check --report",
     "hero-css:check": "node tests/hero-css-ownership.cjs",
+    "nav-css:check": "node tests/navigation-css-ownership.cjs",
     "css-cascade:browser": "node scripts/css-cascade-browser-smoke.cjs",
     "route-layout:check": "node scripts/route-layout-contract-check.cjs",
     "route-layout:browser": "node scripts/route-layout-matrix-smoke.cjs",

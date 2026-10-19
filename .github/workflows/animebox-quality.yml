@@ -46,6 +46,9 @@ jobs:
       - name: Hero CSS consolidation equivalence
         run: npm run hero-css:check
 
+      - name: Navigation cascade ownership
+        run: npm run nav-css:check
+
       - name: Railway 31.19 cache, image memory and cancellation regression
         run: npm run railway-cost:check
 
