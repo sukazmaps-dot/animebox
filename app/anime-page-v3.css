@@ -242,18 +242,13 @@
   background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
 }
 
-/* Season copy is owned by AnimeFranchise.module.css.
-   Keep the legacy active marker and its theme/accent hooks. */
-.anime-franchise-v3__current {
-  color: var(--ab-ui-muted);
-  font-size: 9px;
-}
-
+/* Season copy belongs to AnimeFranchise.module.css; keep legacy active marker hooks. */
 .anime-franchise-v3__current {
   position: absolute;
   right: 10px;
   top: 9px;
   color: var(--ab-ui-accent);
+  font-size: 9px;
   font-weight: 720;
 }
 
