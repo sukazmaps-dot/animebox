@@ -1638,6 +1638,43 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           onNext={goToNext}
           showEpisodeNavigation={false}
           showEpisodeSelector={false}
+          compactControls={{
+            identity: (
+              <section className="episode-page__identity-compact">
+                <div>
+                  <h1>{title} — {episodeNumber} серия</h1>
+                  <span>Сезон {anime.providerSeason || 1}</span>
+                </div>
+                <Link href={`/anime/${animeIdParam}`}>К тайтлу</Link>
+              </section>
+            ),
+            episodes: (
+              <EpisodeQuickSelector
+                compact
+                currentEpisode={episodeNumber}
+                totalEpisodes={currentSeasonEpisodes || availableEpisodes || episodeNumber}
+                hasPrev={hasPrev}
+                hasNext={hasNext}
+                prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред.'}
+                nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'Следующая серия'}
+                onPrevious={goToPrevious}
+                onNext={goToNext}
+                onSelect={goToEpisode}
+              />
+            ),
+            secondary: (
+              <section className="episode-engagement-grid" aria-label="Отслеживание и уведомления">
+                <LibraryStatusControl animeId={anime.id} variant="inline" />
+                <AnimeNotificationControl
+                  animeId={anime.id}
+                  animeSlug={anime.slug || String(anime.id)}
+                  animeTitle={title}
+                  episodesAired={anime.episodesAired || 0}
+                  variant="inline"
+                />
+              </section>
+            ),
+          }}
           onPlaybackQualified={handlePlaybackQualified}
           onDurationObserved={handleTimelineDurationObserved}
           onEnded={hasNext ? goToNext : undefined}
@@ -1653,44 +1690,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
 
 
 
-      <EpisodeQuickSelector
-        currentEpisode={episodeNumber}
-        totalEpisodes={currentSeasonEpisodes || availableEpisodes || episodeNumber}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-        prevLabel={atFirstEpisode && seasonRoute.previous ? 'Пред. сезон' : 'Пред.'}
-        nextLabel={atLastKnownEpisode && seasonRoute.next ? 'След. сезон' : 'Следующая серия'}
-        onPrevious={goToPrevious}
-        onNext={goToNext}
-        onSelect={goToEpisode}
-      />
-
-
-
-
-
-      <section className="episode-engagement-grid" aria-label="Отслеживание и уведомления">
-        <LibraryStatusControl animeId={anime.id} variant="inline" />
-
-        <AnimeNotificationControl
-          animeId={anime.id}
-          animeSlug={anime.slug || String(anime.id)}
-          animeTitle={title}
-          episodesAired={anime.episodesAired || 0}
-          variant="inline"
-        />
-
-      </section>
-
       <EpisodeCompletion key={`${anime.id}:${episodeNumber}`} animeId={anime.id} episode={episodeNumber} />
-
-      <section className="episode-page__identity-compact">
-        <div>
-          <h1>{title} — {episodeNumber} серия</h1>
-          <span>Сезон {anime.providerSeason || 1}</span>
-        </div>
-        <Link href={`/anime/${animeIdParam}`}>К тайтлу</Link>
-      </section>
 
       <WatchPartyPanel
         animeTitle={title}

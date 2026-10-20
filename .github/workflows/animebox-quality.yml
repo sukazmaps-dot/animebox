@@ -81,6 +81,20 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/animebox-browser" --no-audit --no-fund --save-exact playwright@1.62.1 esbuild@0.28.2
           "$RUNNER_TEMP/animebox-browser/node_modules/.bin/playwright" install --with-deps chromium
 
+      - name: Compact watch controls interaction and iframe continuity
+        env:
+          ESBUILD_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/esbuild
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: node scripts/watch-compact-controls-browser-smoke.cjs
+
+      - name: Compact watch visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: watch-compact-visual-review
+          path: artifacts/watch-compact/
+          if-no-files-found: ignore
+
       - name: Home 32 production shell and responsive interaction matrix
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright

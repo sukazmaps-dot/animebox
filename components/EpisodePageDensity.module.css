@@ -1,4 +1,19 @@
 .page:global(.episode-page) { padding-top: 12px !important; gap: 12px; }
+/* Compact watch controls opt in only on the ordinary episode route. */
+.page :global(.episode-quick-compact) { min-width: 0; }
+.page :global(.episode-quick-compact__trigger) { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 13px; white-space: nowrap; }
+.page :global(.episode-quick-compact__steps) { display: flex; justify-content: space-between; gap: 8px; padding: 8px 16px; }
+.page :global(.episode-quick-compact__steps) button { min-height: 44px; padding: 8px 12px; border-radius: 8px; background: var(--ab-ui-raised); color: var(--ab-ui-text); }
+.page :global(.episode-quick-compact__steps) button:disabled { opacity: .4; }
+.page :global(.animebox-player-root):not([data-player-theater='true']):has(:global([data-watch-dialog='true'])) { z-index: 20; }
+.page :global([data-watch-dialog='true']) { position: fixed; display: flex; flex-direction: column; top: 50%; bottom: auto; left: 50%; width: min(520px, calc(100vw - 24px)); max-height: min(80svh, 640px); transform: translate(-50%, -50%); }
+.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__sheet-head),
+.page :global([data-watch-dialog='true']) :global(.episode-quick-compact__steps),
+.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__full) { flex-shrink: 0; }
+.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__sheet-head) > button { width: 44px; height: 44px; }
+.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__grid) { position: relative; min-height: 0; max-height: none; overflow-y: auto; }
+.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__grid) button,
+.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__full) { min-height: 44px; }
 .page:global(.episode-page) :global(.episode-seo-breadcrumbs) { margin-bottom: 12px !important; font-size: 12px !important; }
 .page:global(.episode-page) :global(.animebox-player-header) { padding: 12px !important; gap: 12px !important; }
 .page:global(.episode-page) :global(.animebox-player-titleblock) h1 { font-size: 16px !important; line-height: 1.3 !important; }
@@ -14,7 +29,7 @@
 .page:global(.episode-page) :global(.premium-player-dropdown) select { height: 100% !important; }
 .page:global(.episode-page) :global(.episode-engagement-grid) { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; justify-content: flex-start !important; gap: 8px !important; margin: 12px 0 !important; width: 100% !important; max-width: none !important; padding: 0 !important; }
 .page:global(.episode-page) :global(.episode-engagement-grid) > section { min-width: 0; max-width: 100%; }
-.page:global(.episode-page) :global(.episode-page__identity-compact) { margin-top: 16px !important; padding-block: 8px !important; }
+.page:global(.episode-page) :global(.episode-page__identity-compact) { margin: 0 0 8px !important; padding: 0 !important; }
 .page:global(.episode-page) :global(.episode-page__identity-compact) h1 { font-size: 16px !important; line-height: 1.4 !important; }
 .page:global(.episode-page) :global(.detail__section.detail__episodes) { margin-top: 12px !important; padding: 14px !important; }
 .page:global(.episode-page) :global(.episode-list__season-tabs) { padding-left: 4px !important; scroll-padding-left: 4px; scroll-snap-type: x proximity; }
