@@ -174,6 +174,7 @@ async function observedGET(
   try {
     let providerHasNextPage = false;
     let registryDegraded = false;
+    let availabilityExcludedIds: number[] = [];
     const fallbackState: {saved: Awaited<ReturnType<typeof getSavedCatalogPage>> | null} = {saved: null};
 
     // Local lexical lookup is independent from the provider request. Starting
@@ -295,6 +296,8 @@ async function observedGET(
         }
         registryDegraded = true;
       }
+      const allowedIds = new Set(availability.items.map(item => item.id));
+      availabilityExcludedIds = candidates.filter(item => !allowedIds.has(item.id)).map(item => item.id);
       candidates = availability.items;
 
       if (!registryDegraded && availability.refreshTargets.length > 0) {
@@ -353,12 +356,14 @@ async function observedGET(
     return NextResponse.json(
       {
         anime,
+        ...(availabilityExcludedIds.length ? { availabilityExcludedIds } : {}),
         ...(registryDegraded ? {
-          catalogMeta: {source: 'degraded', message: 'Показаны только ранее проверенные тайтлы. Данные обновятся после восстановления каталога.'},
+          catalogMeta: {source: 'degraded', completeness: 'partial', message: 'Показаны только ранее проверенные тайтлы. Данные обновятся после восстановления каталога.'},
         } : {}),
         ...(savedCatalog ? {
           catalogMeta: {
             source: 'saved',
+            completeness: 'partial',
             message: savedCatalog.unsupportedFilters.length
               ? 'Сезон и точный статус выхода сейчас недоступны. Сними эти фильтры для поиска в резервном каталоге.'
               : savedCatalog.scanLimited

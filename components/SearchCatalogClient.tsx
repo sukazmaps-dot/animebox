@@ -58,7 +58,7 @@ import {
   type InstantSearchPayload,
 } from '@/lib/instant-search-client';
 import { createCatalogPageGate, waitForCurrentPreview } from '@/lib/catalog-request-state';
-import { enrichAnimeCards, mergeAnimePages } from '@/lib/anime-metadata-merge';
+import { reconcileCatalogFirstPage, mergeAnimePages } from '@/lib/anime-metadata-merge';
 import styles from './SearchCatalogClient.module.css';
 
 const SEARCH_DEBOUNCE_MS = 90;
@@ -237,11 +237,15 @@ export default function SearchCatalogClient({
   initialQuery = '',
   initialView = 'catalog',
   initialFilters = DEFAULT_CATALOG_FILTERS,
+  initialSource = 'provider',
+  initialHasNextPage,
 }: {
   initialResults: Anime[];
   initialQuery?: string;
   initialView?: CatalogView;
   initialFilters?: CatalogFiltersState;
+  initialSource?: 'provider' | 'saved';
+  initialHasNextPage?: boolean;
 }) {
   const normalizedInitialQuery = initialQuery.trim();
   const [view, setView] = useState<CatalogView>(initialView);
@@ -284,6 +288,11 @@ export default function SearchCatalogClient({
   const [error, setError] = useState('');
   const [catalogNotice, setCatalogNotice] = useState('');
   const [retryNonce, setRetryNonce] = useState(0);
+  const resultScopeRef = useRef<string | null>(initialResults.length
+    ? JSON.stringify([query, filters, selectedMood]) : null);
+  const paginationSourceRef = useRef<string | null>(initialResults.length ? initialSource : null);
+  const retryPageRef = useRef<number | null>(null);
+  const consumedRetryRef = useRef(0);
   const [discoveryMeta, setDiscoveryMeta] = useState<DiscoveryMeta | null>(null);
   const [searchMeta, setSearchMeta] = useState<AnimeSearchMeta | null>(null);
   const [instantPreviewQuery, setInstantPreviewQuery] =
@@ -293,7 +302,7 @@ export default function SearchCatalogClient({
   const [pageGate] = useState(createCatalogPageGate);
   const initialRenderRef = useRef(true);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const [hasNextPage, setHasNextPage] = useState(initialResults.length >= CATALOG_PAGE_SIZE);
+  const [hasNextPage, setHasNextPage] = useState(initialHasNextPage ?? initialResults.length >= CATALOG_PAGE_SIZE);
 
   useEffect(() => { liveQueryRef.current = liveQuery; }, [liveQuery]);
 
@@ -323,6 +332,7 @@ export default function SearchCatalogClient({
         // Make the previous authoritative request stale immediately instead
         // of waiting for the 90 ms debounced query state to catch up.
         requestSequenceRef.current += 1;
+        pageGate.block();
         activeCatalogControllerRef.current?.abort();
       }
 
@@ -332,13 +342,13 @@ export default function SearchCatalogClient({
     };
     window.addEventListener('animebox-search-input', onLiveSearch);
     return () => window.removeEventListener('animebox-search-input', onLiveSearch);
-  }, []);
+  }, [pageGate]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const next = liveQuery.trim();
       setQuery((current) => current === next ? current : next);
-      setPageState({ query: next, page: 1 });
+      setPageState(current => current.query === next ? current : { query: next, page: 1 });
     }, SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [liveQuery]);
@@ -389,6 +399,10 @@ export default function SearchCatalogClient({
 
     const requestId = ++requestSequenceRef.current;
     const requestQuery = query;
+    const requestScope = JSON.stringify([query, filters, selectedMood]);
+    const refresh = consumedRetryRef.current !== retryNonce;
+    consumedRetryRef.current = retryNonce;
+    retryPageRef.current = null;
     const requestIsCurrent = () => {
       if (
         controller.signal.aborted ||
@@ -402,12 +416,15 @@ export default function SearchCatalogClient({
 
     async function load() {
       let authoritativeSettled = false;
+      let acceptLatePreview = false;
+      let excludedPreviewIds: number[] = [];
       let errorOccurred = false;
       let instantShown = false;
       let instantPromise: Promise<InstantSearchPayload> | null = null;
 
       setLoading(true);
       setError('');
+      setCatalogNotice('');
 
       try {
         if (
@@ -433,6 +450,7 @@ export default function SearchCatalogClient({
             mode: 'context',
           });
           setResults(discoveryResults);
+          resultScopeRef.current = requestScope;
           setDiscoveryMeta({ seed: payload.seed, meta: payload.meta });
           setSearchMeta(null);
           setHasNextPage(false);
@@ -469,7 +487,7 @@ export default function SearchCatalogClient({
             void instantPromise
               .then((payload) => {
                 if (
-                  authoritativeSettled ||
+                  (authoritativeSettled && !acceptLatePreview) ||
                   !requestIsCurrent() ||
                   payload.items.length === 0
                 ) {
@@ -485,7 +503,14 @@ export default function SearchCatalogClient({
                   deliveryMs: payload.clientElapsedMs ?? null,
                   cacheStatus: payload.clientCacheStatus ?? null,
                 });
-                setResults(payload.items);
+                const sameScope = resultScopeRef.current === requestScope;
+                resultScopeRef.current = requestScope;
+                setResults(current => reconcileCatalogFirstPage(payload.items, current, {
+                  sameScope, partial: true, registryDegraded: false,
+                  excludedIds: excludedPreviewIds,
+                  preview: true,
+                }));
+                if (authoritativeSettled) return;
                 setInstantPreviewQuery(query);
                 setDiscoveryMeta(null);
                 setSearchMeta(null);
@@ -527,11 +552,20 @@ export default function SearchCatalogClient({
 
           const payload = await getAnimesWithMeta(
             requestOptions,
-            { signal: controller.signal },
+            { signal: controller.signal, refresh },
           );
 
+          // Partial saved responses do not cancel a slower verified preview.
+          // Keep the saved page interactive without waiting for the instant lane.
+          acceptLatePreview = page === 1 && payload.catalogMeta?.source === 'saved';
+          excludedPreviewIds = payload.availabilityExcludedIds ?? [];
           authoritativeSettled = true;
           if (!requestIsCurrent()) return;
+          const source = payload.catalogMeta?.source ?? 'provider';
+          if (page > 1 && paginationSourceRef.current !== source) {
+            retryPageRef.current = 1;
+            throw new Error('CATALOG_PAGE_SOURCE_CHANGED');
+          }
           setInstantPreviewQuery(null);
           setCatalogNotice(payload.catalogMeta?.message ?? '');
           if (page === 1 && query.length >= 2) {
@@ -546,10 +580,20 @@ export default function SearchCatalogClient({
               fallbackUsed: payload.searchMeta?.fallbackUsed ?? null,
             });
           }
+          const sameScope = resultScopeRef.current === requestScope;
+          resultScopeRef.current = requestScope;
+          paginationSourceRef.current = source;
           setResults((current) =>
             page === 1
-              ? enrichAnimeCards(payload.anime, current)
-              : mergeAnimePages(current, payload.anime),
+              ? reconcileCatalogFirstPage(payload.anime, current, {
+                  sameScope,
+                  partial: Boolean(payload.catalogMeta),
+                  registryDegraded: source === 'degraded',
+                  excludedIds: payload.availabilityExcludedIds,
+                })
+              : mergeAnimePages(current, payload.anime).filter(
+                  anime => !payload.availabilityExcludedIds?.includes(anime.id),
+                ),
           );
           if (page === 1) {
             setSearchMeta(payload.searchMeta ?? null);
@@ -588,7 +632,12 @@ export default function SearchCatalogClient({
               deliveryMs: fallbackPreview.clientElapsedMs ?? null,
               cacheStatus: fallbackPreview.clientCacheStatus ?? null,
             });
-            setResults(fallbackPreview.items);
+            const sameScope = resultScopeRef.current === requestScope;
+            resultScopeRef.current = requestScope;
+            setResults(current => reconcileCatalogFirstPage(fallbackPreview.items, current, {
+              sameScope, partial: true, registryDegraded: false,
+              preview: true,
+            }));
             setInstantPreviewQuery(query);
             setHasNextPage(false);
           }
@@ -604,7 +653,9 @@ export default function SearchCatalogClient({
           setSearchMeta(null);
         }
         setError(
-          instantShown
+          retryPageRef.current === 1
+            ? 'Источник каталога изменился. Обнови результаты, чтобы продолжить. Загруженные карточки сохранены.'
+            : instantShown
             ? 'Полный поиск временно недоступен. Показываем быстрые локальные результаты.'
             : page > 1
               ? 'Не удалось загрузить следующую страницу. Уже загруженные карточки сохранены. Нажмите «Повторить».'
@@ -628,6 +679,14 @@ export default function SearchCatalogClient({
       }
     };
   }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view, pageGate, searchClassification?.mode]);
+
+  function retryCatalog() {
+    pageGate.block();
+    requestSequenceRef.current += 1;
+    activeCatalogControllerRef.current?.abort();
+    if (retryPageRef.current === 1) setPageState({ query, page: 1 });
+    setRetryNonce(current => current + 1);
+  }
 
   const requestNextPage = useCallback(() => {
     if (!pageGate.claim({
@@ -682,6 +741,7 @@ export default function SearchCatalogClient({
 
   useEffect(() => {
     const onPopState = () => {
+      pageGate.block();
       requestSequenceRef.current += 1;
       activeCatalogControllerRef.current?.abort();
       activeCatalogControllerRef.current = null;
@@ -692,12 +752,13 @@ export default function SearchCatalogClient({
 
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  }, [pageGate]);
 
   function applySearchQuery(nextValue: string) {
     const next = nextValue.replace(/\s+/g, ' ').trim();
 
     if (next !== liveQueryRef.current) {
+      pageGate.block();
       requestSequenceRef.current += 1;
       activeCatalogControllerRef.current?.abort();
       activeCatalogControllerRef.current = null;
@@ -714,6 +775,7 @@ export default function SearchCatalogClient({
   function applyView(nextView: CatalogView) {
     if (nextView === view) return;
 
+    pageGate.block();
     requestSequenceRef.current += 1;
     activeCatalogControllerRef.current?.abort();
     activeCatalogControllerRef.current = null;
@@ -725,6 +787,7 @@ export default function SearchCatalogClient({
   function commitFilters(next: CatalogFiltersState) {
     if (catalogFiltersEqual(filters, next)) return;
 
+    pageGate.block();
     requestSequenceRef.current += 1;
     activeCatalogControllerRef.current?.abort();
     activeCatalogControllerRef.current = null;
@@ -736,6 +799,7 @@ export default function SearchCatalogClient({
   function commitMood(nextMood: CatalogMood) {
     if (nextMood === selectedMood) return;
 
+    pageGate.block();
     requestSequenceRef.current += 1;
     activeCatalogControllerRef.current?.abort();
     activeCatalogControllerRef.current = null;
@@ -1117,12 +1181,15 @@ export default function SearchCatalogClient({
         </div>
 
         {view === 'catalog' && catalogNotice && (
-          <div className={styles.staleNotice} role="status"><span>{catalogNotice}</span></div>
+          <div className={styles.staleNotice} role="status">
+            <span>{catalogNotice}</span>
+            <button type="button" onClick={retryCatalog} disabled={loading}>Повторить</button>
+          </div>
         )}
         {view === 'catalog' && error && results.length > 0 && (
           <div className={styles.staleNotice} role="status">
             <span>{error}</span>
-            <button type="button" onClick={() => setRetryNonce((current) => current + 1)}>Повторить</button>
+            <button type="button" onClick={retryCatalog}>Повторить</button>
           </div>
         )}
 
@@ -1134,7 +1201,7 @@ export default function SearchCatalogClient({
             <strong>Не удалось загрузить результаты</strong>
             <span>{error}</span>
             <div className={styles.emptyActions}>
-              <button type="button" onClick={() => setRetryNonce((current) => current + 1)}>Повторить</button>
+              <button type="button" onClick={retryCatalog}>Повторить</button>
             </div>
           </div>
         ) : displayResults.length ? (

@@ -22,6 +22,7 @@ const fixtures = new Map([
     }
     export async function refreshCatalogAvailabilityBatch() {throw new Error('Unexpected refresh');}`],
   ['@/lib/search-index-server', `export async function searchLocalAnimeIndex(){return [];}
+    export const localAnimeSearchHitToAnime=h=>({id:h.animeId,title:{russian:h.title},genres:[]});
     export async function hydrateLocalAnimeHits(){throw new Error('Unexpected AniList hydration');}
     export async function indexAnimeSearchDocuments(){globalThis.catalogTest.writes++;}`],
   ['@/lib/supabase/admin', `export function createSupabaseAdmin() {return {from(table) {

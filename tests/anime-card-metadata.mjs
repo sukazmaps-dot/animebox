@@ -41,7 +41,9 @@ const modules={
  '@/lib/catalog-availability-server':'export const filterAnimeIdsByAvailability=async()=>{if(globalThis.cardFixture.availabilityWait)await globalThis.cardFixture.availabilityWait;return [1,2]};',
  '@/lib/edge-cache-policy':'export const publicApiCacheHeaders=()=>({});export const privateNoStoreHeaders=()=>({});',
  '@/lib/request-observability-server':'export const observeApiRoute=(_,fn)=>fn;',
- '@/lib/search-index-server':`export const searchLocalAnimeIndex=async()=>[1,2,3].map(animeId=>({animeId,title:'Title '+animeId,genres:[],score:1}));export const localAnimeSearchHitToAnime=h=>({id:h.animeId,title:{russian:h.title},genres:[],catalogEligible:true});`,
+ '@/lib/upstream-resilience-server':'export const getUpstreamRuntimeSnapshot=()=>[];',
+ // The instant route uses the fast index since #296; keep this fixture aligned.
+ '@/lib/search-index-server':`export const searchInstantLocalIndex=async()=>[1,2,3].map(animeId=>({animeId,title:'Title '+animeId,genres:[],score:1}));export const localAnimeSearchHitToAnime=h=>({id:h.animeId,title:{russian:h.title},genres:[],catalogEligible:true});`,
 };
 try{
  const plugins=[{name:'metadata-fixture',setup(b){
@@ -98,7 +100,7 @@ try{
  modules['@/lib/search-query']=`export const classifySearchQuery=()=>null;`;
  modules['@/lib/smart-search']=`export const normalizeSearchText=q=>q.trim().toLowerCase();export const buildSmartSearchFallbacks=()=>[];export const mergeAnimeCandidates=(a,b)=>[...new Map([...a,...b].map(x=>[x.id,x])).values()];export const rankAnimeForSmartSearchDetailed=items=>items.map(anime=>({anime,score:1,matchKind:'exact'}));`;
  modules['@/lib/catalog-availability-server']=`export const filterAnimeByAvailability=async items=>({items:items.filter(x=>x.id<=2),refreshTargets:[]});export const refreshCatalogAvailabilityBatch=async()=>{};`;
- modules['@/lib/search-index-server']+=`export const hydrateLocalAnimeHits=async()=>{throw Error('provider unavailable')};export const indexAnimeSearchDocuments=async()=>{};`;
+ modules['@/lib/search-index-server']+=`export const searchLocalAnimeIndex=searchInstantLocalIndex;export const hydrateLocalAnimeHits=async()=>{throw Error('provider unavailable')};export const indexAnimeSearchDocuments=async()=>{};`;
  await build({entryPoints:[resolve('app/api/anime/route.ts')],outfile:join(dir,'catalog.mjs'),bundle:true,platform:'node',format:'esm',plugins});
  const catalog=await import(join(dir,'catalog.mjs'));
  const catalogBody=await (await catalog.GET({nextUrl:new URL('https://fixture/api/anime?limit=4')})).json();
@@ -111,5 +113,6 @@ try{
  fixture.provider=[fixture.provider[0]];
  const searchBody=await (await catalog.GET({nextUrl:new URL('https://fixture/api/anime?search=naruto&limit=4')})).json();
  assert.deepEqual(searchBody.anime.map(x=>x.id).sort(),[1,2],'failed external hydration must preserve eligible local hits');
+ assert.deepEqual(searchBody.availabilityExcludedIds,[3],'API explicitly retracts availability-filtered preview IDs');
 }finally{rmSync(dir,{recursive:true,force:true});delete globalThis.cardFixture;}
 console.log('PASS: saved batch reads, cache recovery, real instant route and metadata-preserving page merges.');
