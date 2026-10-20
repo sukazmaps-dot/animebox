@@ -54,7 +54,7 @@
     "patch20-1-1:check": "node scripts/patch-20-1-1-search-localization-check.mjs",
     "hotfix20-1-2:check": "node scripts/hotfix-20-1-2-local-title-route-check.mjs",
     "watch-together-stability:check": "node scripts/watch-together-stability-check.mjs",
-    "rating-scale:check": "node scripts/rating-scale-check.mjs",
+    "rating-scale:check": "node scripts/rating-scale-check.mjs && node tests/detail-compact-density.cjs",
     "ui-precision:check": "node scripts/ui-precision-check.mjs",
     "ui-precision-17-4-2-1:check": "node scripts/ui-precision-17-4-2-1-check.mjs",
     "public-profile-grid:check": "node scripts/public-profile-grid-check.mjs",

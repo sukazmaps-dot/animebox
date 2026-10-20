@@ -5,31 +5,31 @@
 .shell:global(.episode-list-shell) :global(.episode-list__toolbar) { display: flex !important; flex-wrap: wrap !important; justify-content: space-between !important; gap: 10px !important; padding: 0 0 14px !important; margin: 0 !important; border: 0 !important; background: none !important; }
 .shell:global(.episode-list-shell) :global(.episode-list__meta) { color: var(--ab-ui-muted) !important; font-size: 12px !important; }
 .shell:global(.episode-list-shell) :global(.episode-list__jump) input, .shell:global(.episode-list-shell) :global(.episode-list__jump) button { min-height: 44px !important; }
-.seasons { display: flex; align-items: center; gap: 6px; overflow-x: auto; scroll-padding-inline: 4px; padding: 0 0 12px; margin-bottom: 12px; scrollbar-width: thin; }
-.seasons button { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 16px; border-radius: 8px; border: 1px solid transparent; border-bottom: 2px solid transparent; background: var(--ab-ui-surface); color: var(--ab-ui-muted); font-size: 13px; font-weight: 600; }
+.seasons { display: flex; align-items: center; gap: 6px; overflow-x: auto; scroll-padding-inline: 4px; padding: 0 0 8px; margin-bottom: 8px; scrollbar-width: thin; }
+.seasons button { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid transparent; border-bottom: 2px solid transparent; background: var(--ab-ui-surface); color: var(--ab-ui-muted); font-size: 13px; font-weight: 600; }
 .seasons small { font-size: 10px; color: var(--ab-ui-muted); font-weight: 400; }
 .seasons button[aria-pressed='true'] { border-bottom-color: var(--ab-ui-accent); color: var(--ab-ui-text); background: var(--ab-ui-raised); }
 .seasons button:focus-visible, .more:focus-visible, .card:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }
 .partial { font-size: 11px; color: var(--ab-ui-danger); flex-shrink: 0; }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.card { display: grid; grid-template-columns: 76px minmax(0, 1fr) 32px; align-items: center; gap: 14px; min-height: 96px; padding: 12px; background: var(--ab-ui-surface); border: 1px solid rgb(255 255 255 / 7%); border-radius: 12px; color: var(--ab-ui-text); transition: background .15s, border-color .15s; min-width: 0; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.card { display: grid; grid-template-columns: 44px minmax(0, 1fr) 28px; align-items: center; gap: 10px; min-height: 64px; padding: 8px 10px; background: var(--ab-ui-surface); border: 1px solid var(--ab-ui-border); border-radius: 10px; color: var(--ab-ui-text); transition: background .15s, border-color .15s; min-width: 0; }
 .card:hover { background: var(--ab-ui-raised); border-color: var(--ab-ui-accent); }
 .current { border-color: var(--ab-ui-accent); background: var(--ab-ui-raised); }
 .completed .visual { color: var(--ab-ui-success); }
-.visual { display: grid; place-items: center; align-self: stretch; position: relative; min-height: 60px; border-radius: 8px; overflow: hidden; font-size: 29px; line-height: 1; font-weight: 650; color: var(--ab-ui-accent); background: radial-gradient(ellipse at top right, var(--ab-ui-raised), var(--ab-ui-raised)); font-variant-numeric: tabular-nums; }
+.visual { display: grid; place-items: center; align-self: stretch; position: relative; min-height: 44px; border-radius: 7px; overflow: hidden; font-size: 21px; line-height: 1; font-weight: 650; color: var(--ab-ui-accent); background: radial-gradient(ellipse at top right, var(--ab-ui-raised), var(--ab-ui-raised)); font-variant-numeric: tabular-nums; }
 .thumbnail { aspect-ratio: 16 / 9; align-self: center; }
 .thumbnail > div { position: absolute; inset: 0; width: 100%; height: 100%; }
 .progress { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: var(--ab-ui-raised); z-index: 30; }
 .progress i { display: block; height: 100%; background: var(--ab-ui-primary); }
-.copy { display: grid; gap: 4px; min-width: 0; }
-.title { font-size: 14px; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
+.copy { display: grid; gap: 2px; min-width: 0; }
+.title { font-size: 13px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
 .subtitle, .status { font-size: 11px; line-height: 1.5; color: var(--ab-ui-muted); }
 .status:empty { display: none; }
-.summary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--ab-ui-muted); font-size: 12px; line-height: 1.5; }
-.play { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid rgb(255 255 255 / 20%); border-radius: 50%; color: var(--ab-ui-accent); }
+.summary { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; color: var(--ab-ui-muted); font-size: 11px; line-height: 1.4; }
+.play { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--ab-ui-border); border-radius: 50%; color: var(--ab-ui-accent); }
 .more { display: block; width: 100%; min-height: 44px; margin-top: 12px; padding: 10px; color: var(--ab-ui-accent); border: 1px solid rgb(255 255 255 / 10%); border-radius: 8px; font-size: 12px; }
 @media (max-width: 899px) { .grid { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 767px) { .card { grid-template-columns: 60px minmax(0, 1fr) 28px; gap: 12px; min-height: 84px; padding: 10px; } .visual { font-size: 25px; } .title { font-size: 13px; } .seasons button { padding-inline: 12px; } .play { width: 28px; height: 28px; } }
+@media (max-width: 767px) { .card { grid-template-columns: 40px minmax(0, 1fr) 28px; gap: 10px; min-height: 62px; padding: 8px; } .visual { min-height: 40px; font-size: 19px; } .title { font-size: 13px; } .seasons button { padding-inline: 10px; } .play { width: 28px; height: 28px; } }
 :global(html[data-animebox-theme='light']) .card, :global(html[data-animebox-theme='light']) .seasons button { background: var(--ab-ui-surface); color: var(--ab-ui-text); border-color: var(--ab-ui-border); }
 :global(html[data-animebox-theme='light']) .current, :global(html[data-animebox-theme='light']) .seasons button[aria-pressed='true'] { background: var(--ab-ui-surface); border-color: var(--ab-ui-accent); }
 :global(html[data-animebox-theme='light']) .visual { background: var(--ab-ui-surface); color: var(--ab-ui-accent); }
@@ -40,7 +40,8 @@
 :global(html[data-animebox-theme='light']) .shell:global(.episode-list-shell) :global(.episode-list__meta) { color: var(--ab-ui-muted) !important; }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 
-.media { grid-template-columns: 140px minmax(0, 1fr) 32px; }
-@media (max-width: 767px) { .media { grid-template-columns: 100px minmax(0, 1fr) 28px; } }
+.media { grid-template-columns: 96px minmax(0, 1fr) 28px; min-height: 76px; }
+.media .thumbnail { width: 96px; height: 54px; min-height: 54px; }
+@media (max-width: 767px) { .media { grid-template-columns: 80px minmax(0, 1fr) 28px; min-height: 68px; } .media .thumbnail { width: 80px; height: 45px; min-height: 45px; } }
 :global(html[data-animebox-theme='light']) .shell:global(.episode-list-shell) :global(.episode-list__jump) input { background: #fff !important; border-color: var(--ab-ui-accent) !important; color: var(--ab-ui-text) !important; }
 :global(html[data-animebox-theme='light']) .shell:global(.episode-list-shell) :global(.episode-list__jump) button { color: var(--ab-ui-accent) !important; background: var(--ab-ui-surface) !important; border-color: var(--ab-ui-accent) !important; }
