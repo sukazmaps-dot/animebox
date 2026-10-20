@@ -1,4 +1,12 @@
 import type { RankedRecommendation } from '@/lib/recommendations';
+
+// Public first-screen previews have only the fields the choice renderer needs.
+// Never invent a user-specific ranking or explanation before hydration.
+export type HomeTonightCandidate = Pick<
+  RankedRecommendation,
+  'anime' | 'moodTier' | 'franchiseRequiresPrevious' |
+  'franchiseContinuation' | 'explanations' | 'reason'
+>;
 import type { TasteMood } from '@/lib/personalization';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { isHomePublicSafe } from '@/lib/home-public-filter';
@@ -6,7 +14,7 @@ import { cleanSeoText, truncateSeoText } from '@/lib/seo-text';
 import { localizeDetailGenres } from '@/lib/anime-detail-genres';
 
 /** Consume the ranked pool without re-ranking or changing rail ownership. */
-export function homeTonightCandidates(items: RankedRecommendation[], mood: TasteMood) {
+export function homeTonightCandidates(items: HomeTonightCandidate[], mood: TasteMood) {
   const seen = new Set<number>();
   return items.filter(item => {
     const anime = item.anime;
@@ -19,7 +27,7 @@ export function homeTonightCandidates(items: RankedRecommendation[], mood: Taste
   });
 }
 
-export function homeTonightReason(item: RankedRecommendation, mood: TasteMood, hasWatchHistory: boolean) {
+export function homeTonightReason(item: HomeTonightCandidate, mood: TasteMood, hasWatchHistory: boolean) {
   const explanations = item.explanations ?? [];
   const publicReasons = new Set(['mood_match', 'community_quality', 'short_finished', 'ongoing', 'discovery', 'hidden_gem']);
   const evidence = (mood !== 'any' ? explanations.find(reason => reason.key === 'mood_match') : null)

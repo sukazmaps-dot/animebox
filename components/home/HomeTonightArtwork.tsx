@@ -17,11 +17,14 @@ const snapshot = () => window.matchMedia(query).matches;
 const serverSnapshot = () => false;
 
 /** One live image pipeline: portrait on phones, banner on desktop when known. */
-export default function HomeTonightArtwork({ anime }: { anime: Anime }) {
+export default function HomeTonightArtwork({ anime, preview = false }: { anime: Anime; preview?: boolean }) {
   const mobile = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
   const [failedArtwork, setFailedArtwork] = useState<string[]>([]);
   const [ambientLoaded, setAmbientLoaded] = useState(false);
-  const artwork = mobile ? anime.mobileHeroImage : anime.bannerImage;
+  // First public SSR pick must use the same small verified poster on every
+  // device. The server cannot know mobile matchMedia; picking a desktop
+  // banner there would trigger a second image request on hydration.
+  const artwork = preview ? null : mobile ? anime.mobileHeroImage : anime.bannerImage;
   const useArtwork = Boolean(artwork && !failedArtwork.includes(artwork));
   const kind = useArtwork ? (mobile ? 'portrait' : 'banner') : 'poster';
   const poster = mergeAnimeImageSources(anime.coverImage, anime.image);

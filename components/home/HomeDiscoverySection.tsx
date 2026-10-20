@@ -1,6 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useMemo } from 'react';
+import HomeTonightPick from '@/components/home/HomeTonightPick';
+import { isHomePublicSafe } from '@/lib/home-public-filter';
+import type { HomeTonightCandidate } from '@/lib/home-tonight-pick';
 import SectionHeader from '@/components/home/SectionHeader';
 import Link from 'next/link';
 import heroStyles from './HomeTonightPick.module.css';
@@ -12,11 +16,6 @@ import HomeTonightLoading from '@/components/home/HomeTonightLoading';
 import { useHomeFeedRuntime } from '@/components/home/HomeFeedRuntimeProvider';
 import { RecommendationFeedSkeleton } from '@/components/home/HomeLoadingSkeletons';
 import { HomePersonalScheduleSection } from '@/components/home/HomePersonalRetentionSections';
-
-const HomeTonightPick = dynamic(
-  () => import('@/components/home/HomeTonightPick'),
-  { ssr: false, loading: () => <HomeTonightLoading /> },
-);
 
 const SmartRecommendationFeed = dynamic(
   () => import('@/components/SmartRecommendationFeed'),
@@ -35,6 +34,8 @@ export default function HomeDiscoverySection() {
     moodSwitching,
     updateMood,
     hydrated,
+    popular,
+    ongoing,
     popularLoading,
     ongoingLoading,
     smartRecommendations,
@@ -48,6 +49,38 @@ export default function HomeDiscoverySection() {
     (popularLoading &&
       ongoingLoading &&
       smartRecommendations.length === 0);
+
+  // The server already provides verified, playable popular/ongoing titles.
+  // Render one on SSR rather than waiting for a client-only component,
+  // hydration, the recommendation chunk and the idle callback. Never claim
+  // that this provisional choice is personalized or emit a recommendation
+  // impression for it.
+  const publicPreview = useMemo<HomeTonightCandidate[]>(() => {
+    const seen = new Set<number>();
+    const result: HomeTonightCandidate[] = [];
+    for (const anime of [...popular, ...ongoing]) {
+      if (!anime || !Number.isSafeInteger(anime.id) || anime.id <= 0 ||
+          !isHomePublicSafe(anime) || seen.has(anime.id) ||
+          !(anime.title?.russian || anime.title?.romaji || anime.title?.english)) continue;
+      seen.add(anime.id);
+      result.push({
+        anime,
+        moodTier: 'good',
+        franchiseRequiresPrevious: false,
+        franchiseContinuation: false,
+        explanations: [],
+        reason: '',
+      });
+      if (result.length >= 8) break;
+    }
+    return result;
+  }, [popular, ongoing]);
+  const showingPublicPreview =
+    recommendationsLoading &&
+    !moodSwitching &&
+    mood === 'any' &&
+    publicPreview.length > 0;
+  const rankedForCurrentMood = mood === recommendationMood ? smartRecommendations : [];
 
   return (
     <div className={styles.discovery}>
@@ -69,12 +102,13 @@ export default function HomeDiscoverySection() {
           compact
         />
 
-        {recommendationsLoading ? <HomeTonightLoading mood={mood} /> : <HomeTonightPick
+        {recommendationsLoading && !showingPublicPreview ? <HomeTonightLoading mood={mood} /> : <HomeTonightPick
           key={mood}
           mood={mood}
-          items={mood === recommendationMood ? smartRecommendations : []}
+          items={showingPublicPreview ? publicPreview : rankedForCurrentMood}
           busy={moodSwitching}
           hasWatchHistory={hasWatchHistory}
+          preview={showingPublicPreview}
         />}
       </section>
     </div>
