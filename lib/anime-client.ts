@@ -274,7 +274,9 @@ export async function getAnimesWithMeta(
       ...(data.catalogMeta ? { catalogMeta: data.catalogMeta } : {}),
       ...(data.availabilityExcludedIds ? { availabilityExcludedIds: data.availabilityExcludedIds } : {}),
     },
-    data.catalogMeta ? 15_000 : options.search?.trim() ? SEARCH_CACHE_TTL : LIST_CACHE_TTL,
+    data.catalogMeta && !(data.catalogMeta.source === 'saved' && data.catalogMeta.completeness === 'full')
+      ? 15_000
+      : options.search?.trim() ? SEARCH_CACHE_TTL : LIST_CACHE_TTL,
     80,
   );
 }
