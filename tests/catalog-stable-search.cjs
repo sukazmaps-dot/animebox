@@ -1,5 +1,7 @@
 /* Mount the real catalog: controlled network order, real state/effects and
  * reconciliation. Presentational components and unrelated services are stubs. */
+// Production builds run prebuild too; React act belongs to the test runtime.
+process.env.NODE_ENV = 'test';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
