@@ -72,6 +72,23 @@ async function main(){
   assert.equal(providerCalls,0,'open upstream circuit must not receive another catalog request');
   providerShieldOpen=false;
 
+  // Browser catalog explicitly pins the verified saved view. Provider
+  // outages and circuit transitions must not change page membership/offsets.
+  providerCalls=0;
+  const lockedFirst=await GET({nextUrl:new URL('https://youranimebox.com/api/anime?catalogSource=saved&search=Наруто&limit=2&page=1')});
+  const lockedFirstBody=await lockedFirst.json();
+  assert.equal(lockedFirst.status,200);
+  assert.equal(lockedFirstBody.catalogMeta.source,'saved');
+  assert.equal(lockedFirstBody.pagination.hasNextPage,true);
+  assert.deepEqual(lockedFirstBody.anime.map(x=>x.id),[2,4]);
+  const lockedSecond=await GET({nextUrl:new URL('https://youranimebox.com/api/anime?catalogSource=saved&search=Наруто&limit=2&page=2')});
+  const lockedSecondBody=await lockedSecond.json();
+  assert.equal(lockedSecond.status,200);
+  assert.equal(lockedSecondBody.catalogMeta.source,'saved');
+  assert.equal(lockedSecondBody.pagination.hasNextPage,false);
+  assert.deepEqual(lockedSecondBody.anime.map(x=>x.id),[5,7]);
+  assert.equal(providerCalls,0,'pinned grid pages must never call a flaky upstream provider');
+
   const {withCatalogProviderBudget}=require('../lib/catalog-provider-budget.ts');
   let aborted=false;
   await assert.rejects(withCatalogProviderBudget(signal=>{signal.addEventListener('abort',()=>{aborted=true;});return new Promise(()=>{});},5),{name:'TimeoutError'});
