@@ -66,6 +66,8 @@ function getObserver() {
   if (observer) return observer;
 
   const margin = resolveMediaWarmupRootMargin();
+  const [, right, , left] = margin.split(' ');
+  const horizontalMargin = `0px ${right} 0px ${left}`;
 
   observer = new IntersectionObserver(
     (entries) => {
@@ -80,6 +82,9 @@ function getObserver() {
     },
     {
       rootMargin: margin,
+      // rootMargin alone is clipped by a horizontal scroll container. Modern
+      // engines can also warm the next posters inside nested scroll tracks.
+      ...('scrollMargin' in IntersectionObserver.prototype ? { scrollMargin: horizontalMargin } : {}),
       threshold: 0.01,
     },
   );

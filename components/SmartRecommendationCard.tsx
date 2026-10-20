@@ -549,7 +549,7 @@ export default function SmartRecommendationCard({
             className="smart-card__image"
             loading="near"
             sizes="(min-width: 3400px) 250px, (min-width: 3000px) 235px, (min-width: 2400px) 225px, (min-width: 1920px) 215px, (max-width: 560px) 41vw, (max-width: 900px) 27vw, (max-width: 1280px) 18vw, 205px"
-            quality={62}
+            quality={70}
             sourcePreference="compact"
             preset="card"
             onStateChange={setPosterState}

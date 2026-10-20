@@ -41,7 +41,9 @@ assert(poster.includes("aspectRatio: '2 / 3'"), 'poster aspect ratio missing');
 assert(poster.includes("rounded-[8px]"), 'poster radius missing');
 assert(poster.includes("onStateChange={setState}"), 'poster skeleton is not tied to real load state');
 assert(poster.includes('<AnimeImage'), 'poster must reuse existing CDN/fallback/retry engine');
-assert(cascade.includes('setRetryCount(1)'), 'hero retry missing');
+// Retry now lives in the same source-keyed state as index/loaded; executable
+// bounded-retry coverage is in poster-responsive-recovery.cjs.
+assert(cascade.includes('retryCount: 1') && cascade.includes('retryCount >= 1'), 'bounded hero retry missing');
 assert(cascade.includes('8_500'), 'hero timeout missing');
 assert(franchise.includes('Связанные сезоны пока не найдены'), 'franchise empty state missing');
 assert(franchise.includes('watchHref'), 'watch-route fallback missing');

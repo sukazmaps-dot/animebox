@@ -114,7 +114,9 @@ try {
   const qualityTiny = runtime.getImageCandidates(poster, 'quality', {preset:'tiny'});
   assert.equal(new URL(qualityTiny[0]).searchParams.get('url'), poster.extraLarge);
   const card = runtime.getImageCandidates(poster, 'compact', {preset:'card'});
-  assert.equal(card[1], poster.extraLarge, 'Normal poster fidelity preserved');
+  // Card slots now use extraLarge for DPR fidelity; tiny policy above stays unchanged.
+  assert.equal(new URL(card[0]).searchParams.get('url'), poster.extraLarge);
+  assert.equal(card[1], poster.large, 'The smaller original remains a bounded fallback');
   const srcSet = runtime.getImageMediaSrcSet(poster, 'compact', 'tiny');
   assert.ok(srcSet.includes('96w') && srcSet.includes('144w') && srcSet.includes('240w'));
   for (const path of ['app/login/layout.tsx', 'app/settings/page.tsx', 'app/admin/layout.tsx']) {

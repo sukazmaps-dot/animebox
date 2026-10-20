@@ -209,3 +209,27 @@ export function buildAnimeBoxMediaDefaultVariant(
     format,
   };
 }
+
+/** Keep responsive fallback requests on their current configured media origin.
+ * Direct originals, same-origin relay URLs and unrelated hosts are not variants.
+ */
+export function buildMediaCandidateSrcSet(
+  candidate: string,
+  preset: MediaImagePreset,
+  quality?: number,
+  format: MediaImageFormat = 'webp',
+): string | undefined {
+  try {
+    const url = new URL(candidate);
+    const source = normalizeRemoteUrl(url.searchParams.get('url'));
+    if (url.pathname !== '/image' || !source ||
+        !mediaOriginsForSource(source).includes(url.origin)) return undefined;
+    const config = getMediaImagePreset(preset);
+    const normalizedQuality = normalizeMediaImageQuality(quality, config.defaultQuality);
+    return config.widths.map((width) =>
+      `${buildMediaUrl(url.origin, source, { width, quality: normalizedQuality, format })} ${width}w`,
+    ).join(', ');
+  } catch {
+    return undefined;
+  }
+}
