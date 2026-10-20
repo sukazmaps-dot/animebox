@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 
 type KodikTimeSample = {
   positionSeconds: number;
@@ -250,14 +250,16 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
     onEnded,
     resumeSeconds,
   });
-  messageHandlersRef.current = {
-    onTimeUpdate,
-    onPlaybackAction,
-    onPlaybackState,
-    onProviderSkip,
-    onEnded,
-    resumeSeconds,
-  };
+  useLayoutEffect(() => {
+    messageHandlersRef.current = {
+      onTimeUpdate,
+      onPlaybackAction,
+      onPlaybackState,
+      onProviderSkip,
+      onEnded,
+      resumeSeconds,
+    };
+  });
 
   const playerSrc = useMemo(
     () => buildPlayerUrl(src, episodeNumber),
