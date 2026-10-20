@@ -72,7 +72,7 @@ const originalWindow = global.window;
 process.env.NODE_ENV = 'production';
 Math.random = () => 0; // deterministically admit the 2% diagnostic sample
 global.window = {
-  location: {pathname:'/anime/secret-title/watch',search:'?token=hidden'},
+  location: {hostname:'youranimebox.com',pathname:'/anime/secret-title/watch',search:'?token=hidden'},
   innerWidth: 390,
   matchMedia: () => ({matches:false}),
 };
@@ -98,6 +98,9 @@ try {
   assert.equal(reported.length,2);
   assert.equal(reported[1][1].metadata.unit,'milli');
   assert.equal(reported[1][1].metadata.value,110);
+  global.window.location.hostname='localhost';
+  onWebVital({id:'lcp-local',name:'LCP',value:1000});
+  assert.equal(reported.length,2,'localhost measurements cannot reach production analytics');
 } finally {
   Math.random = originalRandom;
   process.env.NODE_ENV = originalEnv;
