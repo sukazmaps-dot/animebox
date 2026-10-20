@@ -12,6 +12,7 @@ const logPath = path.join(os.tmpdir(), 'animebox-home32-' + process.pid + '.log'
 const port = 3106;
 const origin = `http://127.0.0.1:${port}`;
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><defs><linearGradient id="s"><stop stop-color="#37304e"/><stop offset="1" stop-color="#a7a3b4"/></linearGradient></defs><path fill="url(#s)" d="M0 0h1920v1080H0z"/><circle cx="1380" cy="310" r="190" fill="#d3c5d5"/><path d="M650 1080l500-700 350 400 230-250 190 550" fill="#56536e"/></svg>';
+const posterSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><defs><linearGradient id="p" x2="1" y2="1"><stop stop-color="#37304e"/><stop offset="1" stop-color="#a7a3b4"/></linearGradient></defs><path fill="url(#p)" d="M0 0h600v900H0z"/><circle cx="400" cy="240" r="110" fill="#d3c5d5"/><path d="M0 900l220-500 140 270 120-120 120 350" fill="#56536e"/></svg>';
 if (fs.existsSync(fixture)) throw Error('Refusing to overwrite ' + fixture);
 fs.mkdirSync(fixture);
 fs.copyFileSync('tests/fixtures/home32.fixture', fixture + '/page.tsx');
@@ -87,7 +88,7 @@ fs.mkdirSync(output, { recursive: true });
       }, { theme: c.theme, history });
       await page.route('**/*', route => {
         const request = route.request(), url = request.url();
-        if (request.resourceType() === 'image' && (url.includes('qa-images.test') || url.includes('/api/image?'))) return c.mode === 'broken' ? route.fulfill({ status: 404, body: '' }) : route.fulfill({ contentType: 'image/svg+xml', body: svg });
+        if (request.resourceType() === 'image' && (url.includes('qa-images.test') || url.includes('/api/image?'))) return c.mode === 'broken' ? route.fulfill({ status: 404, body: '' }) : route.fulfill({ contentType: 'image/svg+xml', body: url.includes('cover-') ? posterSvg : svg });
         if (url.startsWith(origin + '/api/recommendations?')) {
           recommendationRequests++;
           // A normal terminal page must satisfy the production response schema.
@@ -121,13 +122,12 @@ fs.mkdirSync(output, { recursive: true });
           assert.equal(panel.rulesOpen, false, name + ' rules initially collapsed');
           assert.equal(await page.getByText('Страница 1', { exact: true }).count(), 0, name + ' no fake pagination');
           assert(panel.links.includes('/support') && panel.links.includes('/supporters'));
-          assert(panel.actions.every(action => action.width >= 44 && action.height >= 44), name + ' history touch targets');
+          assert(panel.actions.every(action => action.width >= 44 && action.height >= 44), name + ' history touch targets: ' + JSON.stringify(panel.actions));
           await page.getByText('Как учитывается поддержка', { exact: true }).click();
           assert.equal(await page.locator('[data-support-history] details').evaluate(el => el.open), true, name + ' accounting rules remain accessible');
           await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true });
           assert.deepEqual(errors, [], name + ' history runtime errors');
           console.log('PASS', name);
-          await page.close();
           continue;
         }
         await page.waitForSelector('[data-home-hero="single"] img');
@@ -151,7 +151,6 @@ fs.mkdirSync(output, { recursive: true });
           assert(recommendationRequests > 0 && recommendationRequests <= 3, name + ' viewport bootstrap reaches the terminal API with bounded requests');
           assert.equal(errors.length, 0, name + ' sparse runtime errors');
           console.log('PASS', name);
-          await page.close();
           continue;
         }
         await page.waitForSelector('.smart-feed__stage[aria-busy="false"]');

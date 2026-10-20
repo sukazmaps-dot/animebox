@@ -127,12 +127,12 @@ export function SponsorDashboardView({ history = false, data, loading = false, e
           <h2>{history ? 'История поддержки' : 'Твой путь спонсора'}</h2>
         </div>
         <div className={history ? styles.actions : 'sponsor-v3-dashboard-actions'} role="group" aria-label="Разделы поддержки и обновление прогресса">
-          {data?.sponsor && <Link className="btn btn--ghost" href="/settings/sponsor">Оформление</Link>}
+          {data?.sponsor && <Link className={history ? undefined : 'btn btn--ghost'} href="/settings/sponsor">Оформление</Link>}
           {history
-            ? <Link className="btn btn--ghost" href="/support">Поддержка</Link>
+            ? <Link href="/support">Поддержка</Link>
             : <Link className="btn btn--ghost" href="/support/history">История</Link>}
-          <Link className="btn btn--ghost" href="/supporters">Спонсоры</Link>
-          <button className="btn btn--ghost" type="button" onClick={reload} disabled={loading}>
+          <Link className={history ? undefined : 'btn btn--ghost'} href="/supporters">Спонсоры</Link>
+          <button className={history ? undefined : 'btn btn--ghost'} type="button" onClick={reload} disabled={loading}>
             Обновить
           </button>
         </div>

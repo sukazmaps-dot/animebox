@@ -39,6 +39,7 @@ let output = html();
 assert(output.includes('История пока пустая') && output.includes('href="/support"'));
 assert(!output.includes('role="progressbar"') && !output.includes('Страница 1'), 'zero history has no empty progress/pager');
 assert(!output.includes('sponsor-v2-panel'), 'history does not inherit legacy layout rules');
+assert(!output.includes('btn--ghost'), 'history controls do not inherit old global button height overrides');
 assert(output.includes('<details') && !output.includes('<details open'), 'accounting rules are disclosed on demand');
 output = html({ data: { ...empty, payments: [payment], donations: [donation], totalStars: 25 } });
 assert(output.includes('−25') && output.includes('Возврат') && output.includes('KZT') && output.includes('DonatePay'), 'refunds and separate currencies retained');
