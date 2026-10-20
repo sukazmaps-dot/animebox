@@ -4,6 +4,7 @@ const read = (path) =>
   fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const animeImage = read('components/AnimeImage.tsx');
+const visibleRecovery = read('lib/use-visible-image-recovery.ts');
 const cascade = read('components/AnimeImageCascade.tsx');
 const imageService = read('lib/image-service.ts');
 const mediaDelivery = read('lib/media-delivery.ts');
@@ -41,7 +42,7 @@ for (const needle of [
   'isMediaEdgeBlocked(current)',
   'getImageMediaSrcSet',
   'data-image-preset={effectivePreset}',
-  "nativeLoading !== 'eager'",
+  'useVisibleImageRecovery',
   'decoding="async"',
   'PRIMARY_MEDIA_TIMEOUT_MS = 6_500',
   'PROXY_SOURCE_TIMEOUT_MS = 9_500',
@@ -215,7 +216,9 @@ if (
 
 if (
   animeImage.includes('PRIMARY_MEDIA_TIMEOUT_MS = 2_500') ||
-  !animeImage.includes("nativeLoading !== 'eager'")
+  // Patch 2: lazy images gain a watchdog only after real viewport visibility.
+  !visibleRecovery.includes('if (!active || !visible) return;') ||
+  !visibleRecovery.includes('observeVisibleViewportMedia(hostRef.current, setVisible)')
 ) {
   failures.push('poster watchdog regressed to mount-time lazy-image failover');
 }

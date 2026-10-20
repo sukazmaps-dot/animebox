@@ -7,6 +7,7 @@ import { useVisibleHomeImpression } from '@/components/home/useVisibleHomeImpres
 
 import AnimeImage from '@/components/AnimeImage';
 import { getAnimeTitle } from '@/lib/anime-display';
+import { mergeAnimeImageSources } from '@/lib/anime-metadata-merge';
 import { animeHref } from '@/lib/anime-url';
 import type { AnimeHistoryEntry } from '@/lib/anime-storage';
 import {
@@ -140,7 +141,7 @@ export default function HomeContinueWatching({
             >
               <div className="continue-smart-card__poster">
                 <AnimeImage
-                  image={anime.coverImage}
+                  image={mergeAnimeImageSources(anime.coverImage, anime.image)}
                   alt={title}
                   englishName={anime.title?.english || anime.title?.romaji}
                   className="continue-smart-card__image"

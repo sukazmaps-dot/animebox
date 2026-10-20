@@ -11,6 +11,7 @@ import Icon from '@/components/Icon';
 import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
+import { mergeAnimeImageSources } from '@/lib/anime-metadata-merge';
 import { communityRequest } from '@/lib/community-client';
 import {
   clearRecommendationFeedback,
@@ -543,7 +544,7 @@ export default function SmartRecommendationCard({
       >
         <div className="smart-card__poster">
           <AnimeImage
-            image={anime.coverImage}
+            image={mergeAnimeImageSources(anime.coverImage, anime.image)}
             alt={title}
             englishName={anime.title?.english || anime.title?.romaji}
             className="smart-card__image"

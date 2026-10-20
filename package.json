@@ -172,7 +172,7 @@
     "railway-cost:memory": "node --expose-gc scripts/railway-memory-drill.cjs",
     "home32:check": "node tests/home32.cjs && node tests/home-tonight-pick.cjs && node tests/home32-layout-regression.cjs && node tests/support-history-layout.cjs",
     "home32:browser": "node scripts/home32-browser-smoke.cjs",
-    "poster-reliability:check": "node tests/poster-responsive-recovery.cjs && node tests/poster-source-reliability.cjs && node tests/patch32-1-1-reliability.cjs"
+    "poster-reliability:check": "node tests/poster-visible-recovery.cjs && node tests/poster-responsive-recovery.cjs && node tests/poster-source-reliability.cjs && node tests/patch32-1-1-reliability.cjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

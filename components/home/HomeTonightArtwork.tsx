@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore, type CSSProperties } from 'react';
 import type { Anime } from '@/types/anime';
 import AnimeImage from '@/components/AnimeImage';
 import { mobileHeroObjectPosition } from '@/lib/home-hero-art';
+import { mergeAnimeImageSources } from '@/lib/anime-metadata-merge';
 import styles from './HomeTonightPick.module.css';
 
 const query = '(max-width: 768px)';
@@ -23,7 +24,7 @@ export default function HomeTonightArtwork({ anime }: { anime: Anime }) {
   const artwork = mobile ? anime.mobileHeroImage : anime.bannerImage;
   const useArtwork = Boolean(artwork && !failedArtwork.includes(artwork));
   const kind = useArtwork ? (mobile ? 'portrait' : 'banner') : 'poster';
-  const poster = anime.coverImage ?? anime.image;
+  const poster = mergeAnimeImageSources(anime.coverImage, anime.image);
   const posterPresent = Boolean(poster?.extraLarge || poster?.large || poster?.medium || poster?.original || poster?.preview || poster?.fallbackUrls?.length);
   // On desktop, a missing/unavailable wide banner should not become an empty
   // theater-sized slab. Use the SAME compact poster candidate/sizes behind

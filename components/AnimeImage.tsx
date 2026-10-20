@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -27,6 +28,8 @@ import {
   observeNearViewportMedia,
   type MediaWarmupActivation,
 } from '@/lib/media-warmup-client';
+import { useVisibleImageRecovery, useImageHydration } from '@/lib/use-visible-image-recovery';
+import { rememberImageSuccess, rememberedImageSource, forgetImageSuccess } from '@/lib/image-recovery-session';
 import {
   getMediaEdgeRetryAfterMs,
   getMediaEdgeHealthRevision,
@@ -224,11 +227,18 @@ export default function AnimeImage({
     getMediaEdgeHealthServerRevision,
   );
 
-  const [imageState, setImageState] = useState(() => ({
-    key: sourcesKey,
-    sourceIndex: 0,
-    loaded: false,
-  }));
+  const hydrated = useImageHydration();
+  const [imageState, setImageState] = useState(() => {
+    const preferred = hydrated ? Math.max(0, rememberedImageSource(sources)) : 0;
+    return {
+      key: sourcesKey,
+      hintKey: hydrated ? sourcesKey : null,
+      sourceIndex: preferred,
+      source: sources[preferred] ?? FALLBACK,
+      loaded: false,
+      generation: 0,
+    };
+  });
   const [lastFailure, setLastFailure] = useState<{
     key: string;
     stage: 'media' | 'proxy' | 'origin' | 'local';
@@ -238,7 +248,20 @@ export default function AnimeImage({
   // Remember every source transition, including A -> B -> A. Otherwise an
   // old terminal fallback for A can reappear when that card is reused.
   if (imageState.key !== sourcesKey) {
-    setImageState({ key: sourcesKey, sourceIndex: 0, loaded: false });
+    const retainedIndex = imageState.loaded && imageState.source !== FALLBACK
+      ? sources.indexOf(imageState.source) : -1;
+    const preferred = retainedIndex >= 0 ? retainedIndex
+      : hydrated ? Math.max(0, rememberedImageSource(sources)) : 0;
+    setImageState({ key: sourcesKey, hintKey: hydrated ? sourcesKey : null, sourceIndex: preferred,
+      source: sources[preferred] ?? FALLBACK,
+      loaded: retainedIndex >= 0, generation: imageState.generation + 1 });
+  }
+  if (hydrated && imageState.key === sourcesKey && imageState.hintKey !== sourcesKey) {
+    const preferred = imageState.loaded ? imageState.sourceIndex
+      : Math.max(0, rememberedImageSource(sources));
+    setImageState({...imageState, hintKey: sourcesKey, sourceIndex: preferred,
+      source: sources[preferred] ?? FALLBACK,
+      generation: imageState.generation + (preferred !== imageState.sourceIndex ? 1 : 0)});
   }
   if (retryInfo.key !== sourcesKey) {
     setRetryInfo({ key: sourcesKey, count: 0 });
@@ -258,11 +281,27 @@ export default function AnimeImage({
     ? storedSourceIndex
     : firstUsableSourceIndex(sources, storedSourceIndex);
 
+  // Persist a circuit-driven skip. Cooldown expiry must not rewind an active
+  // proxy/origin request back to a previously failing media endpoint.
+  if (imageState.key === sourcesKey && imageState.sourceIndex !== sourceIndex) {
+    setImageState({...imageState, sourceIndex, source: sources[sourceIndex] ?? FALLBACK,
+      loaded: false, generation: imageState.generation + 1});
+  }
+
   const loaded =
     storedLoaded && sourceIndex === storedSourceIndex;
 
   const current = sources[sourceIndex] ?? FALLBACK;
+  const currentMediaBlocked = !loaded && isMediaEdgeBlocked(current);
+  const generation = imageState.generation;
   const isFallback = current === FALLBACK;
+  const activeAttemptRef = useRef<{key: string; generation: number} | null>({key: sourcesKey, generation});
+  useLayoutEffect(() => {
+    activeAttemptRef.current = {key: sourcesKey, generation};
+    return () => { activeAttemptRef.current = null; };
+  }, [generation, sourcesKey]);
+  const isCurrentAttempt = useCallback(() => activeAttemptRef.current?.key === sourcesKey &&
+    activeAttemptRef.current.generation === generation, [generation, sourcesKey]);
   // A fallback edge needs its own srcset. Reusing the primary srcset would
   // silently send the browser back to the endpoint that already failed.
   const activeMediaSrcSet = sourceIndex === 0 ? mediaSrcSet
@@ -292,7 +331,7 @@ export default function AnimeImage({
   const shouldRequestSource =
     loading !== 'near' || warmupActivation !== 'waiting';
 
-  const nativeLoading: 'lazy' | 'eager' =
+  const scheduledLoading: 'lazy' | 'eager' =
     loading === 'near'
       ? warmupActivation === 'native-lazy'
         ? 'lazy'
@@ -317,8 +356,13 @@ export default function AnimeImage({
     onStateChange?.(publicState);
   }, [onStateChange, publicState]);
 
+  useEffect(() => {
+    if (loaded && !isFallback) rememberImageSuccess(sources, current);
+  }, [current, isFallback, loaded, sources]);
+
   const goToNextSource = useCallback(() => {
     setImageState((previous) => {
+      if (previous.key !== sourcesKey || previous.generation !== generation) return previous;
       const previousIndex =
         previous.key === sourcesKey
           ? previous.sourceIndex
@@ -345,14 +389,18 @@ export default function AnimeImage({
 
       return {
         key: sourcesKey,
+        hintKey: sourcesKey,
         sourceIndex: nextIndex,
+        source: sources[nextIndex] ?? FALLBACK,
         loaded: false,
+        generation: previous.generation + 1,
       };
     });
-  }, [sourceIndex, sources, sourcesKey]);
+  }, [generation, sourceIndex, sources, sourcesKey]);
 
   const handleLoad = useCallback(
     (event: React.SyntheticEvent<HTMLImageElement>) => {
+      if (!isCurrentAttempt()) return;
       const element = event.currentTarget;
 
       if (
@@ -361,6 +409,7 @@ export default function AnimeImage({
       ) {
         reportMediaEdgeSuccess(current);
         setImageState((previous) => {
+          if (previous.key !== sourcesKey || previous.generation !== generation) return previous;
           const previousIndex =
             previous.key === sourcesKey
               ? firstUsableSourceIndex(
@@ -374,63 +423,55 @@ export default function AnimeImage({
             ? previous
             : {
                 key: sourcesKey,
+                hintKey: sourcesKey,
                 sourceIndex,
+                source: current,
                 loaded: true,
+                generation,
               };
         });
       }
     },
-    [current, sourceIndex, sources, sourcesKey],
+    [current, generation, isCurrentAttempt, sourceIndex, sources, sourcesKey],
   );
 
   const handleError = useCallback(() => {
+    if (!isCurrentAttempt()) return;
     if (!isFallback) {
+      forgetImageSuccess(sources, current);
       recordFailure('network-or-decode');
       reportMediaEdgeFailure(current);
       goToNextSource();
       return;
     }
 
-    setImageState({
-      key: sourcesKey,
-      sourceIndex,
-      loaded: true,
-    });
-  }, [current, goToNextSource, isFallback, recordFailure, sourceIndex, sourcesKey]);
+    setImageState(previous => previous.key !== sourcesKey || previous.generation !== generation
+      ? previous : {...previous, loaded: true});
+  }, [current, generation, goToNextSource, isCurrentAttempt, isFallback, recordFailure, sources, sourcesKey]);
 
   /*
-   * Native lazy scheduling and the shared near-viewport scheduler own the
-   * off-screen request window. The watchdog starts only after an eager request
-   * has actually been released, so it never races an intentionally deferred
-   * poster.
+   * Native lazy and near-viewport scheduling own the off-screen request window.
+   * A shared visibility observer promotes a visible lazy image and starts its
+   * bounded watchdog. Hidden/off-screen images consume no recovery budget.
    */
-  useEffect(() => {
-    if (
-      !shouldRequestSource ||
-      nativeLoading !== 'eager' ||
-      loaded ||
-      isFallback
-    ) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      recordFailure('timeout');
-      reportMediaEdgeFailure(current);
-      goToNextSource();
-    }, sourceTimeoutMs(current, sourceIndex));
-
-    return () => window.clearTimeout(timeout);
-  }, [
-    current,
-    goToNextSource,
-    isFallback,
-    loaded,
-    nativeLoading,
-    recordFailure,
-    shouldRequestSource,
-    sourceIndex,
-  ]);
+  const handleTimeout = useCallback((budgetExhausted: boolean) => {
+    if (!isCurrentAttempt()) return;
+    forgetImageSuccess(sources, current);
+    recordFailure('timeout');
+    reportMediaEdgeFailure(current);
+    if (budgetExhausted) {
+      setImageState(previous => previous.key !== sourcesKey || previous.generation !== generation
+        ? previous : {...previous, sourceIndex: sources.length - 1, source: FALLBACK,
+          loaded: false, generation: previous.generation + 1});
+    } else goToNextSource();
+  }, [current, generation, goToNextSource, isCurrentAttempt, recordFailure, sources, sourcesKey]);
+  const visibleLoading = useVisibleImageRecovery({
+    hostRef, active: shouldRequestSource && !loaded && !isFallback,
+    passKey: `${sourcesKey}:${retryInfo.key === sourcesKey ? retryInfo.count : 0}`,
+    attemptKey: `${current}:${generation}`, timeoutMs: sourceTimeoutMs(current, sourceIndex),
+    onTimeout: handleTimeout,
+  });
+  const nativeLoading = scheduledLoading === 'lazy' && visibleLoading ? 'eager' : scheduledLoading;
 
   useEffect(() => {
     transientRetryCountRef.current = 0;
@@ -479,10 +520,10 @@ export default function AnimeImage({
 
       transientRetryCountRef.current += 1;
       setRetryInfo({ key: sourcesKey, count: transientRetryCountRef.current });
-      setImageState({
-        key: sourcesKey,
-        sourceIndex: recoverViaProxy ? proxyIndex : firstUsableSourceIndex(sources, 0),
-        loaded: false,
+      const recoveryIndex = recoverViaProxy ? proxyIndex : firstUsableSourceIndex(sources, 0);
+      setImageState(previous => previous.key !== sourcesKey ? previous : {
+        key: sourcesKey, hintKey: sourcesKey, sourceIndex: recoveryIndex, source: sources[recoveryIndex] ?? FALLBACK,
+        loaded: false, generation: previous.generation + 1,
       });
     };
 
@@ -533,12 +574,14 @@ export default function AnimeImage({
     if (!element || !element.complete) return;
 
     const frame = window.requestAnimationFrame(() => {
+      if (!isCurrentAttempt()) return;
       if (
         element.naturalWidth > 0 &&
         element.naturalHeight > 0
       ) {
         reportMediaEdgeSuccess(current);
         setImageState((previous) => {
+          if (previous.key !== sourcesKey || previous.generation !== generation) return previous;
           const previousIndex =
             previous.key === sourcesKey
               ? firstUsableSourceIndex(
@@ -552,8 +595,11 @@ export default function AnimeImage({
             ? previous
             : {
                 key: sourcesKey,
+                hintKey: sourcesKey,
                 sourceIndex,
+                source: current,
                 loaded: true,
+                generation,
               };
         });
         return;
@@ -567,8 +613,10 @@ export default function AnimeImage({
     return () => window.cancelAnimationFrame(frame);
   }, [
     current,
+    generation,
     goToNextSource,
     isFallback,
+    isCurrentAttempt,
     shouldRequestSource,
     recordFailure,
     sourceIndex,
@@ -585,6 +633,9 @@ export default function AnimeImage({
       ].join(' ')}
       data-image-delivery="animebox-media"
       data-image-state={publicState}
+      data-image-request-state={sources.length <= 1 ? 'missing-source'
+        : isFallback ? 'exhausted' : loaded ? 'loaded'
+          : !shouldRequestSource ? 'deferred' : visibleLoading ? 'visible-pending' : 'offscreen-pending'}
       data-image-source-index={sourceIndex}
       data-image-loading={loading}
       data-image-warmup={warmupActivation}
@@ -624,7 +675,7 @@ export default function AnimeImage({
           {/* Near mode is released by one shared adaptive observer. */}
           {shouldRequestSource && (
             <picture className="contents">
-              {!isMediaEdgeBlocked(current) &&
+              {!currentMediaBlocked &&
                 activeAvifSrcSet && (
                   <source
                     type="image/avif"
@@ -632,7 +683,7 @@ export default function AnimeImage({
                     sizes={sizes}
                   />
                 )}
-              {!isMediaEdgeBlocked(current) &&
+              {!currentMediaBlocked &&
                 activeWebpSrcSet && (
                   <source
                     type="image/webp"
@@ -647,7 +698,7 @@ export default function AnimeImage({
                 height={600}
                 src={current}
                 srcSet={
-                  !isMediaEdgeBlocked(current)
+                  !currentMediaBlocked
                     ? activeMediaSrcSet
                     : undefined
                 }
