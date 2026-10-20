@@ -30,7 +30,8 @@ const checks = [
   ['large DPR ladder reaches 1080', mediaDelivery.includes('widths: [360, 540, 720, 1080]')],
   ['large detail preset defaults to 540/q80', mediaDelivery.includes('defaultWidth: 540') && mediaDelivery.includes('defaultQuality: 80')],
   ['cascade uses bounded transformed candidates', cascade.includes('buildImageCandidateChain(sources, {')],
-  ['cascade exposes responsive srcset', cascade.includes('getRawImageMediaSrcSet(') && cascade.includes('srcSet={index === 0 ? mediaSrcSet : undefined}')],
+  // Responsive variants now follow the active fallback edge as well as index zero.
+  ['cascade exposes responsive srcset for active source', cascade.includes('getRawImageMediaSrcSet(') && cascade.includes('getImageCandidateMediaSrcSet(current, preset, quality, format)') && cascade.includes('srcSet={activeMediaSrcSet}')],
   ['detail poster explicitly requests large q80', detailPage.includes('preset="large"') && detailPage.includes('quality={80}')],
   ['media worker protocol is v3', mediaWorker.includes("protocol: 'variants-v3'")],
   ['media worker uses v3 R2 namespace', mediaWorker.includes('posters-v3/')],

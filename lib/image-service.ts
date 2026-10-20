@@ -3,6 +3,7 @@ import {
   buildAnimeBoxMediaCandidates,
   buildAnimeBoxMediaDefaultVariant,
   buildAnimeBoxMediaSrcSet,
+  buildMediaCandidateSrcSet,
   type MediaImageFormat,
   type MediaImagePreset,
 } from '@/lib/media-delivery';
@@ -187,7 +188,14 @@ export type ImageCandidatePreference = 'quality' | 'compact';
 function imageValues(
   image: AnimeImage,
   preference: ImageCandidatePreference,
+  preset?: MediaImagePreset,
 ): Array<string | null | undefined> {
+  // Card-sized slots on DPR 2/3 screens need the highest known original.
+  // Tiny rows retain their smaller origin and existing traffic budget.
+  if (preference === 'compact' && (preset === 'card' || preset === 'large' || preset === 'hero')) {
+    return [image.extraLarge, image.large, ...(image.fallbackUrls ?? []).slice(0, 6),
+      image.medium, image.original, image.preview];
+  }
   if (preference === 'compact') {
     return [
       image.large,
@@ -212,8 +220,9 @@ function imageValues(
 function primaryRemoteImage(
   image: AnimeImage,
   preference: ImageCandidatePreference,
+  preset?: MediaImagePreset,
 ): string | null {
-  for (const value of imageValues(image, preference)) {
+  for (const value of imageValues(image, preference, preset)) {
     const normalized = normalizeImageUrl(value);
     if (normalized && !normalized.startsWith('/')) return normalized;
   }
@@ -233,13 +242,12 @@ export function getImageCandidates(
   if (!image) return [];
 
   /*
-   * Compact rails still use bounded AnimeBox media variants, but the upstream
-   * source must contain enough pixels for high-DPR phones. AniList medium can
-   * be narrower than the rendered CSS slot after DPR scaling, which makes a
-   * 240/360px edge variant permanently soft. Start from large, then let the
-   * Worker resize/cache the exact responsive variant; medium is only fallback.
+   * Compact delivery still uses bounded media variants. Card/large/hero slots
+   * start from extraLarge for DPR fidelity; tiny slots keep the smaller large
+   * original. The Worker chooses a responsive derivative, not an upscale from
+   * AniList medium, which remains a last-resort source.
    */
-  const preferred = imageValues(image, preference);
+  const preferred = imageValues(image, preference, delivery?.preset);
   return buildImageCandidateChain(
     preferred,
     delivery,
@@ -255,7 +263,7 @@ export function getImageMediaSrcSet(
 ): string | undefined {
   if (!image) return undefined;
 
-  const primary = primaryRemoteImage(image, preference);
+  const primary = primaryRemoteImage(image, preference, preset);
   if (!primary) return undefined;
 
   return buildAnimeBoxMediaSrcSet(
@@ -285,4 +293,14 @@ export function getRawImageMediaSrcSet(
   }
 
   return undefined;
+}
+
+/** Responsive variants must follow the active delivery endpoint on recovery. */
+export function getImageCandidateMediaSrcSet(
+  candidate: string,
+  preset: MediaImagePreset,
+  quality?: number,
+  format: MediaImageFormat = 'webp',
+): string | undefined {
+  return buildMediaCandidateSrcSet(candidate, preset, quality, format);
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -11,6 +12,7 @@ import {
 import {
   buildImageCandidateChain,
   getRawImageMediaSrcSet,
+  getImageCandidateMediaSrcSet,
 } from '@/lib/image-service';
 import type {
   MediaImageFormat,
@@ -68,62 +70,44 @@ export default function AnimeImageCascade({
     [format, preset, quality, sources],
   );
 
-  const [index, setIndex] =
-    useState<number>(0);
+  const candidatesKey = candidates.join('|');
+  const [imageState, setImageState] = useState(() => ({
+    key: candidatesKey, index: 0, loaded: false, retryCount: 0,
+  }));
+  // Reset before committing a different title, rather than showing the old
+  // fallback for one frame and resetting it from an effect afterwards.
+  if (imageState.key !== candidatesKey) {
+    setImageState({ key: candidatesKey, index: 0, loaded: false, retryCount: 0 });
+  }
+  const index = imageState.key === candidatesKey ? imageState.index : 0;
+  const loaded = imageState.key === candidatesKey && imageState.loaded;
+  const retryCount = imageState.key === candidatesKey ? imageState.retryCount : 0;
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const current = candidates[index] ?? FALLBACK;
+  const isFallback = current === FALLBACK;
+  const activeMediaSrcSet = index === 0 ? mediaSrcSet
+    : getImageCandidateMediaSrcSet(current, preset, quality, format);
 
-  const [loaded, setLoaded] =
-    useState<boolean>(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const goToNextSource = useCallback(() => {
+    setImageState((previous) => previous.key !== candidatesKey || previous.index !== index
+      ? previous
+      : { ...previous, index: Math.min(index + 1, candidates.length - 1), loaded: false });
+  }, [candidatesKey, index, candidates.length]);
 
-  const imageRef =
-    useRef<HTMLImageElement | null>(
-      null,
-    );
-
-  const current =
-    candidates[index] ??
-    FALLBACK;
-
-  const isFallback =
-    current === FALLBACK;
-
-  const candidatesKey =
-    candidates.join('|');
-
-  useEffect(() => {
-    setIndex(0);
-    setLoaded(false);
-    setRetryCount(0);
-  }, [candidatesKey]);
-
-  const goToNextSource = () => {
-    setLoaded(false);
-
-    setIndex((currentIndex) => {
-      const nextIndex =
-        currentIndex + 1;
-
-      if (
-        nextIndex >=
-        candidates.length
-      ) {
-        return currentIndex;
-      }
-
-      return nextIndex;
-    });
-  };
+  const markLoaded = useCallback(() => {
+    setImageState((previous) => previous.key !== candidatesKey || previous.index !== index
+      ? previous : { ...previous, loaded: true });
+  }, [candidatesKey, index]);
 
   // Bounded watchdog for critical eager hero images. Lazy posters must never
   // be treated as stalled while the browser intentionally defers them.
   useEffect(() => {
     if (loaded || isFallback || loading !== 'eager') return;
     const timeout = window.setTimeout(() => {
-      setLoaded(false);
-      setIndex((value) => Math.min(value + 1, candidates.length - 1));
+      goToNextSource();
     }, 8_500);
     return () => window.clearTimeout(timeout);
-  }, [current, loaded, isFallback, loading, candidates.length]);
+  }, [current, loaded, isFallback, loading, goToNextSource]);
 
   // A failed edge response may be cached for ~15 seconds. One delayed retry
   // recovers transient network failures without a manual page refresh.
@@ -131,12 +115,11 @@ export default function AnimeImageCascade({
     if (!isFallback || retryCount >= 1 || candidates.length <= 1) return;
     const timeout = window.setTimeout(() => {
       if (navigator.onLine === false || document.visibilityState === 'hidden') return;
-      setRetryCount(1);
-      setIndex(0);
-      setLoaded(false);
+      setImageState(previous => previous.key !== candidatesKey ? previous
+        : { key: candidatesKey, index: 0, loaded: false, retryCount: 1 });
     }, 16_000);
     return () => window.clearTimeout(timeout);
-  }, [isFallback, retryCount, candidates.length]);
+  }, [candidatesKey, isFallback, retryCount, candidates.length]);
 
   const handleLoad = (
     event: SyntheticEvent<HTMLImageElement>,
@@ -148,49 +131,29 @@ export default function AnimeImageCascade({
       image.naturalWidth > 0 &&
       image.naturalHeight > 0
     ) {
-      setLoaded(true);
+      markLoaded();
     }
   };
 
   const handleError = () => {
     if (isFallback) {
-      setLoaded(true);
+      markLoaded();
       return;
     }
 
     goToNextSource();
   };
 
-  // Нужен для изображений,
-  // которые браузер уже взял из cache.
+  // Cached load/decode results are asynchronous and tied to this candidate.
   useEffect(() => {
-    const image =
-      imageRef.current;
-
-    if (!image) {
-      return;
-    }
-
-    if (!image.complete) {
-      return;
-    }
-
-    if (
-      image.naturalWidth > 0 &&
-      image.naturalHeight > 0
-    ) {
-      setLoaded(true);
-      return;
-    }
-
-    if (!isFallback) {
-      goToNextSource();
-    }
-  }, [
-    current,
-    isFallback,
-    candidates.length,
-  ]);
+    const image = imageRef.current;
+    if (!image || !image.complete) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) markLoaded();
+      else if (!isFallback) goToNextSource();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [current, isFallback, markLoaded, goToNextSource]);
 
   return (
     <div className="relative h-full w-full min-w-0 overflow-hidden bg-[var(--ab-ui-surface)]">
@@ -202,6 +165,8 @@ export default function AnimeImageCascade({
           />
         )}
 
+      {/* Responsive media and its recovery chain intentionally bypass Next Image. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         key={current}
         data-image-delivery="animebox-media"
@@ -209,8 +174,8 @@ export default function AnimeImageCascade({
         data-image-format={format}
         ref={imageRef}
         src={current}
-        srcSet={index === 0 ? mediaSrcSet : undefined}
-        sizes={index === 0 ? sizes : undefined}
+        srcSet={activeMediaSrcSet}
+        sizes={activeMediaSrcSet ? sizes : undefined}
         alt={alt}
         loading={loading}
         fetchPriority={fetchPriority}

@@ -16,6 +16,7 @@ import type {
 import {
   getImageCandidates,
   getImageMediaSrcSet,
+  getImageCandidateMediaSrcSet,
   type ImageCandidatePreference,
 } from '@/lib/image-service';
 import type {
@@ -262,6 +263,14 @@ export default function AnimeImage({
 
   const current = sources[sourceIndex] ?? FALLBACK;
   const isFallback = current === FALLBACK;
+  // A fallback edge needs its own srcset. Reusing the primary srcset would
+  // silently send the browser back to the endpoint that already failed.
+  const activeMediaSrcSet = sourceIndex === 0 ? mediaSrcSet
+    : getImageCandidateMediaSrcSet(current, effectivePreset, quality, format);
+  const activeAvifSrcSet = sourceIndex === 0 ? avifMediaSrcSet
+    : format === 'auto' ? getImageCandidateMediaSrcSet(current, effectivePreset, quality, 'avif') : undefined;
+  const activeWebpSrcSet = sourceIndex === 0 ? webpMediaSrcSet
+    : format === 'auto' ? getImageCandidateMediaSrcSet(current, effectivePreset, quality, 'webp') : undefined;
   const recordFailure = useCallback((reason: 'network-or-decode' | 'timeout') => {
     setLastFailure({
       key: sourcesKey,
@@ -615,21 +624,19 @@ export default function AnimeImage({
           {/* Near mode is released by one shared adaptive observer. */}
           {shouldRequestSource && (
             <picture className="contents">
-              {sourceIndex === 0 &&
-                !isMediaEdgeBlocked(current) &&
-                avifMediaSrcSet && (
+              {!isMediaEdgeBlocked(current) &&
+                activeAvifSrcSet && (
                   <source
                     type="image/avif"
-                    srcSet={avifMediaSrcSet}
+                    srcSet={activeAvifSrcSet}
                     sizes={sizes}
                   />
                 )}
-              {sourceIndex === 0 &&
-                !isMediaEdgeBlocked(current) &&
-                webpMediaSrcSet && (
+              {!isMediaEdgeBlocked(current) &&
+                activeWebpSrcSet && (
                   <source
                     type="image/webp"
-                    srcSet={webpMediaSrcSet}
+                    srcSet={activeWebpSrcSet}
                     sizes={sizes}
                   />
                 )}
@@ -640,8 +647,8 @@ export default function AnimeImage({
                 height={600}
                 src={current}
                 srcSet={
-                  sourceIndex === 0 && !isMediaEdgeBlocked(current)
-                    ? mediaSrcSet
+                  !isMediaEdgeBlocked(current)
+                    ? activeMediaSrcSet
                     : undefined
                 }
                 alt={resolvedAlt}
