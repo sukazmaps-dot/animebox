@@ -65,6 +65,7 @@ fs.mkdirSync(output, { recursive: true });
         reducedMotion: 'reduce',
       });
       const errors = [];
+      let recommendationRequests = 0;
       const navigations = [];
       page.on('framenavigated', frame => { if (frame === page.mainFrame()) navigations.push(frame.url()); });
       page.on('pageerror', error => errors.push(error.stack || error.message));
@@ -82,6 +83,7 @@ fs.mkdirSync(output, { recursive: true });
         const request = route.request(), url = request.url();
         if (request.resourceType() === 'image' && (url.includes('qa-images.test') || url.includes('/api/image?'))) return c.mode === 'broken' ? route.fulfill({ status: 404, body: '' }) : route.fulfill({ contentType: 'image/svg+xml', body: svg });
         if (url.startsWith(origin + '/api/recommendations?')) {
+          recommendationRequests++;
           // A normal terminal page must satisfy the production response schema.
           // The generic API stub lacks pagination fields and exercises errors,
           // leaving artificial retry rows in the normal-state screenshots.
@@ -101,6 +103,10 @@ fs.mkdirSync(output, { recursive: true });
         await page.waitForSelector('[role="radiogroup"]');
         await page.waitForSelector('.smart-card', { timeout: 60000, state: c.mode === 'sparse' ? 'attached' : 'visible' });
         if (c.mode === 'sparse') {
+          // Bootstrap is viewport-gated. On a phone the recommendation slot
+          // starts below the hero/schedule; bring it into range before waiting
+          // for the terminal API response, even though its rows take no space.
+          await page.evaluate(() => document.querySelector('#animebox-recommendations').scrollIntoView({ block: 'center' }));
           await page.waitForFunction(() => document.querySelector('.smart-feed')?.getAttribute('data-recommendation-ready-count') === '0' && !document.querySelector('[data-recommendation-rail-loading="true"]'));
           const initial = await page.evaluate(() => [...document.querySelectorAll('[data-recommendation-rail-id]')].map(row => ({
             ready: row.getAttribute('data-recommendation-rail-ready'), height: row.getBoundingClientRect().height,
@@ -109,7 +115,9 @@ fs.mkdirSync(output, { recursive: true });
           assert(initial.length > 0, name + ' exercises real pending rows rather than an absent feed');
           assert(initial.every(row => row.ready === 'false' && row.height === 0 && row.visibility === 'hidden' && row.aria === 'true' && row.inert),
             name + ' incomplete initial shelves take no space and cannot receive focus');
+          assert(recommendationRequests > 0 && recommendationRequests <= 3, name + ' viewport bootstrap reaches the terminal API with bounded requests');
           assert.equal(errors.length, 0, name + ' sparse runtime errors');
+          console.log('PASS', name);
           await page.close();
           continue;
         }
