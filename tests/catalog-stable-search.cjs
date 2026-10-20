@@ -84,6 +84,7 @@ const flushTimers = async()=>act(async()=>{const pending=[...timers.values()];ti
 const unmount = async()=>act(async()=>{tree.unmount();});
 (async()=>{
   await mount();
+  assert.equal(calls[0].options.catalogSource,'saved','normal searches must use the canonical playable snapshot');
   await act(async()=>previews[0].resolve({items:Array.from({length:10},(_,i)=>anime(i+1))}));
   await act(async()=>calls[0].resolve(payload([1,2,3],'saved')));
   assert.deepEqual(ids(),[1,2,3,4,5,6,7,8,9,10],'10 instant results must survive a 3-item fallback');
@@ -109,6 +110,18 @@ const unmount = async()=>act(async()=>{tree.unmount();});
   await act(async()=>previews[0].resolve({items:[anime(1),anime(2)]}));
   await act(async()=>calls[0].resolve(payload([])));
   assert.deepEqual(ids(),[],'a complete empty response owns membership');
+  await unmount();
+
+  // Canonical saved results are complete for the requested scope. Unlike
+  // degraded fallback, they must replace a preliminary instant preview.
+  await mount();
+  await act(async()=>previews[0].resolve({items:[anime(1),anime(2)]}));
+  await act(async()=>calls[0].resolve({
+    ...payload([9],'saved',true),
+    catalogMeta:{source:'saved',completeness:'full',message:''},
+  }));
+  assert.deepEqual(ids(),[9],'complete saved page replaces preview membership');
+  assert(button('Показать ещё'),'complete canonical page must retain pagination');
   await unmount();
 
   await mount();
@@ -161,8 +174,7 @@ const unmount = async()=>act(async()=>{tree.unmount();});
   assert.equal(calls[3].options.page,3);
   await act(async()=>calls[3].resolve(payload([50],'saved')));
   assert.deepEqual(ids(),[1,2],'do not append a different source at incompatible offsets');
-  await act(async()=>button('Повторить').props.onClick());
-  assert.equal(calls[4].options.page,1,'source change retry restarts pagination');
+  assert.equal(calls[4].options.page,1,'source mismatch automatically restarts at page 1');
   await act(async()=>calls[4].resolve(payload([1,2,3])));
   await unmount();
 

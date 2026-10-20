@@ -38,7 +38,7 @@ export type AnimeListPayload = {
   catalogMeta?: {
     source: 'saved' | 'degraded';
     message: string;
-    completeness?: 'partial';
+    completeness?: 'partial' | 'full';
   };
   availabilityExcludedIds?: number[];
   searchMeta?: AnimeSearchMeta;
@@ -97,6 +97,9 @@ function writeCache<T>(
 
 export type ClientAnimeListOptions = GetAnimesOptions & {
   mood?: CatalogMood;
+  // Locks all pages of the visible catalog to the same playable DB source.
+  // Other API consumers keep their existing provider-first behavior.
+  catalogSource?: 'saved';
 };
 
 function buildAnimeListParams(
@@ -110,6 +113,10 @@ function buildAnimeListParams(
 
   if (options.page != null) {
     params.set('page', String(options.page));
+  }
+
+  if (options.catalogSource === 'saved') {
+    params.set('catalogSource', 'saved');
   }
 
   if (options.order) {
