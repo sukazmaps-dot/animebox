@@ -4,6 +4,8 @@ import { Suspense } from 'react';
 
 import SearchCatalogClient from '@/components/SearchCatalogClient';
 import { getAnimesWithShikimori } from '@/lib/combined-anime';
+import { getSavedCatalogPage } from '@/lib/saved-catalog-server';
+import { withCatalogProviderBudget } from '@/lib/catalog-provider-budget';
 import type { Anime } from '@/types/anime';
 import { CATALOG_PAGE_SIZE } from '@/lib/catalog-pagination';
 import {
@@ -58,22 +60,38 @@ export async function generateMetadata({
 }
 
 async function loadInitialCatalog(filters: CatalogFiltersState): Promise<Anime[]> {
+  const providerFilters = catalogFiltersToProviderOptions(filters);
+  const options = {
+    page: 1,
+    limit: CATALOG_PAGE_SIZE,
+    order: providerFilters.order,
+    genres: providerFilters.genres.length > 0 ? providerFilters.genres : undefined,
+    tags: providerFilters.tags.length > 0 ? providerFilters.tags : undefined,
+    status: providerFilters.status,
+    format: providerFilters.format,
+    season: providerFilters.season,
+    year: providerFilters.year,
+    studioNames: providerFilters.studioNames.length > 0 ? providerFilters.studioNames : undefined,
+  };
+
+  // Render an already-verified playable catalogue without an upstream round
+  // trip. The client will refresh through /api/anime with the same filters.
   try {
-    const providerFilters = catalogFiltersToProviderOptions(filters);
-    return await getAnimesWithShikimori({
-      page: 1,
-      limit: CATALOG_PAGE_SIZE,
-      order: providerFilters.order,
-      genres: providerFilters.genres.length > 0 ? providerFilters.genres : undefined,
-      tags: providerFilters.tags.length > 0 ? providerFilters.tags : undefined,
-      status: providerFilters.status,
-      format: providerFilters.format,
-      season: providerFilters.season,
-      year: providerFilters.year,
-      studioNames: providerFilters.studioNames.length > 0 ? providerFilters.studioNames : undefined,
-    });
+    const saved = await getSavedCatalogPage(options);
+    if (saved.anime.length > 0) return saved.anime;
   } catch (error) {
-    console.warn('SSR catalog load failed:', error);
+    console.warn('[Catalog SSR] saved snapshot unavailable:', error);
+  }
+
+  // The snapshot can be empty during first setup or an unusual filter.
+  // Preserve the original provider path, but never block first paint for 8s.
+  try {
+    return await withCatalogProviderBudget(
+      signal => getAnimesWithShikimori(options, { signal }),
+      2800,
+    );
+  } catch (error) {
+    console.warn('[Catalog SSR] provider unavailable:', error);
     return [];
   }
 }
