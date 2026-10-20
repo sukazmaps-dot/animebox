@@ -33,11 +33,11 @@ must(
 );
 
 must(instantApi, "observeApiRoute('/api/search/instant'", 'instant endpoint');
-must(instantApi, 'searchLocalAnimeIndex(query, limit)', 'instant local lookup');
+must(instantApi, 'searchInstantLocalIndex(query, limit)', 'instant local lookup');
 must(instantApi, 'filterAnimeIdsByAvailability', 'instant availability filter');
 must(
   instantApi,
-  "X-AnimeBox-Search-Path': 'instant-local-v1'",
+  "X-AnimeBox-Search-Path': 'instant-indexed-contains-v1'",
   'instant response marker',
 );
 if (instantApi.includes('getAnimesWithShikimori')) {
@@ -52,6 +52,8 @@ must(
   'export function localAnimeSearchHitToAnime',
   'local Anime shell mapper',
 );
+must(searchIndex, 'export async function searchInstantLocalIndex(', 'fast indexed instant first paint');
+must(searchIndex, ".like('search_text',", 'GIN-backed contains lookup');
 must(searchIndex, 'const primary = await runLexicalSearch', 'primary local query');
 must(searchIndex, 'const strongPrimary =', 'healthy-primary short circuit');
 must(searchIndex, 'await Promise.all(', 'parallel local fallbacks');
