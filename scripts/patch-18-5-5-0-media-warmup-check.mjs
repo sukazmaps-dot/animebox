@@ -36,8 +36,14 @@ if (warmup.includes("'700px 900px 1600px 900px'")) {
   failures.push('media warmup must not restore the legacy 1600px mobile LCP overscan');
 }
 
-if ((warmup.match(/new IntersectionObserver\(/g) ?? []).length !== 1) {
-  failures.push('media warmup must own exactly one shared IntersectionObserver implementation');
+// Patch 2 separates overscan warmup from actual viewport visibility. Both
+// observers are module-shared; mounted tests verify one instance per role.
+if ((warmup.match(/new IntersectionObserver\(/g) ?? []).length !== 2 ||
+    !warmup.includes('let visibleObserver: IntersectionObserver | null = null') ||
+    !warmup.includes("{ rootMargin: '0px', threshold: 0.01 }") ||
+    !warmup.includes('if (visibleTargets.size) return;') ||
+    !warmup.includes('visibleObserver?.disconnect()')) {
+  failures.push('media warmup and recovery must each own one shared observer with final-subscriber cleanup');
 }
 
 if (animeImage.includes('new IntersectionObserver(')) {

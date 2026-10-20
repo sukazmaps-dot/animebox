@@ -6,6 +6,7 @@ import type { Anime } from '@/types/anime';
 import AnimeImage from '@/components/AnimeImage';
 import { getAnimeTitle, isAnimeOngoing } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
+import { mergeAnimeImageSources } from '@/lib/anime-metadata-merge';
 
 function formatLabel(
   format: string | null | undefined,
@@ -90,7 +91,7 @@ export default function AnimeCard({
       >
         <div className="anime-card__image-fill">
           <AnimeImage
-            image={anime.coverImage}
+            image={mergeAnimeImageSources(anime.coverImage, anime.image)}
             alt={title}
             englishName={anime.title?.english || anime.title?.romaji}
             className="anime-card__image"

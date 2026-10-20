@@ -3,6 +3,7 @@ import AnimeImage from '@/components/AnimeImage';
 import { animeHref } from '@/lib/anime-url';
 import { getAnimeTitle } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
+import { mergeAnimeImageSources } from '@/lib/anime-metadata-merge';
 import { animeEpisodesDisplay } from '@/lib/anime-content-intelligence';
 import type { Anime } from '@/types/anime';
 
@@ -25,7 +26,7 @@ export default function TopAnimeItem({
 
       <div className="top-anime-item__poster">
         <AnimeImage
-          image={anime.coverImage || anime.image}
+          image={mergeAnimeImageSources(anime.coverImage, anime.image)}
           alt={title}
           sizes={editorial ? '(max-width: 768px) 42vw, (max-width: 1200px) 24vw, 17vw' : '(max-width: 768px) 30vw, 44px'}
           quality={70}

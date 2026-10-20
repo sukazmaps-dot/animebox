@@ -103,6 +103,12 @@ async function images() {
   const sources = ['https://media.youranimebox.com/image?url=x', '/api/image?url=x&fallback=error', '/brand/brand-mark.webp'];
   let blocked = false, cooldown = 60000, outside = false, tree;
   const Image = compile('components/AnimeImage.tsx', {
+    '@/lib/image-recovery-session': compile('lib/image-recovery-session.ts'),
+    // This suite controls explicit failures/retries; viewport watchdog behavior
+    // is mounted with its real shared observer in poster-visible-recovery.cjs.
+    '@/lib/use-visible-image-recovery': compile('lib/use-visible-image-recovery.ts', {
+      '@/lib/media-warmup-client': {observeVisibleViewportMedia: () => () => {}},
+    }),
     '@/lib/image-service': { getImageCandidates: image => image ? sources.slice(0, -1) : [], getImageMediaSrcSet: () => undefined, getImageCandidateMediaSrcSet: () => undefined },
     '@/lib/media-warmup-client': { observeNearViewportMedia: () => () => {} },
     '@/lib/media-edge-health-client': {
