@@ -221,6 +221,70 @@ export async function indexAnimeSearchDocuments(items: Anime[]) {
   }
 }
 
+/**
+ * Fast first paint for plain title searches. The saved search_text field is
+ * already normalized and backed by a GIN trigram index. A simple contains
+ * query avoids the expensive v4 fuzzy/word-similarity candidate scan.
+ * When the fast lane finds nothing, preserve the original typo/layout
+ * recovery through searchLocalAnimeIndex.
+ */
+export async function searchInstantLocalIndex(
+  query: string,
+  limit = 18,
+): Promise<LocalAnimeSearchHit[]> {
+  const normalized = normalizeSearchText(query);
+  if (normalized.length < 2) return [];
+
+  const safeLimit = Math.min(30, Math.max(4, limit));
+  const { data, error } = await createSupabaseAdmin()
+    .from('anime_search_documents')
+    .select('anime_id,title,slug,poster_url,genres,aliases')
+    .like('search_text', `%${normalized}%`)
+    .order('updated_at', { ascending: false })
+    .limit(Math.min(120, Math.max(40, safeLimit * 4)))
+    .abortSignal(AbortSignal.timeout(1_400));
+
+  if (error) throw new Error(`Instant search index unavailable: ${error.message}`);
+
+  const rows = Array.isArray(data) ? data : [];
+  if (rows.length === 0) {
+    return searchLocalAnimeIndex(query, safeLimit);
+  }
+
+  const matches = rows
+    .map((row): LocalAnimeSearchHit | null => {
+      const animeId = Number(row.anime_id);
+      if (!Number.isSafeInteger(animeId) || animeId <= 0) return null;
+      const title = typeof row.title === 'string' ? row.title : '';
+      const titleNorm = normalizeSearchText(title);
+      const aliases = (Array.isArray(row.aliases) ? row.aliases : [])
+        .filter((value): value is string => typeof value === 'string');
+      const alias = aliases.find(value => normalizeSearchText(value) === normalized)
+        ?? aliases.find(value => normalizeSearchText(value).startsWith(normalized))
+        ?? aliases.find(value => normalizeSearchText(value).includes(normalized));
+      const matchedNorm = normalizeSearchText(alias ?? title);
+      const exact = titleNorm === normalized || matchedNorm === normalized;
+      const prefix = titleNorm.startsWith(normalized) || matchedNorm.startsWith(normalized);
+      const contains = titleNorm.includes(normalized) || matchedNorm.includes(normalized);
+      return {
+        animeId,
+        title: title || null,
+        slug: typeof row.slug === 'string' ? row.slug : null,
+        posterUrl: typeof row.poster_url === 'string' ? row.poster_url : null,
+        genres: Array.isArray(row.genres)
+          ? row.genres.filter((value): value is string => typeof value === 'string').slice(0, 6)
+          : [],
+        matchedText: alias ?? title,
+        matchKind: exact ? 'exact' : prefix ? 'prefix' : contains ? 'contains' : 'weak',
+        score: exact ? 1 : prefix ? 0.97 : contains ? 0.91 : 0.4,
+      };
+    })
+    .filter((hit): hit is LocalAnimeSearchHit => Boolean(hit))
+    .sort((a, b) => b.score - a.score || a.animeId - b.animeId);
+
+  return matches.slice(0, safeLimit);
+}
+
 export async function searchLocalAnimeSuggestions(
   query: string,
   limit = 6,
