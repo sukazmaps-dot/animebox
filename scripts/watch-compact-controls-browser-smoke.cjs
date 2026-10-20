@@ -83,10 +83,11 @@ const read = p => fs.readFileSync(p, 'utf8');
         await episodes.click();
         const dialog=page.getByRole('dialog',{name:'Выбор серии'});
         await dialog.waitFor({state:'visible'});
+        await page.waitForFunction(() => document.querySelector('[data-watch-dialog="true"] [aria-current="page"]') === document.activeElement);
         assert.equal(await page.evaluate(()=>scrollY),before,'opening episodes must not scroll document');
         const fullList = dialog.getByRole('link',{name:'Открыть полный список серий'});
         await fullList.focus();await page.keyboard.press('Tab');
-        assert(await dialog.getByRole('button',{name:'Закрыть',exact:true}).evaluate(n=>document.activeElement===n),'Tab stays in dialog');
+        assert(await dialog.getByRole('button',{name:'Закрыть',exact:true}).evaluate(n=>document.activeElement===n),'Tab stays in dialog '+width+'/'+sparse+' '+await page.evaluate(()=>document.activeElement?.outerHTML));
         await dialog.getByRole('button',{name:'Пред.',exact:true}).isDisabled().then(value=>assert(value));
         if (sparse) assert(await dialog.getByRole('button',{name:'Следующая серия',exact:true}).isDisabled());
         // Current episode is a no-op and closes the dialog.
