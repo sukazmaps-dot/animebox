@@ -60,8 +60,8 @@ try {
             document.documentElement.dataset.animeboxTheme = theme;
             const saved = state === 'saved';
             document.querySelector('#fixture').innerHTML = `
-              <div class="detail_layout"><header class="detail_hero ${art === 'poster' ? 'detail_withPoster' : ''}">
-                ${art === 'poster' ? '<div class="detail_poster">Обложка</div>' : '<div class="detail_backdrop"><div style="background:linear-gradient(90deg,#101010,#ffffff)"></div></div>'}
+              <div class="detail_layout"><header class="detail_hero detail_withPoster ${art === 'banner' ? 'detail_hasBanner' : ''}">
+                ${art === 'banner' ? '<div class="detail_backdrop"><div style="background:linear-gradient(90deg,#101010,#ffffff)"></div></div>' : ''}<div class="detail_poster">Обложка</div>
                 <div class="detail_heroContent">
                   <div class="detail_identity"><h1>${state === 'error' ? 'ОченьДлинноеНепрерывноеНазвание'.repeat(4) : 'Невероятное приключение: очень длинное название аниме и его нового сезона'}</h1></div>
                   <div class="detail_facts"><span>2026</span><span>TV</span><span>24 серии</span></div>
@@ -77,6 +77,7 @@ try {
                   <section class="detail_description"><div class="synopsis_synopsis synopsis_hero"><p class="synopsis_full">Умэ Мидзуноэ — первокурсник, который начинает новую жизнь. Длинное описание должно оставаться под кнопками даже при увеличенном тексте и переносах.</p><button>Полное описание ↓</button></div></section>
                 </div></header>
                 <div class="detail_mainColumn">
+                  <div class="detail_primaryGrid"><section class="detail_episodes">Сезоны и эпизоды</section><div class="detail_secondary">Библиотека и рейтинг</div></div>
                   <details open class="detail_franchise">
                     <summary>Порядок частей</summary>
                     <section class="anime-franchise-v3 w-full min-w-0 max-w-full pb-6 pt-2">
@@ -118,10 +119,19 @@ try {
             const title=document.querySelector('.detail_identity h1');
             const track = document.querySelector('.navrail_track');
             track.scrollTo({ left: track.scrollWidth, behavior: 'instant' });
-            return { franchise: rect('.detail_franchise'), discussion: rect('.detail_discussion'), track: rect('.navrail_track'), trackWidth: track.clientWidth, trackScrollWidth: track.scrollWidth, trackScrollLeft: track.scrollLeft, title:rect('.detail_identity h1'),titleScroll:title.scrollWidth,titleWidth:title.clientWidth,ctaContrast, overlay:getComputedStyle(document.querySelector('.detail_hero'),'::after').backgroundImage, hero: rect('.detail_hero'), identity: rect('.detail_identity'), poster: document.querySelector('.detail_poster') && rect('.detail_poster'), actions: rect('.detail_actions'), description: rect('.detail_description'),
+            return { franchise: rect('.detail_franchise'), discussion: rect('.detail_discussion'), track: rect('.navrail_track'), trackWidth: track.clientWidth, trackScrollWidth: track.scrollWidth, trackScrollLeft: track.scrollLeft, title:rect('.detail_identity h1'),titleScroll:title.scrollWidth,titleWidth:title.clientWidth,ctaContrast, overlay:getComputedStyle(document.querySelector('.detail_hero'),'::after').backgroundImage, hero: rect('.detail_hero'), identity: rect('.detail_identity'), poster: rect('.detail_poster'), identityPadding: parseFloat(getComputedStyle(document.querySelector('.detail_identity')).paddingRight) || 0, episodes: rect('.detail_episodes'), secondary: rect('.detail_secondary'), documentOverflow: document.documentElement.scrollWidth > innerWidth, actions: rect('.detail_actions'), description: rect('.detail_description'),
               copy: rect('.synopsis_full'), watch: rect('.anime-detail-actions__watch'), controls };
           });
           assert(geometry.ctaContrast>=4.5, `${label}: watch text contrast ${geometry.ctaContrast}`);
+          assert(!geometry.documentOverflow, `${label}: page overflows viewport`);
+          assert(geometry.poster.width > 0 && geometry.poster.height > 0, `${label}: poster missing with ${art}`);
+          assert(Math.abs(geometry.poster.height / geometry.poster.width - 1.5) < .1, `${label}: poster should remain 2:3`);
+          if (width >= 1080) {
+            assert(geometry.episodes.right < geometry.secondary.left, `${label}: desktop panels are not side by side`);
+            assert(Math.abs(geometry.episodes.top - geometry.secondary.top) < 2, `${label}: desktop panels misalign`);
+          } else {
+            assert(geometry.secondary.top >= geometry.episodes.bottom, `${label}: stacked panels overlap`);
+          }
           for (const key of ['franchise', 'discussion', 'track']) {
             assert(geometry[key].width > 0 && geometry[key].left >= -1 && geometry[key].right <= width + 1, `${label}: ${key} escapes viewport`);
           }
@@ -137,10 +147,8 @@ try {
           assert(geometry.copy.left >= -1 && geometry.copy.right <= width + 1, `${label}: synopsis overflows viewport`);
           if (width < 768) {
             assert(geometry.watch.height >= 48, `${label}: watch touch target`);
-            if (art === 'poster') {
-            assert(geometry.identity.top <= geometry.hero.top + 32, `${label}: poster fallback wastes upper hero space`);
-            assert(geometry.identity.right - 100 <= geometry.poster.left + 1, `${label}: poster reservation missing`);
-            }
+            assert(geometry.identity.top <= geometry.hero.top + 32, `${label}: poster hero wastes upper space`);
+            assert(geometry.identity.right - geometry.identityPadding <= geometry.poster.left + 1, `${label}: poster reservation missing`);
             const favorite = geometry.controls[1];
             assert(favorite.width >= 48 && favorite.height >= 48, `${label}: favorite touch target`);
             if (state !== 'saved') {
