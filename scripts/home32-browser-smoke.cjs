@@ -53,6 +53,12 @@ fs.mkdirSync(output, { recursive: true });
     const cases = [360, 376, 390, 412, 430, 768, 1024, 1366, 1440, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width === 376 ? 869 : width === 430 ? 932 : width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
     cases.push({ width: 390, height: 844, theme: 'dark', mode: 'sparse' }, { width: 1920, height: 1080, theme: 'dark', mode: 'sparse' });
     cases.push({ width: 844, height: 390, theme: 'dark', mode: 'normal' }, { width: 1366, height: 900, theme: 'dark', mode: 'poster' }, { width: 390, height: 844, theme: 'dark', mode: 'broken' });
+    for (const width of [360, 390, 768, 1366]) {
+      cases.push({ width, height: 900, theme: 'light', mode: 'poster' });
+    }
+    for (const width of [360, 390, 1366]) for (const theme of ['dark', 'light']) {
+      cases.push({ width, height: 900, theme, mode: 'history' });
+    }
     for (const c of cases) {
       // The phone fixture must advertise coarse pointer/no-hover. A resized
       // desktop Chromium hides hover-only bookmark controls and masks mobile bugs.
@@ -97,6 +103,33 @@ fs.mkdirSync(output, { recursive: true });
       const name = `${c.theme}-${c.width}-${c.mode}`;
       try {
         await page.goto(`${origin}/qa-home32-check?mode=${c.mode}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+        if (c.mode === 'history') {
+          await page.waitForSelector('[data-support-empty="true"]');
+          await page.waitForFunction(theme => document.documentElement.dataset.animeboxTheme === theme, c.theme);
+          const panel = await page.locator('[data-support-history="true"]').evaluate(el => {
+            const box = el.getBoundingClientRect();
+            return { height: box.height, right: box.right, left: box.left,
+              overflow: document.documentElement.scrollWidth > innerWidth + 1,
+              progress: el.querySelectorAll('[role="progressbar"]').length,
+              rulesOpen: el.querySelector('details')?.open,
+              links: [...el.querySelectorAll('a')].map(a => a.getAttribute('href')),
+              actions: [...el.querySelector('[role="group"]').children].map(action => ({ width: action.getBoundingClientRect().width, height: action.getBoundingClientRect().height })) };
+          });
+          assert(!panel.overflow && panel.left >= 0 && panel.right <= c.width, name + ' compact history fits viewport');
+          assert(panel.height <= 430, name + ' empty history height budget');
+          assert.equal(panel.progress, 0, name + ' no empty progress');
+          assert.equal(panel.rulesOpen, false, name + ' rules initially collapsed');
+          assert.equal(await page.getByText('Страница 1', { exact: true }).count(), 0, name + ' no fake pagination');
+          assert(panel.links.includes('/support') && panel.links.includes('/supporters'));
+          assert(panel.actions.every(action => action.width >= 44 && action.height >= 44), name + ' history touch targets');
+          await page.getByText('Как учитывается поддержка', { exact: true }).click();
+          assert.equal(await page.locator('[data-support-history] details').evaluate(el => el.open), true, name + ' accounting rules remain accessible');
+          await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true });
+          assert.deepEqual(errors, [], name + ' history runtime errors');
+          console.log('PASS', name);
+          await page.close();
+          continue;
+        }
         await page.waitForSelector('[data-home-hero="single"] img');
         await page.waitForFunction(theme => document.documentElement.dataset.animeboxTheme === theme, c.theme);
         await page.waitForFunction(() => document.querySelector('[data-home-hero] img')?.naturalWidth > 0);
@@ -304,7 +337,20 @@ fs.mkdirSync(output, { recursive: true });
           assert(resumeGeometry.posterRight <= resumeGeometry.bodyLeft + 1, name + ' resume poster overlaps copy');
           assert(resumeGeometry.cardWidth <= (c.width <= 768 ? c.width * 0.86 + 5 : 321), name + ' resume card width');
         }
-        if (c.mode === 'poster') { assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .8, 'Poster is bounded'); }
+        if (c.mode === 'poster') {
+          assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .8, 'Poster is bounded');
+          const posterLayout = await page.locator('[data-home-hero]').evaluate(hero => {
+            const art = hero.querySelector('[data-hero-art="poster"]')?.getBoundingClientRect();
+            const body = hero.querySelector('h2')?.parentElement.getBoundingClientRect();
+            const actions = hero.querySelector('a')?.parentElement.getBoundingClientRect();
+            return art && body && actions ? { ratio: art.width / art.height,
+              bodySeparate: art.right <= body.left + 1 || body.right <= art.left + 1,
+              actionsSeparate: art.bottom <= actions.top + 1 || actions.right <= art.left + 1 } : null;
+          });
+          assert(posterLayout && Math.abs(posterLayout.ratio - 2 / 3) < .01, name + ' poster keeps 2:3 slot');
+          assert(posterLayout.bodySeparate && posterLayout.actionsSeparate, name + ' poster never overlaps copy or controls');
+        }
+        assert.equal(await page.locator('.home-anime-rail__view-all').count(), 0, name + ' catalogue ends with actual titles, not a clipped CTA tile');
         assert.equal(await page.locator('main h1').count(), 1, name + ' one page H1');
         assert.equal(await page.locator('[data-home-hero]').count(), 1, name + ' one unified hero');
         assert.equal(await page.getByRole('button', { name: 'Следующий тайтл', exact: true }).count(), 0, name + ' carousel removed');
@@ -416,6 +462,7 @@ fs.mkdirSync(output, { recursive: true });
             const promoStrip = area.querySelector('section[aria-label="Поддержка и Telegram AnimeBox"]');
             const promoCards = [...area.querySelectorAll('.home-deferred--support > section, .home-deferred--telegram > section')];
             if (promoStrip) {
+              if (promoStrip.getBoundingClientRect().height > (innerWidth <= 960 ? 200 : 130)) promoErrors.push('community strip exceeds compact height budget');
               const close = promoStrip.querySelector('button[aria-label="Скрыть блок поддержки и Telegram"]');
               const heading = promoStrip.firstElementChild;
               const headerRect = heading?.getBoundingClientRect();

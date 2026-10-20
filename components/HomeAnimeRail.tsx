@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 
 import AnimeCard from '@/components/AnimeCard';
 import type { Anime } from '@/types/anime';
@@ -12,7 +11,6 @@ type HomeAnimeRailProps = {
   /** Progress is supplied by the existing Home feed; never fetch per card. */
   watchedEpisodes?: ReadonlyMap<number, number>;
   displayTitles?: ReadonlyMap<number, string>;
-  allHref?: string;
 };
 
 export default function HomeAnimeRail({
@@ -20,7 +18,6 @@ export default function HomeAnimeRail({
   ariaLabel,
   watchedEpisodes,
   displayTitles,
-  allHref,
 }: HomeAnimeRailProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -166,7 +163,6 @@ export default function HomeAnimeRail({
             watchedEpisode={watchedEpisodes?.get(anime.id) ?? null}
           />
         ))}
-        {allHref && <Link className="home-anime-rail__view-all" href={allHref}>Смотреть все <span aria-hidden="true">→</span></Link>}
       </div>
 
       <button

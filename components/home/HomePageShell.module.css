@@ -205,5 +205,3 @@
   .page :global(.smart-card__title) { font-size: 12px; line-height: 1.35; }
 }
 
-.page :global(.home-anime-rail__view-all) { display: flex; flex: 0 0 170px; width: 170px; min-height: 240px; justify-content: center; align-items: center; gap: 6px; border: 1px solid var(--ab-ui-border); border-radius: 8px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 13px; font-weight: 650; text-decoration: none; }
-@media(max-width:768px) { .page :global(.home-anime-rail__view-all) { flex-basis: 130px; width: 130px; min-height: 195px; } }

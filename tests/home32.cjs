@@ -40,6 +40,9 @@ function load(file, imports) {
   new Function('module', 'exports', 'require', code)(module, module.exports, name => {
     if (name in imports) return imports[name];
     if (name.endsWith('.css')) return { default: {} };
+    // The fixture also offers a history-only browser route. Home ranking
+    // checks never enter that route; its live component has its own test.
+    if (name === '@/components/monetization/SponsorDashboard') return { SponsorDashboardView: () => null };
     if (name.startsWith('@/lib/')) return load(name.replace('@/', '') + '.ts', {});
     return require(name);
   });

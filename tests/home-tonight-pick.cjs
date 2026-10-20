@@ -26,7 +26,7 @@ const mocks = {
   '@/components/AuthStateProvider': { useAuthState: () => ({ user: authUser, loading: authLoading }) },
   '@/components/AuthModalProvider': { useAuthModal: () => ({ openAuth: props => authPrompts.push(props) }) },
   '@/lib/community-client': { communityRequest: (path, body) => { libraryRequests.push({path, body}); return saveLibrary(); } },
-  '@/components/AnimeImage': { default: props => React.createElement('img', { alt: props.alt, 'data-priority': props.fetchPriority, 'data-image': props.image, 'data-loading': props.loading }) },
+  '@/components/AnimeImage': { default: props => React.createElement('img', { alt: props.alt, 'data-priority': props.fetchPriority, 'data-image': props.image, 'data-loading': props.loading, 'data-preset': props.preset, 'data-sizes': props.sizes, onError: () => props.onStateChange?.('fallback') }) },
   '@/components/AnimeIntentLink': { default: ({ children, ...props }) => React.createElement('a', props, children) },
   '@/lib/product-events-client': { trackProductClientEvent: (...args) => events.push(args) },
   './useVisibleHomeImpression': { useVisibleHomeImpression: () => React.useRef(null) },
@@ -147,9 +147,19 @@ assert(!html.includes('★') && !html.includes('2024') && !html.includes('Ист
     await act(async () => { tree = create(React.createElement(Artwork, { anime: artworkAnime })); });
     assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.bannerImage);
     assert.equal(tree.root.findByType('img').props['data-loading'], 'eager');
+    await act(async () => tree.root.findByType('img').props.onError());
+    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'failed banner recovers the same title poster');
+    assert.equal(tree.root.findByProps({ 'data-hero-art': 'poster' }).props['aria-hidden'], 'true');
+    assert.equal(tree.root.findByType('img').props['data-preset'], 'large', 'poster is sized for its own slot');
+    assert(tree.root.findByType('img').props['data-sizes'].includes('96px'));
     phone = true;
     await act(async () => { for (const fn of mediaListeners) fn(); });
     assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'phone uses portrait');
+    await act(async () => tree.update(React.createElement(Artwork, { anime: { ...artworkAnime, mobileHeroImage: 'https://example.org/mobile.jpg' } })));
+    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, 'https://example.org/mobile.jpg');
+    assert(tree.root.findByProps({ 'data-hero-art': 'portrait' }));
+    await act(async () => tree.root.findByType('img').props.onError());
+    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'failed mobile artwork also recovers the poster');
     phone = false;
     await act(async () => { for (const fn of mediaListeners) fn(); });
     await act(async () => tree.update(React.createElement(Artwork, { anime: { ...artworkAnime, bannerImage: null } })));

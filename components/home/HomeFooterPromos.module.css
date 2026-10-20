@@ -4,11 +4,9 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 0;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--ab-ui-border);
-  border-radius: 9px;
-  background: var(--ab-ui-surface);
+  gap: 0 20px;
+  padding: 4px 0;
+  border-top: 1px solid var(--ab-ui-border);
 }
 .heading {
   grid-column: 1 / -1;
@@ -30,9 +28,9 @@
   flex: 0 0 44px;
   width: 44px;
   height: 44px;
-  border: 1px solid var(--ab-ui-border);
-  border-radius: 8px;
-  background: var(--ab-ui-raised);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--ab-ui-muted);
   cursor: pointer;
 }
@@ -45,51 +43,50 @@
   content-visibility: visible;
   contain-intrinsic-size: none;
 }
-.strip :global(.deferred-mount__placeholder) { min-height: 68px; }
+.strip :global(.deferred-mount__placeholder) { min-height: 44px; }
 .strip :global(.home-deferred--support > section),
 .strip :global(.home-deferred--telegram > section) {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 70px;
+  min-height: 52px;
   height: auto;
-  border: 1px solid var(--ab-ui-border);
-  border-radius: 8px;
-  background: var(--ab-ui-raised);
+  border: 0;
+  background: transparent;
+  --ab-ui-surface: transparent;
 }
 .strip :global(.home-deferred--support > section) {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
   gap: 9px;
-  padding: 10px 12px;
+  padding: 4px 0;
 }
 .strip :global(.home-deferred--support > section > a) {
   min-height: 44px;
   margin: 0;
 }
-.strip :global(.home-deferred--telegram > section) { padding: 10px 12px; }
+.strip :global(.home-deferred--telegram > section) { padding: 4px 0; }
+.strip :global(.home-deferred--support > section p) { display: none; }
 @media (max-width: 960px) {
   .strip { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 480px) {
-  .strip { gap: 8px; padding: 10px; }
+  .strip { gap: 0; }
   .heading { min-height: 44px; }
   .strip :global(.home-deferred--support > section) {
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr);
+    display: flex;
     align-items: center;
-    gap: 3px 10px;
-    padding: 10px;
+    gap: 10px;
+    padding: 4px 0;
   }
   .strip :global(.home-deferred--support > section p),
   .strip :global(.home-deferred--telegram > section .home-service-card__copy p) {
     display: none;
   }
   .strip :global(.home-deferred--support > section > a) {
-    grid-column: 2;
-    justify-self: start;
-    padding: 0 6px 0 0;
+    margin: 0;
+    padding: 0 6px;
   }
-  .strip :global(.home-deferred--telegram > section) { padding: 10px; }
+  .strip :global(.home-deferred--telegram > section) { padding: 4px 0; }
 }
