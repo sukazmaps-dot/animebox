@@ -79,7 +79,7 @@ const read = p => fs.readFileSync(p, 'utf8');
             nativeAppearance:select?getComputedStyle(select).appearance:null,
             selectPadding:select?parseFloat(getComputedStyle(select).paddingRight):null,
             customArrow:label?getComputedStyle(label,'::after').borderBottomWidth:null,
-            settingsVisible:document.querySelector('select[aria-label="Источник видео"]').checkVisibility()
+            settingsVisible:Boolean(document.querySelector('button[aria-label="Источник видео"]')?.checkVisibility())
           };
         });
         assert(!layout.overflow);assert(!layout.settingsVisible);assert.equal(layout.rects[0].y,layout.rects[1].y);
@@ -90,22 +90,20 @@ const read = p => fs.readFileSync(p, 'utf8');
         }
         assert(layout.episodeArrow.x>layout.rects[0].x+14&&layout.episodeArrow.right<layout.rects[0].right,
           'episode chevron must remain inside its button '+width+'/'+sparse);
-        if (!sparse) {
-          assert.equal(layout.nativeAppearance,'none','native select arrow must be disabled on mobile '+width);
-          assert(layout.selectPadding>=30,'translation text needs a reserved chevron area '+width);
-          assert(parseFloat(layout.customArrow)>0,'translation must have a custom chevron '+width);
-        }
+        assert.equal(await page.locator('select').count(),0,'E2: custom choices replace native selectors');
         const identitySpacing=await page.locator('[data-watch-controls] .episode-page__identity-compact').evaluate(node=>({marginTop:getComputedStyle(node).marginTop,paddingTop:getComputedStyle(node).paddingTop}));
         assert.deepEqual(identitySpacing,{marginTop:'0px',paddingTop:'0px'},'compact identity must not inherit legacy page spacing');
         assert(layout.rects.every(r=>r.w>=44&&r.h>=44));
         await menu.click();
-        await page.getByLabel('Источник видео').selectOption('0');
-        await page.getByLabel('Источник видео').selectOption('auto');
+        await page.getByRole('button',{name:'Источник видео',exact:true}).click();
+        await page.getByRole('option',{name:'Kodik',exact:true}).click();
+        await page.getByRole('button',{name:'Источник видео',exact:true}).click();
+        await page.getByRole('option',{name:'Авто',exact:true}).click();
         await page.keyboard.press('Escape');
         await menu.focus();await page.keyboard.press('Enter');
         await page.getByRole('button',{name:'Библиотека',exact:true}).waitFor({state:'visible'});
-        await menu.click();
-        if (!sparse) await page.getByLabel('Озвучка',{exact:true}).selectOption('1');
+        await page.getByRole('dialog',{name:'Источник и качество'}).getByRole('button',{name:'Закрыть',exact:true}).click();
+        if (!sparse) { await page.getByRole('button',{name:'Озвучка',exact:true}).click(); await page.getByRole('option',{name:'Очень длинное название озвучки Crunchyroll.Subtitles'}).click(); }
         const before = await page.evaluate(()=>scrollY);
         await episodes.click();
         const dialog=page.getByRole('dialog',{name:'Выбор серии'});

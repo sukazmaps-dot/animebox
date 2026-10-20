@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import FloatingMenu from '@/components/ui/FloatingMenu';
 import quickStyles from './AnimeQuickActions.module.css';
 
 import { useAuthModal } from '@/components/AuthModalProvider';
@@ -42,6 +43,7 @@ export default function LibraryStatusControl({
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const compactRootRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -52,29 +54,6 @@ export default function LibraryStatusControl({
 
     return () => window.clearTimeout(timer);
   }, [animeId]);
-
-  useEffect(() => {
-    if (!compact || !statusMenuOpen) return;
-
-    const onPointerDown = (event: PointerEvent) => {
-      const root = compactRootRef.current;
-      if (root && !root.contains(event.target as Node)) {
-        setStatusMenuOpen(false);
-      }
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setStatusMenuOpen(false);
-    };
-
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [compact, statusMenuOpen]);
 
   useEffect(() => {
     if (initialStatus || authLoading || !user) return;
@@ -234,12 +213,14 @@ export default function LibraryStatusControl({
         <div className="episode-library-compact__picker">
           <button
             type="button"
+            ref={menuTriggerRef}
             className="episode-library-compact__trigger"
             disabled={busy}
             aria-haspopup="menu"
             aria-expanded={statusMenuOpen}
             aria-label="Статус аниме в библиотеке"
             onClick={() => setStatusMenuOpen((current) => !current)}
+            onKeyDown={event => { if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); setStatusMenuOpen(true); } }}
           >
             <span
               className="episode-library-compact__status-icon"
@@ -275,8 +256,9 @@ export default function LibraryStatusControl({
           </button>
 
           {statusMenuOpen && (
+            <FloatingMenu anchor={menuTriggerRef} label="Статус в библиотеке" onClose={() => setStatusMenuOpen(false)}>
             <div
-              className="episode-library-compact__menu"
+              className={quickStyles.statusMenu}
               role="menu"
               aria-label="Выбрать статус"
             >
@@ -331,6 +313,7 @@ export default function LibraryStatusControl({
                 </button>
               )}
             </div>
+            </FloatingMenu>
           )}
         </div>
 

@@ -2134,12 +2134,12 @@
 .inlineCompactCopy { min-width: 0; }
 .inlineCompactCopy strong,
 .inlineCompactCopy span { display: block; }
-.inlineCompactCopy strong { color: var(--ab-ui-text); font-size: 12px; font-weight: 820; }
-.inlineCompactCopy span { margin-top: 2px; color: var(--ab-ui-text); font-size: 9px; }
-.inlineCompact .primary { min-height: 38px; flex: 0 0 auto; box-shadow: none; }
+.inlineCompactCopy strong { color: var(--ab-ui-text); font-size: 14px; font-weight: 700; }
+.inlineCompactCopy span { margin-top: 2px; color: var(--ab-ui-text); font-size: 12px; }
+.inlineCompact .primary { min-height: 44px; flex: 0 0 auto; padding: 10px 14px; font-size: 14px; box-shadow: none; }
 @media (max-width: 620px) {
-  .inlineCompactInner { align-items: stretch; flex-direction: column; }
-  .inlineCompact .primary { width: 100%; }
+  .inlineCompactInner { align-items: center; flex-direction: row; gap: 8px; }
+  .inlineCompact .primary { width: auto; }
 }
 
 

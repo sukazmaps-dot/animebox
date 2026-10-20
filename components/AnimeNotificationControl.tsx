@@ -106,6 +106,7 @@ export default function AnimeNotificationControl({
   const terminalFinished = finished && !enabled;
 
   useEffect(() => {
+    if (isFinished) return;
     const controller = new AbortController();
 
     async function load() {
@@ -226,6 +227,8 @@ export default function AnimeNotificationControl({
       setBusy(false);
     }
   }
+
+  if (isFinished || finished) return null;
 
   if (compact) {
     const compactLabel = terminalFinished

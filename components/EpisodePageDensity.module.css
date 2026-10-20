@@ -155,3 +155,9 @@
   .page:global(.episode-page) :global(.episode-quick-nav__current) { padding: 0 3px !important; gap: 3px; }
   .page:global(.episode-page) :global(.episode-quick-nav__chevron) { display: none; }
 }
+
+/* The list owns the selected-season count; avoid a second display heading. */
+.page :global(.episode-list__meta) { font-size: 13px !important; }
+.page :global(.episode-list__micro-heading) { font-size: 12px !important; }
+
+.page :global(.episode-engagement-grid) { grid-template-columns: minmax(0, 1fr) auto !important; }
