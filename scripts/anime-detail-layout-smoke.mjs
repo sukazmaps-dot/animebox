@@ -38,6 +38,9 @@ const modules = await Promise.all([
   cssModule('components/AnimeSynopsis.module.css', 'synopsis'),
   cssModule('components/ui/HorizontalNavRail.module.css', 'navrail'),
   cssModule('components/AnimeFranchise.module.css', 'franchise'),
+  cssModule('components/CinematicEpisodeList.module.css', 'cinema'),
+  cssModule('components/AnimeRatingControl.module.css', 'rating'),
+  cssModule('components/AnimePersonalPanel.module.css', 'personal'),
 ]);
 // Tie the synthetic browser fixture to the real server-rendered detail route.
 const detailRoute = await fs.readFile('app/anime/[slug]/page.tsx', 'utf8');
@@ -85,7 +88,32 @@ try {
                   <section class="detail_description"><div class="synopsis_synopsis synopsis_hero"><p class="synopsis_full">Умэ Мидзуноэ — первокурсник, который начинает новую жизнь. Длинное описание должно оставаться под кнопками даже при увеличенном тексте и переносах.</p><button>Полное описание ↓</button></div></section>
                 </div></header>
                 <div class="detail_mainColumn">
-                  <div class="detail_primaryGrid"><section class="detail_episodes">Сезоны и эпизоды</section><div class="detail_secondary">Библиотека и рейтинг</div></div>
+                  <div class="detail_primaryGrid">
+                    <section class="detail_episodes"><h2>Сезоны и эпизоды</h2>
+                      <div class="cinema_grid">
+                        ${[1, 2, 3].map(number => `<a class="cinema_card" href="/anime/fixture/episode/${number}" aria-label="Серия ${number}">
+                          <span class="cinema_visual">${String(number).padStart(2, '0')}</span>
+                          <span class="cinema_copy"><span class="cinema_title">Серия ${number}</span></span>
+                          <span class="cinema_play" aria-hidden="true">▶</span></a>`).join('')}
+                      </div>
+                    </section>
+                    <div class="detail_secondary">
+                      <section class="personal_panel">
+                        <section class="rating_control rating_compactControl anime-rating-control" data-rating-compact="true">
+                          <details class="rating_compactDisclosure" data-rating-disclosure>
+                            <summary class="rating_compactSummary">
+                              <span class="rating_compactTitle">★ Моя оценка</span>
+                              <span class="rating_compactValue">Оценить /10</span>
+                              <span class="rating_compactChevron" aria-hidden="true"></span>
+                            </summary>
+                            <div class="rating_compactBody"><div class="anime-rating-control__stars anime-rating-control__stars--ten" role="group">
+                              ${Array.from({length:10},(_,index)=>`<button class="anime-rating-control__star-button" type="button" aria-label="Поставить ${index+1} из 10">★</button>`).join('')}
+                            </div></div>
+                          </details>
+                        </section>
+                      </section>
+                    </div>
+                  </div>
                   <details open class="detail_franchise">
                     <summary>Порядок частей</summary>
                     <section class="anime-franchise-v3 w-full min-w-0 max-w-full pb-6 pt-2">
@@ -130,6 +158,36 @@ try {
             return { franchise: rect('.detail_franchise'), discussion: rect('.detail_discussion'), track: rect('.navrail_track'), trackWidth: track.clientWidth, trackScrollWidth: track.scrollWidth, trackScrollLeft: track.scrollLeft, title:rect('.detail_identity h1'),titleScroll:title.scrollWidth,titleWidth:title.clientWidth,ctaContrast, overlay:getComputedStyle(document.querySelector('.detail_hero'),'::after').backgroundImage, hero: rect('.detail_hero'), identity: rect('.detail_identity'), poster: rect('.detail_poster'), identityPadding: parseFloat(getComputedStyle(document.querySelector('.detail_identity')).paddingRight) || 0, episodes: rect('.detail_episodes'), secondary: rect('.detail_secondary'), documentOverflow: document.documentElement.scrollWidth > innerWidth, actions: rect('.detail_actions'), description: rect('.detail_description'),
               copy: rect('.synopsis_full'), watch: rect('.anime-detail-actions__watch'), controls };
           });
+          // Compact detail regressions use the actual scoped CSS Modules:
+          // three playable rows, responsive columns and a closed rating editor.
+          const density = await page.evaluate(() => {
+            const cards = [...document.querySelectorAll('.cinema_card')].map(el => {
+              const r = el.getBoundingClientRect();
+              return {x:r.x,y:r.y,right:r.right,height:r.height};
+            });
+            const disclosure = document.querySelector('[data-rating-disclosure]');
+            const row = disclosure.querySelector('summary').getBoundingClientRect();
+            const secondary = document.querySelector('.detail_secondary').getBoundingClientRect();
+            return {cards,closed:!disclosure.open,summaryHeight:row.height,summaryRight:row.right,asideRight:secondary.right,
+              starsHidden:!disclosure.open && disclosure.querySelector('.anime-rating-control__stars').getClientRects().length===0};
+          });
+          assert.equal(density.cards.length,3,`${label}: compact fixture must have 3 actual episodes`);
+          assert(density.cards.every(card=>card.height>=48 && card.height<=76),`${label}: compact card height budget ${JSON.stringify(density.cards)}`);
+          assert(density.closed && density.starsHidden,`${label}: star editor must start collapsed`);
+          assert(density.summaryHeight>=44 && density.summaryRight<=density.asideRight+1,`${label}: rating row remains accessible`);
+          if (width>=900) {
+            assert(Math.abs(density.cards[0].y-density.cards[1].y)<=2 && density.cards[2].y>density.cards[0].y+40,
+              `${label}: desktop episodes must use two columns without ghost cards`);
+          } else {
+            assert(density.cards[0].y<density.cards[1].y && density.cards[1].y<density.cards[2].y,
+              `${label}: narrow episodes must stack`);
+          }
+          if (scale===1 && state==='guest' && art==='poster') {
+            const disclosure=page.locator('[data-rating-disclosure]');
+            await disclosure.locator('summary').click();
+            assert.equal(await disclosure.evaluate(el=>el.open),true,`${label}: rating opens by native summary`);
+            assert.equal(await disclosure.locator('[aria-label^="Поставить"]').count(),10,`${label}: rating offers ten scores`);
+          }
           assert(geometry.ctaContrast>=4.5, `${label}: watch text contrast ${geometry.ctaContrast}`);
           assert(!geometry.documentOverflow, `${label}: page overflows viewport`);
           assert(geometry.poster.width > 0 && geometry.poster.height > 0, `${label}: poster missing with ${art}`);
