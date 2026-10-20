@@ -131,6 +131,13 @@ assert(!html.includes('★') && !html.includes('2024') && !html.includes('Ист
   assert(firstPaint.includes('data-home-tonight="preview"'), 'SSR must render the public first pick before idle ranking');
   assert(firstPaint.includes('href="/anime/title-1/watch?ep=1"'), 'SSR first pick has a real watch link');
   assert(!firstPaint.includes('data-home-tonight="loading"'), 'available saved titles cannot show a blocking hero skeleton');
+  await act(async () => { tree = create(React.createElement(Discovery)); });
+  assert.equal(tree.root.findAll(x => x.props['data-home-tonight'] === 'preview').length, 1);
+  const clicksBeforePreview = events.filter(([name]) => name === 'recommendation_click').length;
+  await act(async () => tree.root.findAllByType('a').find(x => x.props.href.includes('/watch')).props.onClick());
+  assert.equal(events.filter(([name]) => name === 'recommendation_click').length, clicksBeforePreview,
+    'public SSR preview must never claim personalized recommendation attribution');
+  await act(async () => tree.unmount());
   runtime = { ...runtime, hydrated: true, smartRecommendations: [a, b], recommendationsReady: true };
   await act(async () => { tree = create(React.createElement(Discovery)); });
   assert.equal(selected(), 1);
@@ -157,6 +164,16 @@ assert(!html.includes('★') && !html.includes('2024') && !html.includes('Ист
     const ambiance = () => tree.root.findAll(node => Object.hasOwn(node.props ?? {}, 'data-poster-atmosphere'));
 
     const artworkAnime = { ...a.anime, bannerImage: 'https://example.org/banner.jpg', coverImage: { extraLarge: 'https://example.org/poster.jpg' } };
+    // The public SSR choice must never download a desktop banner and then
+    // immediately switch to a different mobile image during hydration.
+    await act(async () => { tree = create(React.createElement(Artwork, { anime: artworkAnime, preview: true })); });
+    assert.equal(primary().props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge);
+    phone = true;
+    await act(async () => { for (const fn of mediaListeners) fn(); });
+    assert.equal(primary().props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge,
+      'preview poster source stays identical across a mobile matchMedia change');
+    await act(async () => tree.unmount());
+    phone = false;
     await act(async () => { tree = create(React.createElement(Artwork, { anime: artworkAnime })); });
     assert.equal(primary().props['data-image'].extraLarge, artworkAnime.bannerImage);
     assert.equal(primary().props['data-loading'], 'eager');
