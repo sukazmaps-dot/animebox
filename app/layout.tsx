@@ -84,6 +84,7 @@ import CssRecoveryBridge from '@/components/CssRecoveryBridge';
 import UserPreferencesBridge from '@/components/UserPreferencesBridge';
 import OfflineCacheBridge from '@/components/OfflineCacheBridge';
 import ProductAnalyticsTracker from '@/components/analytics/ProductAnalyticsTracker';
+import FieldWebVitals from '@/components/analytics/FieldWebVitals';
 import DeferredYandexMetrika from '@/components/analytics/DeferredYandexMetrika';
 import DeferredAppEnhancements from '@/components/DeferredAppEnhancements';
 
@@ -411,6 +412,7 @@ export default function RootLayout({
 
             <TelegramMiniAppBridge />
             <ProductAnalyticsTracker />
+            <FieldWebVitals />
             <DeferredAppEnhancements />
 
             <TelegramSubscriptionGate>
