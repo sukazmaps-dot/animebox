@@ -154,7 +154,9 @@ export default function EpisodeQuickSelector({
         >
           <span className="episode-quick-nav__episode-index">{compact ? 'Серии' : `Серия ${currentEpisode}`}</span>
           {!compact && <small className="episode-quick-nav__episode-total">{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>}
-          <span className="episode-quick-nav__chevron" aria-hidden="true">⌄</span>
+          {compact
+            ? <span className="episode-quick-compact__chevron" aria-hidden="true" />
+            : <span className="episode-quick-nav__chevron" aria-hidden="true">⌄</span>}
         </button>
       </div>
 
