@@ -169,7 +169,7 @@ try {
             const row = disclosure.querySelector('summary').getBoundingClientRect();
             const secondary = document.querySelector('.detail_secondary').getBoundingClientRect();
             return {cards,closed:!disclosure.open,summaryHeight:row.height,summaryRight:row.right,asideRight:secondary.right,
-              starsHidden:!disclosure.open && disclosure.querySelector('.anime-rating-control__stars').getClientRects().length===0};
+              starsHidden:!disclosure.open && !disclosure.querySelector('.anime-rating-control__stars').checkVisibility({ contentVisibilityAuto: true })};
           });
           assert.equal(density.cards.length,3,`${label}: compact fixture must have 3 actual episodes`);
           assert(density.cards.every(card=>card.height>=48 && card.height<=76),`${label}: compact card height budget ${JSON.stringify(density.cards)}`);
