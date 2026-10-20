@@ -490,19 +490,18 @@ export default async function AnimePage({
 
 
       <div className={layout.layout}>
-        <header className={`${layout.hero} ${imageCascade.banner ? '' : layout.withPoster}`}>
-          {imageCascade.banner ? (
+        <header className={`${layout.hero} ${layout.withPoster} ${imageCascade.banner ? layout.hasBanner : ''}`}>
+          {imageCascade.banner && (
             <div className={layout.backdrop} aria-hidden="true">
-              <AnimeImageCascade sources={[imageCascade.banner]} alt="" loading="eager"
-                fetchPriority="high" preset="hero" format="auto" sizes="(max-width: 767px) 100vw, 1240px" quality={80} />
-            </div>
-          ) : (
-            <div className={layout.poster} aria-label="Обложка тайтла">
-              <AnimeImageCascade sources={posterSources} alt={seoIdentity.pageHeading}
-                loading="eager" fetchPriority="high" preset="large" format="auto" quality={80}
-                sizes="(max-width: 767px) 120px, 220px" />
+              <AnimeImageCascade sources={[imageCascade.banner]} alt="" loading="lazy"
+                preset="hero" format="auto" sizes="(max-width: 767px) 100vw, 1240px" quality={70} />
             </div>
           )}
+          <div className={layout.poster} aria-label="Обложка тайтла">
+            <AnimeImageCascade sources={posterSources} alt={seoIdentity.pageHeading}
+              loading="eager" fetchPriority="high" preset="large" format="auto" quality={80}
+              sizes="(max-width: 767px) 120px, 220px" />
+          </div>
           <div className={layout.heroContent}>
             <nav className={layout.breadcrumbs} aria-label="Навигация по каталогу">
               <Link href="/search">Каталог</Link><span aria-hidden="true"> / </span><span>{seoIdentity.pageHeading}</span>
@@ -534,6 +533,7 @@ export default async function AnimePage({
         </header>
 
         <div className={layout.mainColumn}>
+          <div className={`${layout.primaryGrid} ${playbackRestricted ? layout.solo : ''}`}>
           {!playbackRestricted && (
             <section className={layout.episodes} aria-labelledby="anime-episodes-title">
               <div className={layout.sectionHead}>
@@ -545,12 +545,6 @@ export default async function AnimePage({
                 totalEpisodesKnown={Boolean(anime.episodes && anime.episodes > 0)} variant="cinematic" />
             </section>
           )}
-          <div className={layout.related}>
-            <AdSlot placement="anime-detail-before-related" format="native" />
-            <Suspense fallback={<RelatedAnimeLoading />}>
-              <RelatedAnime animeId={numericId} genres={resolved.genres} />
-            </Suspense>
-          </div>
           <div className={layout.secondary}>
             <div className={layout.personal}>
               <AnimePersonalPanel animeHref={animeHref(resolved)}>
@@ -573,6 +567,13 @@ export default async function AnimePage({
                 </Link>
               )}
             </div>
+          </div>
+          </div>
+          <div className={layout.related}>
+            <AdSlot placement="anime-detail-before-related" format="native" />
+            <Suspense fallback={<RelatedAnimeLoading />}>
+              <RelatedAnime animeId={numericId} genres={resolved.genres} />
+            </Suspense>
           </div>
           {visibleAlternateNames.length > 0 && (
             <details className={layout.aliases}><summary>Другие названия</summary><p>{visibleAlternateNames.join(' · ')}</p></details>

@@ -1,10 +1,10 @@
 .layout { --cinema-bg: var(--ab-ui-canvas); max-width: 1240px; margin: 0 auto; padding: 20px 24px 48px; }
-.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 440px; border-radius: 18px; background: radial-gradient(ellipse at 90% 20%, color-mix(in srgb, var(--anime-page-accent) 25%, var(--ab-ui-raised)), var(--cinema-bg) 70%); }
+.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 390px; border-radius: 18px; background: radial-gradient(ellipse at 90% 20%, color-mix(in srgb, var(--anime-page-accent) 25%, var(--ab-ui-raised)), var(--cinema-bg) 70%); }
 .backdrop { position: absolute; inset: 0; z-index: -2; }
 .backdrop > div { height: 100%; width: 100%; }
 .backdrop img { object-position: 70% center; }
 .hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1; background: linear-gradient(90deg, color-mix(in srgb, var(--ab-ui-surface) 98%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 96%, transparent) 25%, color-mix(in srgb, var(--ab-ui-surface) 88%, transparent) 53%, color-mix(in srgb, var(--ab-ui-surface) 10%, transparent) 100%), linear-gradient(0deg, var(--ab-ui-surface) 0%, transparent 65%); }
-.heroContent { position: relative; max-width: 710px; padding: 24px 40px; display: grid; align-content: center; gap: 12px; min-height: 440px; }
+.heroContent { position: relative; max-width: 710px; padding: 24px 40px; display: grid; align-content: center; gap: 12px; min-height: 390px; }
 .breadcrumbs { color: var(--ab-ui-muted); font-size: 11px; line-height: 1.5; }
 .identity h1 { margin: 0; font-size: clamp(32px, 3.2vw, 42px); font-weight: 750; letter-spacing: -.035em; line-height: 1.12; color: var(--ab-ui-text); text-wrap: balance; overflow-wrap: anywhere; }
 .identity > p { margin: 8px 0 0; color: var(--ab-ui-muted); font-size: 13px; }
@@ -28,7 +28,15 @@
 .poster { position: absolute; right: 40px; top: 50%; transform: translateY(-50%); width: 220px; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgb(0 0 0 / 35%); }
 .poster > div { width: 100%; height: 100%; }
 .withPoster .heroContent { max-width: calc(100% - 280px); }
-.mainColumn { display: grid; gap: 32px; padding: 28px 16px 0; min-width: 0; }
+.hasBanner .backdrop img { opacity: .7; }
+.mainColumn { display: grid; gap: 28px; padding: 24px 16px 0; min-width: 0; }
+.primaryGrid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 20px; min-width: 0; }
+.primaryGrid > * { min-width: 0; max-width: 100%; }
+@media (min-width: 1080px) {
+  .primaryGrid:not(.solo) { grid-template-columns: minmax(0, 1fr) minmax(280px, 320px); gap: 24px; }
+}
+.solo { grid-template-columns: minmax(0, 1fr); }
+
 .episodes, .related, .discussion, .personal { min-width: 0; }
 .sectionHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; }
 .sectionHead h2 { margin: 5px 0 0; font-size: 25px; line-height: 1.2; font-weight: 700; letter-spacing: -.025em; }
@@ -84,10 +92,13 @@
   .identity > p { font-size: 12px; }
   .facts { font-size: 11px; }
   .facts > span + span::before { margin: 0 6px; }
-  .poster { top: 20px; right: 20px; transform: none; width: 84px; }
+  .poster { top: 16px; right: 16px; transform: none; width: clamp(90px, 28vw, 112px); }
   .withPoster::after { background: none; }
+  .hasBanner::after { background: linear-gradient(180deg, color-mix(in srgb, var(--ab-ui-surface) 80%, transparent) 0%, color-mix(in srgb, var(--ab-ui-surface) 94%, transparent) 155px, var(--ab-ui-surface) 300px); }
+  .hasBanner .backdrop { height: 320px; }
+  .hasBanner .backdrop img { opacity: .36; }
   .withPoster .heroContent { max-width: none; padding-top: 20px; }
-  .withPoster .identity { min-height: 126px; padding-right: 100px; display: flex; flex-direction: column; justify-content: center; }
+  .withPoster .identity { min-height: 144px; padding-right: clamp(108px, 33vw, 136px); display: flex; flex-direction: column; justify-content: center; }
   .identity > p { overflow-wrap: anywhere; }
   /* The view-action row must occupy its full intrinsic height before synopsis. */
   .actions {
