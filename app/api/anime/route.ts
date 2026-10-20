@@ -171,6 +171,50 @@ async function observedGET(
     season,
   };
 
+  // The /search grid is server-rendered from this same verified playable
+  // snapshot. Its later pages must never silently jump to AniList/Shikimori
+  // offsets: an upstream 429/circuit change otherwise truncates the grid at
+  // 20 cards or forces CATALOG_PAGE_SOURCE_CHANGED on page 2.
+  //
+  // Keep the old provider-first route for other /api/anime consumers.
+  // Announced (not yet playable) titles still use the provider route.
+  if (params.get('catalogSource') === 'saved' && status !== 'upcoming') {
+    try {
+      const saved = await getSavedCatalogPage({ ...options, limit });
+      const partial = Boolean(saved.scanLimited || saved.compatibility || saved.unsupportedFilters.length);
+      return NextResponse.json(
+        {
+          anime: rankAnimeByCatalogMood(saved.anime, mood),
+          catalogMeta: {
+            source: 'saved',
+            completeness: partial ? 'partial' : 'full',
+            message: saved.unsupportedFilters.length
+              ? 'Эти фильтры недоступны для сохранённого каталога.'
+              : saved.scanLimited
+                ? 'Показана доступная часть каталога AnimeBox. Уточни поиск.'
+                : '',
+          },
+          pagination: { page, limit, hasNextPage: saved.hasNextPage },
+        },
+        {
+          headers: publicApiCacheHeaders({
+            browserSeconds: 15,
+            edgeSeconds: 45,
+            staleWhileRevalidateSeconds: 60,
+          }),
+        },
+      );
+    } catch (error) {
+      // Never append a different provider's page to saved-catalog offsets.
+      // The UI retains already rendered cards and offers a scoped retry.
+      console.warn('[Anime catalog] pinned saved source temporarily unavailable:', error);
+      return NextResponse.json(
+        { error: 'Каталог временно недоступен', code: 'CATALOG_SAVED_SOURCE_UNAVAILABLE' },
+        { status: 503, headers: { ...privateNoStoreHeaders(), 'Retry-After': '5' } },
+      );
+    }
+  }
+
   try {
     let providerHasNextPage = false;
     let registryDegraded = false;
