@@ -295,7 +295,8 @@ async function searchRussianAnime(
     // чтобы русский поиск не превращался в пустой экран.
     const recovered: Anime[] = [];
     for (const item of candidates.slice(0, 12)) {
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      // A signalled request has already thrown above; this legacy retry
+      // path is only entered by unsignalled standalone consumers.
       const media = await getAniListByMalId(item.id);
       if (media && Number.isSafeInteger(Number(media.id))) {
         const mapped = await getAniListAnimeById(Number(media.id));
@@ -314,7 +315,8 @@ async function searchRussianAnime(
   if (aniListMatches.length === 0) {
     const recovered: Anime[] = [];
     for (const item of candidates.slice(0, 12)) {
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      // A signalled request has already thrown above; this legacy retry
+      // path is only entered by unsignalled standalone consumers.
       const media = await getAniListByMalId(item.id);
       if (media && Number.isSafeInteger(Number(media.id))) {
         const mapped = await getAniListAnimeById(Number(media.id));
