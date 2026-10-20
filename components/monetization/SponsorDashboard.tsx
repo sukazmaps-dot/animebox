@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 
 import { useAuthState } from '@/components/AuthStateProvider';
@@ -8,6 +8,7 @@ import SponsorBadge from './SponsorBadge';
 import AnimeBoxStar from './AnimeBoxStar';
 import SponsorProgressBar from './SponsorProgressBar';
 import { SPONSOR_META } from '@/lib/sponsor';
+import styles from './SponsorHistory.module.css';
 import {
   getSponsorMe,
   invalidateSponsorMe,
@@ -98,22 +99,40 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
     };
   }, [page, refresh, user?.id]);
 
+  return <SponsorDashboardView history={history} data={data} loading={loading}
+    error={error} guest={guest} page={page} reload={reload} setPage={setPage} />;
+}
+
+/** Presentation shared by the live dashboard and isolated layout previews.
+ * All account requests, cache invalidation and paging state stay above. */
+export function SponsorDashboardView({ history = false, data, loading = false, error = '', guest = false, page = 1, reload, setPage }: {
+  history?: boolean;
+  data: SponsorMeData | null;
+  loading?: boolean;
+  error?: string;
+  guest?: boolean;
+  page?: number;
+  reload?: () => void;
+  setPage?: Dispatch<SetStateAction<number>>;
+}) {
   const next = [25, 100, 250].find((value) => value > (data?.totalStars ?? 0));
+  const emptyHistory = history && data && !data.payments.length && !data.donations?.length;
+  const firstSupport = emptyHistory && page === 1 && !data.hasMore && data.totalStars === 0;
 
   return (
-    <section className="sponsor-v2-panel" aria-busy={loading}>
-      <div className="sponsor-v2-heading">
+    <section className={history ? styles.panel : 'sponsor-v2-panel'} aria-busy={loading} data-support-history={history ? 'true' : undefined}>
+      <div className={history ? styles.heading : 'sponsor-v2-heading'}>
         <div>
-          <span className="sponsor-v2-eyebrow">ТВОЙ ВКЛАД</span>
+          <span className={history ? styles.eyebrow : 'sponsor-v2-eyebrow'}>ТВОЙ ВКЛАД</span>
           <h2>{history ? 'История поддержки' : 'Твой путь спонсора'}</h2>
         </div>
-        <div className="sponsor-v3-dashboard-actions" role="group" aria-label="Разделы поддержки и обновление прогресса">
-          {data?.sponsor && <Link className="btn btn--ghost" href="/settings/sponsor">Оформление</Link>}
+        <div className={history ? styles.actions : 'sponsor-v3-dashboard-actions'} role="group" aria-label="Разделы поддержки и обновление прогресса">
+          {data?.sponsor && <Link className={history ? undefined : 'btn btn--ghost'} href="/settings/sponsor">Оформление</Link>}
           {history
-            ? <Link className="btn btn--ghost" href="/support">Поддержка</Link>
+            ? <Link href="/support">Поддержка</Link>
             : <Link className="btn btn--ghost" href="/support/history">История</Link>}
-          <Link className="btn btn--ghost" href="/supporters">Спонсоры</Link>
-          <button className="btn btn--ghost" type="button" onClick={reload} disabled={loading}>
+          <Link className={history ? undefined : 'btn btn--ghost'} href="/supporters">Спонсоры</Link>
+          <button className={history ? undefined : 'btn btn--ghost'} type="button" onClick={reload} disabled={loading}>
             Обновить
           </button>
         </div>
@@ -133,7 +152,7 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
 
       {data && (
         <>
-          <div className="sponsor-v2-total">
+          <div className={history ? styles.total : 'sponsor-v2-total'}>
             <strong>
               {data.totalStars.toLocaleString('ru-RU')}{' '}
               <AnimeBoxStar size={30} className="animebox-star-icon--pulse" />
@@ -149,47 +168,51 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
             </div>
           )}
 
-          {next ? (
-            <p className="sponsor-v2-next">
+          {!firstSupport && (next ? (
+            <p className={history ? styles.next : 'sponsor-v2-next'}>
               До уровня{' '}
               <strong>
                 {SPONSOR_META[next === 25 ? 'supporter' : next === 100 ? 'premium' : 'patron'].label}
               </strong>{' '}
               осталось
-              <span className="sponsor-v2-next__amount">
+              <span className={history ? styles.amount : 'sponsor-v2-next__amount'}>
                 {next - data.totalStars}{' '}
                 <AnimeBoxStar size={20} className="animebox-star-icon--pulse" />
               </span>
             </p>
           ) : (
-            <p className="sponsor-v2-next sponsor-v2-next--complete">
+            <p className={history ? styles.next : 'sponsor-v2-next sponsor-v2-next--complete'}>
               Высший уровень открыт{' '}
               <AnimeBoxStar size={20} className="animebox-star-icon--pulse" /> Спасибо за поддержку AnimeBox!
             </p>
-          )}
+          ))}
 
-          <SponsorProgressBar
+          {!firstSupport && <SponsorProgressBar
             current={next ? data.totalStars : 250}
             target={next ?? 250}
             label="Прогресс спонсорства"
-          />
+          />}
 
           {!data.telegramLinked && (
-            <p className="sponsor-v2-note">
+            <p className={history ? styles.note : 'sponsor-v2-note'}>
               Для автоматического получения статуса привяжи Telegram к своему аккаунту в профиле. Stars учитываются по аккаунту плательщика в Telegram.
             </p>
           )}
 
           {history && (
             <>
-              <div className="sponsor-v4-history-block">
-                <div className="sponsor-v4-history-title">
+              {emptyHistory && <div className={styles.empty} data-support-empty="true">
+                <strong>{page === 1 ? 'История пока пустая' : 'На этой странице пока нет платежей'}</strong>
+                <p>Здесь появятся твои Telegram Stars и привязанные донаты картой.</p>
+                <Link href="/support">Поддержать AnimeBox →</Link>
+              </div>}
+              {data.payments.length > 0 && <div className={styles.historyBlock}>
+                <div className={styles.historyTitle}>
                   <strong>Telegram Stars</strong>
                   <span>Влияют на уровни спонсорства</span>
                 </div>
 
-                {data.payments.length ? (
-                  <ul className="sponsor-v2-history sponsor-v3-history">
+                <ul className={styles.historyList}>
                     {data.payments.map((payment) => (
                       <li key={payment.id} data-status={payment.status}>
                         <div>
@@ -206,20 +229,17 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p>Здесь появится твоя первая поддержка через Stars.</p>
-                )}
-              </div>
 
-              <div className="sponsor-v4-history-block">
-                <div className="sponsor-v4-history-title">
+              </div>}
+
+              {Boolean(data.donations?.length) && <div className={styles.historyBlock}>
+                <div className={styles.historyTitle}>
                   <strong>Донаты картой</strong>
                   <span>Учитываются отдельно от Stars</span>
                 </div>
 
-                {data.donations?.length ? (
-                  <ul className="sponsor-v2-history sponsor-v3-history sponsor-v4-donation-history">
-                    {data.donations.map((donation) => (
+                <ul className={styles.historyList}>
+                    {data.donations?.map((donation) => (
                       <li key={donation.id} data-status={donation.status}>
                         <div>
                           <time dateTime={donation.paid_at ?? donation.created_at}>
@@ -235,34 +255,35 @@ export default function SponsorDashboard({ history = false }: { history?: boolea
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p>Привязанные донаты через DonatePay и Boosty появятся здесь.</p>
-                )}
-              </div>
 
-              <div className="sponsor-v2-pager">
+              </div>}
+
+              {(page > 1 || data.hasMore) && <div className={styles.pager}>
                 <button
                   disabled={page === 1 || loading}
-                  onClick={() => setPage((value) => value - 1)}
+                  onClick={() => setPage?.((value) => value - 1)}
                 >
                   ← Назад
                 </button>
                 <span>Страница {page}</span>
                 <button
                   disabled={!data.hasMore || loading}
-                  onClick={() => setPage((value) => value + 1)}
+                  onClick={() => setPage?.((value) => value + 1)}
                 >
                   Дальше →
                 </button>
-              </div>
+              </div>}
             </>
           )}
         </>
       )}
 
-      <p className="sponsor-v2-note">
+      {history ? <details className={styles.rules}>
+        <summary>Как учитывается поддержка</summary>
+        <p>Уровни накопительные: учитываются подтверждённые Telegram Stars и одобренные ручные корректировки. Донаты картой сохраняются отдельно и не конвертируются в Stars.</p>
+      </details> : <p className="sponsor-v2-note">
         Уровни накопительные. В них учитываются подтверждённые Telegram Stars и одобренные ручные корректировки. Донаты в обычной валюте сохраняются отдельно и не конвертируются в Stars.
-      </p>
+      </p>}
     </section>
   );
 }

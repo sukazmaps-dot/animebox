@@ -89,7 +89,7 @@ export function HomeDeferredSupport() {
       </div>
       <DeferredMount
         className="home-deferred home-deferred--support"
-        minHeight={68}
+        minHeight={44}
         rootMargin="360px 0px"
       >
         <SupportAnimeBoxCard />
@@ -97,7 +97,7 @@ export function HomeDeferredSupport() {
 
       <DeferredMount
         className="home-deferred home-deferred--telegram"
-        minHeight={68}
+        minHeight={44}
         rootMargin="360px 0px"
       >
         <TelegramPromoCard placement="home_footer" />

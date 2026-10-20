@@ -12,6 +12,7 @@ const logPath = path.join(os.tmpdir(), 'animebox-home32-' + process.pid + '.log'
 const port = 3106;
 const origin = `http://127.0.0.1:${port}`;
 const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><defs><linearGradient id="s"><stop stop-color="#37304e"/><stop offset="1" stop-color="#a7a3b4"/></linearGradient></defs><path fill="url(#s)" d="M0 0h1920v1080H0z"/><circle cx="1380" cy="310" r="190" fill="#d3c5d5"/><path d="M650 1080l500-700 350 400 230-250 190 550" fill="#56536e"/></svg>';
+const posterSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><defs><linearGradient id="p" x2="1" y2="1"><stop stop-color="#37304e"/><stop offset="1" stop-color="#a7a3b4"/></linearGradient></defs><path fill="url(#p)" d="M0 0h600v900H0z"/><circle cx="400" cy="240" r="110" fill="#d3c5d5"/><path d="M0 900l220-500 140 270 120-120 120 350" fill="#56536e"/></svg>';
 if (fs.existsSync(fixture)) throw Error('Refusing to overwrite ' + fixture);
 fs.mkdirSync(fixture);
 fs.copyFileSync('tests/fixtures/home32.fixture', fixture + '/page.tsx');
@@ -53,6 +54,12 @@ fs.mkdirSync(output, { recursive: true });
     const cases = [360, 376, 390, 412, 430, 768, 1024, 1366, 1440, 1920].flatMap(width => ['dark', 'light'].map(theme => ({ width, height: width === 376 ? 869 : width === 430 ? 932 : width <= 412 ? 844 : 1080, theme, mode: 'normal' })));
     cases.push({ width: 390, height: 844, theme: 'dark', mode: 'sparse' }, { width: 1920, height: 1080, theme: 'dark', mode: 'sparse' });
     cases.push({ width: 844, height: 390, theme: 'dark', mode: 'normal' }, { width: 1366, height: 900, theme: 'dark', mode: 'poster' }, { width: 390, height: 844, theme: 'dark', mode: 'broken' });
+    for (const width of [360, 390, 768, 1366]) {
+      cases.push({ width, height: 900, theme: 'light', mode: 'poster' });
+    }
+    for (const width of [360, 390, 1366]) for (const theme of ['dark', 'light']) {
+      cases.push({ width, height: 900, theme, mode: 'history' });
+    }
     for (const c of cases) {
       // The phone fixture must advertise coarse pointer/no-hover. A resized
       // desktop Chromium hides hover-only bookmark controls and masks mobile bugs.
@@ -81,7 +88,7 @@ fs.mkdirSync(output, { recursive: true });
       }, { theme: c.theme, history });
       await page.route('**/*', route => {
         const request = route.request(), url = request.url();
-        if (request.resourceType() === 'image' && (url.includes('qa-images.test') || url.includes('/api/image?'))) return c.mode === 'broken' ? route.fulfill({ status: 404, body: '' }) : route.fulfill({ contentType: 'image/svg+xml', body: svg });
+        if (request.resourceType() === 'image' && (url.includes('qa-images.test') || url.includes('/api/image?'))) return c.mode === 'broken' ? route.fulfill({ status: 404, body: '' }) : route.fulfill({ contentType: 'image/svg+xml', body: url.includes('cover-') ? posterSvg : svg });
         if (url.startsWith(origin + '/api/recommendations?')) {
           recommendationRequests++;
           // A normal terminal page must satisfy the production response schema.
@@ -97,6 +104,32 @@ fs.mkdirSync(output, { recursive: true });
       const name = `${c.theme}-${c.width}-${c.mode}`;
       try {
         await page.goto(`${origin}/qa-home32-check?mode=${c.mode}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+        if (c.mode === 'history') {
+          await page.waitForSelector('[data-support-empty="true"]');
+          await page.waitForFunction(theme => document.documentElement.dataset.animeboxTheme === theme, c.theme);
+          const panel = await page.locator('[data-support-history="true"]').evaluate(el => {
+            const box = el.getBoundingClientRect();
+            return { height: box.height, right: box.right, left: box.left,
+              overflow: document.documentElement.scrollWidth > innerWidth + 1,
+              progress: el.querySelectorAll('[role="progressbar"]').length,
+              rulesOpen: el.querySelector('details')?.open,
+              links: [...el.querySelectorAll('a')].map(a => a.getAttribute('href')),
+              actions: [...el.querySelector('[role="group"]').children].map(action => ({ width: action.getBoundingClientRect().width, height: action.getBoundingClientRect().height })) };
+          });
+          assert(!panel.overflow && panel.left >= 0 && panel.right <= c.width, name + ' compact history fits viewport');
+          assert(panel.height <= 430, name + ' empty history height budget');
+          assert.equal(panel.progress, 0, name + ' no empty progress');
+          assert.equal(panel.rulesOpen, false, name + ' rules initially collapsed');
+          assert.equal(await page.getByText('Страница 1', { exact: true }).count(), 0, name + ' no fake pagination');
+          assert(panel.links.includes('/support') && panel.links.includes('/supporters'));
+          assert(panel.actions.every(action => action.width >= 44 && action.height >= 44), name + ' history touch targets: ' + JSON.stringify(panel.actions));
+          await page.getByText('Как учитывается поддержка', { exact: true }).click();
+          assert.equal(await page.locator('[data-support-history] details').evaluate(el => el.open), true, name + ' accounting rules remain accessible');
+          await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true });
+          assert.deepEqual(errors, [], name + ' history runtime errors');
+          console.log('PASS', name);
+          continue;
+        }
         await page.waitForSelector('[data-home-hero="single"] img');
         await page.waitForFunction(theme => document.documentElement.dataset.animeboxTheme === theme, c.theme);
         await page.waitForFunction(() => document.querySelector('[data-home-hero] img')?.naturalWidth > 0);
@@ -118,7 +151,6 @@ fs.mkdirSync(output, { recursive: true });
           assert(recommendationRequests > 0 && recommendationRequests <= 3, name + ' viewport bootstrap reaches the terminal API with bounded requests');
           assert.equal(errors.length, 0, name + ' sparse runtime errors');
           console.log('PASS', name);
-          await page.close();
           continue;
         }
         await page.waitForSelector('.smart-feed__stage[aria-busy="false"]');
@@ -304,7 +336,20 @@ fs.mkdirSync(output, { recursive: true });
           assert(resumeGeometry.posterRight <= resumeGeometry.bodyLeft + 1, name + ' resume poster overlaps copy');
           assert(resumeGeometry.cardWidth <= (c.width <= 768 ? c.width * 0.86 + 5 : 321), name + ' resume card width');
         }
-        if (c.mode === 'poster') { assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .8, 'Poster is bounded'); }
+        if (c.mode === 'poster') {
+          assert.equal(geometry.fit, 'contain'); assert(geometry.image.width < geometry.hero.width * .8, 'Poster is bounded');
+          const posterLayout = await page.locator('[data-home-hero]').evaluate(hero => {
+            const art = hero.querySelector('[data-hero-art="poster"]')?.getBoundingClientRect();
+            const body = hero.querySelector('h2')?.parentElement.getBoundingClientRect();
+            const actions = hero.querySelector('a')?.parentElement.getBoundingClientRect();
+            return art && body && actions ? { ratio: art.width / art.height,
+              bodySeparate: art.right <= body.left + 1 || body.right <= art.left + 1,
+              actionsSeparate: art.bottom <= actions.top + 1 || actions.right <= art.left + 1 } : null;
+          });
+          assert(posterLayout && Math.abs(posterLayout.ratio - 2 / 3) < .01, name + ' poster keeps 2:3 slot');
+          assert(posterLayout.bodySeparate && posterLayout.actionsSeparate, name + ' poster never overlaps copy or controls');
+        }
+        assert.equal(await page.locator('.home-anime-rail__view-all').count(), 0, name + ' catalogue ends with actual titles, not a clipped CTA tile');
         assert.equal(await page.locator('main h1').count(), 1, name + ' one page H1');
         assert.equal(await page.locator('[data-home-hero]').count(), 1, name + ' one unified hero');
         assert.equal(await page.getByRole('button', { name: 'Следующий тайтл', exact: true }).count(), 0, name + ' carousel removed');
@@ -398,7 +443,7 @@ fs.mkdirSync(output, { recursive: true });
           const mounts = page.locator('[data-home-layout="cinematic"] .deferred-mount');
           const count = await mounts.count();
           for (let i = 0; i < count; i++) {
-            await mounts.nth(i).scrollIntoViewIfNeeded();
+            if (await mounts.nth(i).getAttribute('data-ready') !== 'true') await mounts.nth(i).scrollIntoViewIfNeeded();
             await page.waitForFunction(index => {
               const elements = document.querySelectorAll('[data-home-layout="cinematic"] .deferred-mount');
               return elements[index]?.getAttribute('data-ready') === 'true';
@@ -413,9 +458,13 @@ fs.mkdirSync(output, { recursive: true });
             const watch = area.querySelector('[id="animebox-watch-together"]');
             const nav = area.querySelector('nav[aria-label="Разделы AnimeBox"]');
             const promoErrors = [];
+            for (const empty of area.querySelectorAll('.deferred-mount[data-ready="true"]:empty')) {
+              if (getComputedStyle(empty).display !== 'none') promoErrors.push('empty personal host reserves a shelf gap');
+            }
             const promoStrip = area.querySelector('section[aria-label="Поддержка и Telegram AnimeBox"]');
             const promoCards = [...area.querySelectorAll('.home-deferred--support > section, .home-deferred--telegram > section')];
             if (promoStrip) {
+              if (promoStrip.getBoundingClientRect().height > (innerWidth <= 960 ? 200 : 130)) promoErrors.push('community strip exceeds compact height budget');
               const close = promoStrip.querySelector('button[aria-label="Скрыть блок поддержки и Telegram"]');
               const heading = promoStrip.firstElementChild;
               const headerRect = heading?.getBoundingClientRect();

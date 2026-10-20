@@ -7,7 +7,6 @@
 .artwork { position: absolute; z-index: -1; inset: 0; pointer-events: none; }
 .artworkHost { position: absolute; z-index: 0; inset: 0 0 0 30%; width: 70%; height: 100%; background: #141218; }
 .artworkImage { object-fit: cover; object-position: 65% 35%; }
-.artwork[data-hero-art='poster'] .artworkImage { object-fit: contain; object-position: right center; }
 .shade { position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg, #141218 0%, #141218 30%, rgb(20 18 24 / 94%) 45%, rgb(20 18 24 / 72%) 65%, rgb(20 18 24 / 10%) 100%), linear-gradient(0deg, rgb(20 18 24 / 75%), transparent 65%); }
 .body { min-width: 0; width: min(68%, 680px); }
 .eyebrow { color: #d7c5ff; font-size: 11px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
@@ -40,7 +39,7 @@
   .card, .loading, .empty { min-height: 360px; }
   .card { justify-content: flex-end; gap: 16px; padding: 24px 18px 12px; }
   .artworkHost { inset: 0; width: 100%; }
-  .artwork .artworkImage, .artwork[data-hero-art='poster'] .artworkImage { object-fit: cover; object-position: var(--hero-focus, 50% 20%); }
+  .artwork .artworkImage { object-fit: cover; object-position: var(--hero-focus, 50% 20%); }
   .shade { background: linear-gradient(0deg, #141218 0%, rgb(20 18 24 / 96%) 22%, rgb(20 18 24 / 78%) 51%, rgb(20 18 24 / 12%) 100%); }
   .body { width: 100%; padding-top: 48px; }
   .title { font-size: clamp(25px, 6.5vw, 32px); margin-top: 8px; }
@@ -55,3 +54,25 @@
   .placeholder { flex-basis: 96px; height: 144px; }
 }
 @media (max-width: 380px) { .heading { flex-wrap: wrap; gap: 0; } }
+
+/* An ordinary cover has its own 2:3 slot. Never enlarge it into a backdrop. */
+.card:has([data-hero-art='poster']) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(170px, 22vw, 230px);
+  grid-template-areas: 'body art' 'actions art';
+  align-content: center;
+  column-gap: 32px;
+  background: radial-gradient(ellipse at right top, #292133, #141218 70%);
+}
+.artwork[data-hero-art='poster'] { grid-area: art; position: relative; inset: auto; z-index: 0; width: 100%; aspect-ratio: 2 / 3; align-self: center; }
+.artwork[data-hero-art='poster'] .artworkHost { inset: 0; width: 100%; border-radius: 6px; overflow: hidden; background: transparent; }
+.artwork[data-hero-art='poster'] .artworkImage { object-fit: contain; object-position: center; }
+.artwork[data-hero-art='poster'] .shade { display: none; }
+.card:has([data-hero-art='poster']) .body { grid-area: body; width: 100%; padding-top: 0; align-self: end; }
+.card:has([data-hero-art='poster']) .actions { grid-area: actions; max-width: 100%; align-self: start; }
+@media (max-width: 768px) {
+  .card:has([data-hero-art='poster']) { grid-template-columns: 96px minmax(0, 1fr); grid-template-areas: 'art body' 'actions actions'; gap: 20px 16px; align-content: center; padding: 20px 18px; }
+  .artwork[data-hero-art='poster'] { align-self: start; }
+  .card:has([data-hero-art='poster']) .body { align-self: center; }
+  .card:has([data-hero-art='poster']) .title { font-size: clamp(21px, 5.5vw, 28px); }
+}

@@ -101,4 +101,4 @@
 .footer .cta { align-self: center; min-height: 44px; margin: 0; padding: 0 9px; border-radius: 7px; font-size: 12px; white-space: nowrap; }
 .footer .dismiss { display: none; }
 @media (min-width: 769px) { .footer .copy p { display: none; } }
-@media (max-width: 480px) { .footer .footerContent { grid-template-columns: 32px minmax(0, 1fr); } .footer .cta { grid-column: 2; justify-self: start; } }
+@media (max-width: 480px) { .footer .footerContent { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; } .footer .brand { display: none; } .footer .copy p { display: none; } }

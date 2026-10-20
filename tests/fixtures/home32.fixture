@@ -2,6 +2,8 @@ import '../../app/patch17-6-home-recommendation-actions.css';
 import '../../app/patch18-6-3-loading-ux.css';
 import HomePageShell from '@/components/home/HomePageShell';
 import type { Anime } from '@/types/anime';
+import { SponsorDashboardView } from '@/components/monetization/SponsorDashboard';
+import { DEFAULT_SPONSOR_PREFERENCES } from '@/lib/sponsor';
 
 // Uses the production shell/providers and real interactive components.
 // Only the catalogue/media/API responses are deterministic fixtures.
@@ -9,6 +11,12 @@ export default async function Home32Fixture({ searchParams }: {
   searchParams: Promise<{ mode?: string }>;
 }) {
   const { mode } = await searchParams;
+  if (mode === 'history') return <main style={{ maxWidth: 960, margin: 'auto', padding: 16 }}>
+    <SponsorDashboardView history data={{ totalStars: 0, sponsor: null, role: null,
+      telegramLinked: true, payments: [], donations: [], page: 1, hasMore: false,
+      preferences: DEFAULT_SPONSOR_PREFERENCES,
+      benefits: { adFree: false, frames: [], nameStyles: [], themes: [] } }} />
+  </main>;
   const titles = ['Провожающая в последний путь Фрирен',
     'Путешественники между мирами: удивительная история о дружбе, времени и дороге домой',
     'Город над облаками', 'Дом у моря', 'Лес светлячков', 'Звёздный экспресс',

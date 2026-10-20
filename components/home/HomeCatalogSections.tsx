@@ -68,7 +68,6 @@ export default function HomeCatalogSections() {
           <HomeAnimeRail
             items={popularItems}
             displayTitles={popularTitles}
-            allHref="/search"
             ariaLabel="Популярные аниме"
             watchedEpisodes={personalEpisodeByAnime}
           />
@@ -96,7 +95,6 @@ export default function HomeCatalogSections() {
           <HomeAnimeRail
             items={ongoingItems}
             displayTitles={ongoingTitles}
-            allHref="/schedule"
             ariaLabel="Продолжающиеся аниме"
             watchedEpisodes={personalEpisodeByAnime}
           />
