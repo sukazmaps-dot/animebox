@@ -158,6 +158,7 @@ async function settleTheme(page) {
   });
   const scoreDisplay=await compile('lib/anime-score.ts',{});
   const episodeDisplay=await compile('lib/anime-content-intelligence.ts',{});
+  const metadataMerge=await compile('lib/anime-metadata-merge.ts',{});
   const intentLink=await compile('components/AnimeIntentLink.tsx',{
     react:React,
     'next/navigation':{useRouter:()=>({prefetch:()=>{throw new Error('SSR must not prefetch');}})},
@@ -171,6 +172,7 @@ async function settleTheme(page) {
     '@/lib/anime-display':{getAnimeTitle:anime=>anime.title.russian,isAnimeOngoing:()=>false},
     '@/lib/anime-score':scoreDisplay,
     '@/lib/anime-content-intelligence':episodeDisplay,
+    '@/lib/anime-metadata-merge':metadataMerge,
   });
   const item={id:101,title:{russian:animeTitle},genres:[],score:9.2,format:'TV',episodes:24,startDate:{year:2026}};
   const realCard=renderToStaticMarkup(React.createElement(animeCard.default,{anime:item}));
