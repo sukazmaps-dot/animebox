@@ -47,7 +47,7 @@
     "auth-security:check": "node scripts/auth-security-check.mjs",
     "recommendation-engine:check": "node scripts/recommendation-engine-check.mjs",
     "home-hydration:check": "node scripts/home-hydration-check.mjs",
-    "watch-service:check": "node tests/watch-playback-integrity.cjs && node scripts/watch-service-check.mjs",
+    "watch-service:check": "node tests/watch-playback-integrity.cjs && node tests/watch-heartbeat-queue.cjs && node scripts/watch-service-check.mjs",
     "patch19-4-3:check": "node tests/watch-trust.cjs && node scripts/patch-19-4-3-anti-farm-check.mjs",
     "patch20-0:check": "node scripts/patch-20-0-trust-progression-check.mjs",
     "patch20-1:check": "node scripts/patch-20-1-watch-together-check.mjs",
