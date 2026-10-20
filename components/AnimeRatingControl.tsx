@@ -306,6 +306,7 @@ export default function AnimeRatingControl({
   return (
     <section
       className={`${styles.control} ${variant === 'compact' ? styles.compactControl : ''} anime-rating-control`}
+      data-rating-compact={variant === 'compact' ? 'true' : undefined}
       aria-label={variant === 'compact' ? 'Оценка AnimeBox' : undefined}
       aria-labelledby={variant === 'compact' ? undefined : 'animebox-rating-title'}
     >
