@@ -43,7 +43,7 @@
 .sectionHead > div > span { color: var(--ab-ui-accent); letter-spacing: .15em; font-size: 10px; font-weight: 650; }
 .sectionHead > a { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--ab-ui-accent); }
 .secondary { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 10px; }
-.personal { display: grid; gap: 8px; max-width: 100%; }
+.personal { display: grid; gap: 12px; max-width: 100%; }
 .together { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--ab-ui-border); border-radius: 10px; background: transparent; color: var(--ab-ui-text); font-size: 12px; font-weight: 600; text-align: left; text-decoration: none; }
 .together:hover, .together:focus-visible { border-color: var(--ab-ui-accent); }
 .finishedStatus { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--ab-ui-muted); font-size: 12px; line-height: 1.35; }
