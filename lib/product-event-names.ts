@@ -1,5 +1,6 @@
 export const PRODUCT_CLIENT_EVENT_NAMES = [
   'page_view',
+  'field_web_vital',
   'anime_open',
   'chat_open',
   'registration_session',
