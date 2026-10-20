@@ -68,7 +68,7 @@ export default function HomeTonightPick({ items, mood, busy, hasWatchHistory, pr
 
   return (
     <article ref={impressionRef} className={styles.card} data-home-hero="single" data-home-tonight={preview ? 'preview' : 'ready'} data-tonight-anime-id={anime.id} data-tonight-mood={mood}>
-      <HomeTonightArtwork key={anime.id} anime={anime} />
+      <HomeTonightArtwork key={anime.id} anime={anime} preview={preview} />
       <div className={styles.body} aria-live="polite" aria-atomic="true">
         <span className={styles.eyebrow}>{preview ? 'Популярное на AnimeBox' : 'Вариант на сегодня'}</span>
         <h2 className={styles.title}>{title}</h2>
