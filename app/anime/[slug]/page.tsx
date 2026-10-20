@@ -550,20 +550,20 @@ export default async function AnimePage({
               <AnimePersonalPanel animeHref={animeHref(resolved)}>
                 <LibraryStatusControl animeId={numericId} variant="inline" />
                 {!playbackRestricted && (finished ? (
-                  <span className={layout.finishedStatus} aria-label="Тайтл завершён">
-                    Тайтл завершён · уведомления о новых сериях не нужны
+                  <span className={layout.finishedStatus} aria-label="Тайтл завершён" title="Новые серии не ожидаются: уведомления недоступны">
+                    Тайтл завершён
                   </span>
                 ) : (
                   <AnimeNotificationControl animeId={numericId} animeSlug={resolved.slug}
                     animeTitle={seoIdentity.pageHeading} episodesAired={anime.episodes_aired || 0}
                     isFinished={false} variant="inline" />
                 ))}
-                <AnimeRatingControl animeId={numericId} />
+                <AnimeRatingControl animeId={numericId} variant="compact" />
               </AnimePersonalPanel>
               {!playbackRestricted && (
                 <Link className={layout.together} href="/watch-together">
                   <span aria-hidden="true">✦</span>
-                  Смотреть с друзьями <span aria-hidden="true">→</span>
+                  Смотреть вместе <span aria-hidden="true">→</span>
                 </Link>
               )}
             </div>
