@@ -1,7 +1,10 @@
 .page:global(.episode-page) { padding-top: 12px !important; gap: 12px; }
 /* Compact watch controls opt in only on the ordinary episode route. */
 .page :global(.episode-quick-compact) { min-width: 0; }
-.page :global(.episode-quick-compact__trigger) { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 13px; white-space: nowrap; }
+.page :global(.episode-quick-compact__trigger) { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; height: 48px; width: 100%; padding: 8px 12px; border: 0; border-radius: 10px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 13px; white-space: nowrap; }
+.page :global(.episode-quick-compact__trigger) > :global(.episode-quick-nav__episode-index) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.page :global(.episode-quick-compact__chevron) { display: block; flex: 0 0 8px; width: 8px; height: 8px; margin-top: -4px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; opacity: .8; transform: rotate(45deg); pointer-events: none; }
+.page :global(.episode-quick-compact__trigger[aria-expanded='true']) :global(.episode-quick-compact__chevron) { margin-top: 4px; transform: rotate(225deg); }
 .page :global(.episode-quick-compact__steps) { display: flex; justify-content: space-between; gap: 8px; padding: 8px 16px; }
 .page :global(.episode-quick-compact__steps) button { min-height: 44px; padding: 8px 12px; border-radius: 8px; background: var(--ab-ui-raised); color: var(--ab-ui-text); }
 .page :global(.episode-quick-compact__steps) button:disabled { opacity: .4; }

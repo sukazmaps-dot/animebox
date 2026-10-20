@@ -34,7 +34,7 @@ const read = p => fs.readFileSync(p, 'utf8');
             </div></div>
             <Controls identity={<section className="episode-page__identity-compact"><div><h1>Очень длинное название аниме с несколькими частями — {episode} серия</h1><span>Сезон 1</span></div><a href="#title">К тайтлу</a></section>}
               episodes={<Quick compact currentEpisode={episode} totalEpisodes={sparse?1:110} hasPrev={episode>1} hasNext={!sparse&&episode<110} onPrevious={()=>setEpisode(e=>e-1)} onNext={()=>setEpisode(e=>e+1)} onSelect={change('episode',setEpisode)}/>}
-              translationLabel="Озвучка" translation={voice} translations={sparse?[]:[{id:'0',label:'Очень длинное название озвучки Crunchyroll.Subtitles'},{id:'1',label:'AnimeVost'}]} onTranslation={change('voice',setVoice)}
+              translationLabel="Озвучка" translation={voice} translations={sparse?[]:[{id:'0',label:'FumoDub'},{id:'1',label:'Очень длинное название озвучки Crunchyroll.Subtitles'}]} onTranslation={change('voice',setVoice)}
               source={source} sources={sparse?[{id:'0',label:'Kodik'}]:[{id:'0',label:'Kodik'},{id:'1',label:'AniLiberty'}]} onSource={change('source',setSource)} quality="Качество определяется провайдером" theater={theater} onTheater={()=>setTheater(x=>!x)}
               secondary={<section className="episode-engagement-grid"><button>Библиотека</button><button>Уведомления</button></section>}/>
           </section>
@@ -67,9 +67,34 @@ const read = p => fs.readFileSync(p, 'utf8');
         const episodes = page.locator('.episode-quick-compact__trigger');
         const layout = await page.evaluate(() => {
           const nodes=[document.querySelector('.episode-quick-compact__trigger'), document.querySelector('[aria-label="Ещё настройки просмотра"]')];
-          return {overflow:document.documentElement.scrollWidth>innerWidth,rects:nodes.map(n=>{const r=n.getBoundingClientRect();return {y:r.y,w:r.width,h:r.height}}),settingsVisible:document.querySelector('select[aria-label="Источник видео"]').checkVisibility()};
+          const rect=node=>{const r=node.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}};
+          const toolbar=nodes[0].closest('nav').parentElement;
+          const slots=[...toolbar.children].slice(0,3).map(rect);
+          const select=document.querySelector('select[aria-label="Озвучка"]');
+          const label=select?.closest('label');
+          const arrow=document.querySelector('.episode-quick-compact__chevron');
+          return {
+            overflow:document.documentElement.scrollWidth>innerWidth,
+            rects:nodes.map(rect),slots,episodeArrow:rect(arrow),
+            nativeAppearance:select?getComputedStyle(select).appearance:null,
+            selectPadding:select?parseFloat(getComputedStyle(select).paddingRight):null,
+            customArrow:label?getComputedStyle(label,'::after').borderBottomWidth:null,
+            settingsVisible:document.querySelector('select[aria-label="Источник видео"]').checkVisibility()
+          };
         });
         assert(!layout.overflow);assert(!layout.settingsVisible);assert.equal(layout.rects[0].y,layout.rects[1].y);
+        for (const [i,slot] of layout.slots.entries()) {
+          assert(slot.w>=44&&slot.h>=48, 'touch target too small '+width+'/'+sparse+'/'+i);
+          if (i>0) assert(slot.x-layout.slots[i-1].right>=5, 'watch toolbar controls touch '+width+'/'+sparse+'/'+i);
+          assert(slot.right<=width+1, 'watch toolbar exceeds viewport '+width+'/'+sparse+'/'+i);
+        }
+        assert(layout.episodeArrow.x>layout.rects[0].x+14&&layout.episodeArrow.right<layout.rects[0].right,
+          'episode chevron must remain inside its button '+width+'/'+sparse);
+        if (!sparse) {
+          assert.equal(layout.nativeAppearance,'none','native select arrow must be disabled on mobile '+width);
+          assert(layout.selectPadding>=30,'translation text needs a reserved chevron area '+width);
+          assert(parseFloat(layout.customArrow)>0,'translation must have a custom chevron '+width);
+        }
         const identitySpacing=await page.locator('[data-watch-controls] .episode-page__identity-compact').evaluate(node=>({marginTop:getComputedStyle(node).marginTop,paddingTop:getComputedStyle(node).paddingTop}));
         assert.deepEqual(identitySpacing,{marginTop:'0px',paddingTop:'0px'},'compact identity must not inherit legacy page spacing');
         assert(layout.rects.every(r=>r.w>=44&&r.h>=44));
