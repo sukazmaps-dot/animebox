@@ -31,6 +31,7 @@ const mocks = {
   '@/lib/product-events-client': { trackProductClientEvent: (...args) => events.push(args) },
   './useVisibleHomeImpression': { useVisibleHomeImpression: () => React.useRef(null) },
   '@/components/home/HomeFeedRuntimeProvider': { useHomeFeedRuntime: () => runtime },
+  '@/components/home/HomeTonightPick': { default: props => React.createElement(Pick, props) },
   '@/components/home/HomePersonalRetentionSections': { HomePersonalScheduleSection: () => null },
   '@/components/home/HomeLoadingSkeletons': { RecommendationFeedSkeleton: () => React.createElement('span', null, 'Loading rails') },
   '@/components/HomeMoodPicker': { default: () => null },
@@ -120,8 +121,17 @@ assert(!html.includes('★') && !html.includes('2024') && !html.includes('Ист
   // Mount the actual integration: selecting a new mood must never relabel an
   // old ranked pool. A failed recomputation must end in empty, not busy forever.
   const Discovery = load('components/home/HomeDiscoverySection.tsx').default;
-  runtime = { mood: 'any', recommendationMood: 'any', moodSwitching: false, updateMood() {}, hydrated: true,
-    popularLoading: false, ongoingLoading: false, smartRecommendations: [a, b], recommendationsReady: true, hasWatchHistory: false };
+  // On initial SSR there is no hydrated recommendation engine. The real
+  // public, verified candidate must still paint immediately with a live link
+  // and without attributing it as a personalized recommendation.
+  runtime = { mood: 'any', recommendationMood: 'any', moodSwitching: false, updateMood() {}, hydrated: false,
+    popular: [a.anime, b.anime], ongoing: [], popularLoading: false, ongoingLoading: false,
+    smartRecommendations: [], recommendationsReady: false, hasWatchHistory: false };
+  const firstPaint = renderToStaticMarkup(React.createElement(Discovery));
+  assert(firstPaint.includes('data-home-tonight="preview"'), 'SSR must render the public first pick before idle ranking');
+  assert(firstPaint.includes('href="/anime/title-1/watch?ep=1"'), 'SSR first pick has a real watch link');
+  assert(!firstPaint.includes('data-home-tonight="loading"'), 'available saved titles cannot show a blocking hero skeleton');
+  runtime = { ...runtime, hydrated: true, smartRecommendations: [a, b], recommendationsReady: true };
   await act(async () => { tree = create(React.createElement(Discovery)); });
   assert.equal(selected(), 1);
   runtime = { ...runtime, mood: 'comfort', moodSwitching: true };
