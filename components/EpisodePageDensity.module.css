@@ -29,7 +29,7 @@
 .page:global(.episode-page) :global(.premium-player-dropdown) select { height: 100% !important; }
 .page:global(.episode-page) :global(.episode-engagement-grid) { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; justify-content: flex-start !important; gap: 8px !important; margin: 12px 0 !important; width: 100% !important; max-width: none !important; padding: 0 !important; }
 .page:global(.episode-page) :global(.episode-engagement-grid) > section { min-width: 0; max-width: 100%; }
-.page:global(.episode-page) :global(.episode-page__identity-compact) { margin-top: 16px !important; padding-block: 8px !important; }
+.page:global(.episode-page) :global(.episode-page__identity-compact) { margin: 0 0 8px !important; padding: 0 !important; }
 .page:global(.episode-page) :global(.episode-page__identity-compact) h1 { font-size: 16px !important; line-height: 1.4 !important; }
 .page:global(.episode-page) :global(.detail__section.detail__episodes) { margin-top: 12px !important; padding: 14px !important; }
 .page:global(.episode-page) :global(.episode-list__season-tabs) { padding-left: 4px !important; scroll-padding-left: 4px; scroll-snap-type: x proximity; }
