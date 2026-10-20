@@ -190,6 +190,26 @@ const unmount = async()=>act(async()=>{tree.unmount();});
   assert.deepEqual(ids(),[1,2,3],'SSR carries saved source and explicit pagination even for a short page');
   await unmount();
 
+  await mount({initialQuery:'',initialResults:[anime(1),anime(2)],
+    initialFilters:{...defaults,format:'TV'},initialSource:'saved',
+    initialSnapshotComplete:true,initialHasNextPage:true});
+  assert.equal(calls.length,0,'complete filtered SSR page must not fetch page 1 again');
+  assert.deepEqual(ids(),[1,2],'SSR filtered cards remain immediately usable');
+  await act(async()=>button('Показать ещё').props.onClick());
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].options.page,2,'filtered SSR continuation starts at page 2');
+  await act(async()=>calls[0].resolve(payload([3],'saved')));
+  assert.deepEqual(ids(),[1,2,3]);
+  await unmount();
+
+  await mount({initialQuery:'',initialResults:[anime(1)],
+    initialFilters:{...defaults,format:'TV'},initialSource:'saved',
+    initialSnapshotComplete:false,initialHasNextPage:true});
+  assert.equal(calls.length,1,'partial filtered SSR still refreshes page 1');
+  assert.equal(calls[0].options.page,1);
+  await act(async()=>calls[0].resolve(payload([2],'saved')));
+  await unmount();
+
   const partial={sameScope:true,partial:true,registryDegraded:false};
   const rich={...anime(1),episodes:26,score:8.3};
   const merged=reconcileCatalogFirstPage([{...anime(1),score:8.5}], [rich,anime(2)],partial);
