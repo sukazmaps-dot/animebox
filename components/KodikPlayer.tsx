@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 
 type KodikTimeSample = {
   positionSeconds: number;
@@ -239,6 +239,28 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
   const pauseInferredRef = useRef(false);
   const syntheticEndTimerRef = useRef<number | null>(null);
 
+  // Keep a single message subscription for the lifetime of this iframe.
+  // AnimePlayer legitimately supplies new closures on ordinary state renders;
+  // reinstalling the listener cancels in-progress end/pause inference timers.
+  const messageHandlersRef = useRef({
+    onTimeUpdate,
+    onPlaybackAction,
+    onPlaybackState,
+    onProviderSkip,
+    onEnded,
+    resumeSeconds,
+  });
+  useLayoutEffect(() => {
+    messageHandlersRef.current = {
+      onTimeUpdate,
+      onPlaybackAction,
+      onPlaybackState,
+      onProviderSkip,
+      onEnded,
+      resumeSeconds,
+    };
+  });
+
   const playerSrc = useMemo(
     () => buildPlayerUrl(src, episodeNumber),
     [src, episodeNumber],
@@ -340,11 +362,11 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
       if (endedFiredRef.current) return;
       clearSyntheticEndTimer();
       endedFiredRef.current = true;
-      onEnded?.();
+      messageHandlersRef.current.onEnded?.();
     }
 
     function emitPlaybackState() {
-      onPlaybackState?.({
+      messageHandlersRef.current.onPlaybackState?.({
         positionSeconds: currentPositionRef.current ?? 0,
         durationSeconds: durationRef.current,
         playing: playingRef.current,
@@ -357,7 +379,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
           ? Math.max(0, position)
           : currentPositionRef.current ?? 0;
 
-      onPlaybackAction?.({ action, positionSeconds: nextPosition });
+      messageHandlersRef.current.onPlaybackAction?.({ action, positionSeconds: nextPosition });
     }
 
     function markPlaying() {
@@ -472,18 +494,19 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
           }
         }
 
+        const activeResumeSeconds = messageHandlersRef.current.resumeSeconds;
         if (
           !resumeAppliedRef.current &&
-          resumeSeconds > 0 &&
+          activeResumeSeconds > 0 &&
           iframeRef.current?.contentWindow
         ) {
-          if (time.position < resumeSeconds - 5) {
+          if (time.position < activeResumeSeconds - 5) {
             iframeRef.current.contentWindow.postMessage(
               {
                 key: 'kodik_player_api',
                 value: {
                   method: 'seek',
-                  seconds: resumeSeconds,
+                  seconds: activeResumeSeconds,
                 },
               },
               expectedOrigin || '*',
@@ -495,7 +518,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
 
         const knownDuration = time.duration ?? durationRef.current;
 
-        onTimeUpdate?.({
+        messageHandlersRef.current.onTimeUpdate?.({
           positionSeconds: time.position,
           durationSeconds: knownDuration,
           origin: event.origin || null,
@@ -604,7 +627,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
                 );
 
         if (kind) {
-          onProviderSkip?.({
+          messageHandlersRef.current.onProviderSkip?.({
             kind,
             atSeconds: currentPositionRef.current,
             durationSeconds: durationRef.current,
@@ -653,16 +676,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         pauseInferenceTimerRef.current = null;
       }
     };
-  }, [
-    episodeNumber,
-    expectedOrigin,
-    onEnded,
-    onPlaybackAction,
-    onPlaybackState,
-    onProviderSkip,
-    onTimeUpdate,
-    resumeSeconds,
-  ]);
+  }, [episodeNumber, expectedOrigin, playerSrc]);
 
   return (
     <>

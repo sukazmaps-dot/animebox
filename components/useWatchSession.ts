@@ -162,6 +162,14 @@ export function useWatchSession({
     task: Promise<void>;
   } | null>(null);
   const sendingGenerationRef = useRef<number | null>(null);
+  // A forced completion flush must wait for the previous heartbeat instead of
+  // being silently dropped while its request is still in flight.
+  const heartbeatDoneRef = useRef<{
+    generation: number;
+    promise: Promise<void>;
+    resolve: () => void;
+    throttled: boolean;
+  } | null>(null);
   const disabledRef = useRef(false);
   const supersededRef = useRef(false);
 
@@ -225,6 +233,13 @@ export function useWatchSession({
 
   const startSession = useCallback(async () => {
     const generation = lifecycleGenerationRef.current;
+
+    // A flush arriving during session creation must join that request. The
+    // old early return lost the only final sync when a short video ended.
+    if (startingRef.current?.generation === generation) {
+      await startingRef.current.task;
+      return;
+    }
 
     if (
       !enabled ||
@@ -324,16 +339,26 @@ export function useWatchSession({
   ]);
 
   const sendHeartbeat = useCallback(
-    async (force = false, keepalive = false) => {
+    async function sendHeartbeat(force = false, keepalive = false) {
       const generation = lifecycleGenerationRef.current;
 
-      if (
-        sendingGenerationRef.current === generation ||
-        disabledRef.current ||
-        supersededRef.current ||
-        !enabled ||
-        !animeId
-      ) {
+      if (disabledRef.current || supersededRef.current || !enabled || !animeId) {
+        return;
+      }
+
+      async function joinCurrentHeartbeat() {
+        const active = heartbeatDoneRef.current;
+        if (!force || active?.generation !== generation) return;
+        await active.promise;
+        // A 429 deliberately rejects an early sync. Never turn one forced
+        // flush into a burst of rate-limited retries.
+        if (generation === lifecycleGenerationRef.current && !active.throttled) {
+          await sendHeartbeat(true, keepalive);
+        }
+      }
+
+      if (sendingGenerationRef.current === generation) {
+        await joinCurrentHeartbeat();
         return;
       }
 
@@ -361,6 +386,13 @@ export function useWatchSession({
         }
       }
 
+      // A second caller may have completed startSession and claimed the same
+      // sequence while we awaited it. Never send duplicate seq values.
+      if (sendingGenerationRef.current === generation) {
+        await joinCurrentHeartbeat();
+        return;
+      }
+
       const position = latestPositionRef.current;
       const pendingProviderSkip = pendingProviderSkipRef.current;
       if (
@@ -371,6 +403,16 @@ export function useWatchSession({
       }
 
       sendingGenerationRef.current = generation;
+      let resolveHeartbeat!: () => void;
+      const heartbeatDone = {
+        generation,
+        promise: new Promise<void>((resolve) => {
+          resolveHeartbeat = resolve;
+        }),
+        resolve: () => resolveHeartbeat(),
+        throttled: false,
+      };
+      heartbeatDoneRef.current = heartbeatDone;
       const seq = seqRef.current + 1;
       const requestSessionId = sessionRef.current;
 
@@ -441,6 +483,7 @@ export function useWatchSession({
           setRecovering(false);
           setMessage('');
         } else if (status === 429) {
+          heartbeatDone.throttled = true;
           // The server deliberately ignores an over-eager forced heartbeat
           // before its persistence window. Keep the same seq/provider skip
           // pending and retry on the next normal sync without showing a false
@@ -482,6 +525,10 @@ export function useWatchSession({
       } finally {
         if (sendingGenerationRef.current === generation) {
           sendingGenerationRef.current = null;
+        }
+        heartbeatDone.resolve();
+        if (heartbeatDoneRef.current === heartbeatDone) {
+          heartbeatDoneRef.current = null;
         }
       }
     },
@@ -709,24 +756,37 @@ export function useWatchSession({
       }
 
       const sessionId = sessionRef.current;
+      const finalPosition = latestPositionRef.current;
       if (sessionId) {
-        void watchRequest(
-          {
-            action: 'end',
-            sessionId,
-            positionMs: latestPositionRef.current,
-          },
-          true,
-        )
-          .then(() => {
-            if (userId) {
-              invalidateTrackerSnapshot(userId);
-              invalidateCommunityProfile(userId);
-            }
-            window.dispatchEvent(new Event('watch-state-updated'));
-            window.dispatchEvent(new Event('animebox:progression-updated'));
-          })
-          .catch(() => undefined);
+        const endSession = () => {
+          void watchRequest(
+            {
+              action: 'end',
+              sessionId,
+              positionMs: finalPosition,
+            },
+            true,
+          )
+            .then(() => {
+              if (userId) {
+                invalidateTrackerSnapshot(userId);
+                invalidateCommunityProfile(userId);
+              }
+              window.dispatchEvent(new Event('watch-state-updated'));
+              window.dispatchEvent(new Event('animebox:progression-updated'));
+            })
+            .catch(() => undefined);
+        };
+
+        const inFlight = heartbeatDoneRef.current;
+        if (inFlight?.generation === generation && document.visibilityState === 'visible') {
+          // Route changes: end only after the accepted heartbeat so the
+          // session does not reject its final coverage as already ended.
+          void inFlight.promise.then(endSession);
+        } else {
+          // Hidden/unloading pages cannot depend on a pending async continuation.
+          endSession();
+        }
       }
 
       sessionRef.current = null;

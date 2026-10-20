@@ -99,8 +99,71 @@ async function fixture(label, {beforePlayback}) {
   delete global.window;
 }
 
+// Ordinary parent state renders must not tear down the Kodik event listener
+// or cancel its end-detection timer. Events must still invoke fresh callbacks.
+async function callbackRefreshFixture() {
+  const subscribers = new Map();
+  let installs = 0;
+  let removals = 0;
+  let staleSamples = 0;
+  let currentSamples = 0;
+  let staleEnds = 0;
+  let currentEnds = 0;
+  const frameWindow = {postMessage() {}};
+  global.window = {
+    addEventListener(type, listener) { installs++; subscribers.set(type, listener); },
+    removeEventListener(type, listener) {
+      removals++;
+      if (subscribers.get(type) === listener) subscribers.delete(type);
+    },
+    setTimeout, clearTimeout,
+  };
+
+  const base = {src:'https://kodik.fixture/watch', episodeNumber:3, resumeSeconds:0};
+  let view;
+  await act(async()=>{
+    view = create(
+      React.createElement(KodikPlayer,{
+        ...base,
+        onTimeUpdate:()=>staleSamples++,
+        onEnded:()=>staleEnds++,
+      }),
+      {createNodeMock:node=>node.type==='iframe' ? {contentWindow:frameWindow} : null},
+    );
+  });
+  assert.equal(installs,1,'one message subscription per iframe');
+  await act(async()=>{
+    view.update(React.createElement(KodikPlayer,{
+      ...base,
+      onTimeUpdate:()=>currentSamples++,
+      onEnded:()=>currentEnds++,
+    }));
+  });
+  assert.equal(installs,1,'a callback refresh must not reinstall the message listener');
+  assert.equal(removals,0,'a callback refresh must not cancel provider timers');
+
+  const send=async(key,value)=>{
+    const handler=subscribers.get('message');
+    await act(async()=>handler({
+      source:frameWindow,
+      origin:'https://kodik.fixture',
+      data:{key,value},
+    }));
+  };
+  await send('kodik_player_time_update',{currentTime:20,duration:1400});
+  await send('kodik_player_ended',{});
+  assert.equal(staleSamples,0,'stale time handler must not receive new samples');
+  assert.equal(currentSamples,1,'latest time handler must receive samples');
+  assert.equal(staleEnds,0,'stale ended handler must never navigate');
+  assert.equal(currentEnds,1,'latest ended handler must be called exactly once');
+  await act(async()=>view.unmount());
+  assert.equal(removals,1,'remove the listener on unmount');
+  delete global.window;
+}
+
 (async()=>{
   await fixture('late opening skip', {beforePlayback:false});
   await fixture('startup mismatch', {beforePlayback:true});
+  await callbackRefreshFixture();
   console.log('PASS Kodik opening ownership: no competing host OP seek; provider skip is telemetry-only; late mismatch cannot restart; initial correction once.');
 })().catch(err=>{console.error(err);process.exitCode=1;});
