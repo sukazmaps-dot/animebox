@@ -549,11 +549,7 @@ export default async function AnimePage({
             <div className={layout.personal}>
               <AnimePersonalPanel animeHref={animeHref(resolved)}>
                 <LibraryStatusControl animeId={numericId} variant="inline" />
-                {!playbackRestricted && (finished ? (
-                  <span className={layout.finishedStatus} aria-label="Тайтл завершён" title="Новые серии не ожидаются: уведомления недоступны">
-                    Тайтл завершён
-                  </span>
-                ) : (
+                {!playbackRestricted && (finished ? null : (
                   <AnimeNotificationControl animeId={numericId} animeSlug={resolved.slug}
                     animeTitle={seoIdentity.pageHeading} episodesAired={anime.episodes_aired || 0}
                     isFinished={false} variant="inline" />

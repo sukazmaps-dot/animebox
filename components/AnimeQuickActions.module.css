@@ -15,3 +15,12 @@
 :global(html[data-animebox-theme='light']) .notifications:global(.episode-notification-compact) > button,
 :global(html[data-animebox-theme='light']) .notifications:global(.episode-notification-compact) > :global(.episode-notification-compact__settings) { background: var(--ab-ui-surface) !important; color: var(--ab-ui-text) !important; border-color: var(--ab-ui-border) !important; }
 :global(html[data-animebox-theme='light']) .library:global(.episode-library-compact) :global(.episode-library-compact__trigger-copy) strong { color: var(--ab-ui-text) !important; }
+
+.statusMenu { display: grid; gap: 4px; min-width: 0; }
+.statusMenu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ab-ui-text); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.statusMenu button:hover, .statusMenu button[aria-checked='true'] { background: var(--ab-ui-raised); }
+.statusMenu img { width: 20px; height: 20px; }
+.statusMenu b { margin-left: auto; }
+
+.notifications:global(.episode-notification-compact) > button { flex: 0 0 44px; width: 44px; padding: 8px !important; }
+.notifications:global(.episode-notification-compact) > button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

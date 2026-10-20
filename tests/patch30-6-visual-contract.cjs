@@ -23,8 +23,9 @@ assert(/\.secondary\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/.test(layou
   'personal actions must share the full content width with aliases/franchise');
 assert(layout.includes('.personal { display: grid; gap: 12px'), 'watch together aligned with personal stack');
 assert(detail.includes('<Link className={layout.together}'), 'watch-together CTA retained');
-assert(layout.includes('.finishedStatus') && detail.includes('finished ? ('),
-  'completed titles should render passive semantic status, not inactive buttons');
+// E3: completed titles no longer consume an action slot with a passive status.
+assert(detail.includes('finished ? null : ('),
+  'completed titles must hide the notification action');
 assert(layout.includes('.aliases summary::after') &&
   layout.includes('.franchise > summary::after'), 'accordion indicators match');
 assert(!layout.includes('.genres > a + a::before { content: \'•\''),

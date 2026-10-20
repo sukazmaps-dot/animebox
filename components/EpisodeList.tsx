@@ -43,6 +43,7 @@ interface EpisodeListProps {
   currentEpisode?: number;
   watchedUpTo?: number;
   variant?: 'default' | 'cinematic';
+  showHeading?: boolean;
 }
 
 function seasonKey(id: number) {
@@ -71,6 +72,7 @@ export default function EpisodeList({
   currentEpisode,
   watchedUpTo = 0,
   variant = 'default',
+  showHeading = false,
 }: EpisodeListProps) {
   const router = useRouter();
   const cinematic = variant === 'cinematic';
@@ -729,8 +731,9 @@ export default function EpisodeList({
       ) : (
         <>
           <div className="episode-list__toolbar">
-            <div className="episode-list__meta">
-              {selectedIsCurrent && !totalEpisodesKnown
+            <div className="episode-list__meta" role={showHeading ? 'heading' : undefined} aria-level={showHeading ? 2 : undefined}>
+              {showHeading && 'Эпизоды · '}
+              {showHeading ? selectedCount : selectedIsCurrent && !totalEpisodesKnown
                 ? `Вышло ${selectedCount} эпизодов`
                 : `${selectedCount} эпизодов`}
 

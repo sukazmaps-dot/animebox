@@ -1670,6 +1670,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                   animeSlug={anime.slug || String(anime.id)}
                   animeTitle={title}
                   episodesAired={anime.episodesAired || 0}
+                  isFinished={['FINISHED', 'COMPLETED', 'RELEASED', 'ВЫШЛО', 'ЗАВЕРШЕНО'].includes(String(anime.status || '').trim().toUpperCase())}
                   variant="inline"
                 />
               </section>
@@ -1707,19 +1708,9 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         className="detail__section detail__episodes"
         id="episode-browser"
       >
-        <div className="detail__section-header">
-          <h2>Эпизоды</h2>
-
-          {availableEpisodes && (
-            <span>
-              {totalEpisodesKnown
-                ? `${availableEpisodes} эпизодов`
-                : `Вышло ${availableEpisodes} эпизодов`}
-            </span>
-          )}
-        </div>
 
         <EpisodeList
+          showHeading
           trackingAnimeId={anime.id}
           animeId={animeIdParam}
           episodes={availableEpisodes}

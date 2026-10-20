@@ -1,6 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
+import Icon from './Icon';
+import FloatingMenu from './ui/FloatingMenu';
+import ChoiceSelect from './ui/ChoiceSelect';
 import styles from './WatchControls.module.css';
 
 type Choice = { id: string; label: string };
@@ -25,28 +28,8 @@ export default function WatchControls({
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
 
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: KeyboardEvent | PointerEvent) => {
-      if (event instanceof KeyboardEvent) {
-        if (event.key !== 'Escape') return;
-        setOpen(false);
-        triggerRef.current?.focus({ preventScroll: true });
-      } else if (event.target instanceof Node &&
-        !panelRef.current?.contains(event.target) && !triggerRef.current?.contains(event.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('keydown', close);
-    document.addEventListener('pointerdown', close);
-    return () => {
-      document.removeEventListener('keydown', close);
-      document.removeEventListener('pointerdown', close);
-    };
-  }, [open]);
 
   return (
     <div className={styles.controls} data-watch-controls>
@@ -54,36 +37,26 @@ export default function WatchControls({
       <div className={styles.toolbar}>
         {episodes}
         {translations.length > 0 ? (
-          <label className={styles.translation}>
-            <span>{translationLabel}</span>
-            <select aria-label={translationLabel} value={translation}
-              onChange={(event) => onTranslation(event.target.value)}>
-              {translations.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-            </select>
-          </label>
+          <ChoiceSelect label={translationLabel} value={translation} options={translations} onChange={onTranslation} />
         ) : <span />}
         <button ref={triggerRef} type="button" className={styles.more}
-          aria-label="Ещё настройки просмотра" aria-expanded={open} aria-controls={panelId}
-          title="Настройки просмотра" onClick={() => setOpen((value) => !value)}>⋯</button>
-          <div ref={panelRef} id={panelId} hidden={!open} className={styles.panel}>
-            <label className={styles.source}>
-              <span>Источник видео</span>
-              <select aria-label="Источник видео" value={source}
-                onChange={(event) => onSource(event.target.value)}>
-                <option value="auto">Авто</option>
-                {sources.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-              </select>
-            </label>
-            <p className={styles.quality}>{quality}</p>
-            <button type="button" data-player-action="theater" aria-pressed={theater}
+          aria-label="Ещё настройки просмотра" aria-expanded={open} aria-controls={open ? panelId : undefined}
+          title="Настройки просмотра" onClick={() => setOpen((value) => !value)}><Icon name="settings" size={20} aria-hidden="true" /></button>
+            <button type="button" data-player-action="theater" aria-pressed={theater} aria-label={theater ? 'Обычный режим' : 'Кинотеатр'} title={theater ? 'Обычный режим' : 'Кинотеатр'}
               className={styles.theater} onClick={() => {
                 setOpen(false);
                 onTheater();
               }}>
-              {theater ? 'Обычный режим' : 'Кинотеатр'}
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.6" /><path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.6" /></svg>
             </button>
+          {open && <FloatingMenu anchor={triggerRef} label="Источник и качество" onClose={() => setOpen(false)}>
+          <div id={panelId} className={styles.panel}>
+            <ChoiceSelect label="Источник видео" value={source}
+              options={[{ id: 'auto', label: 'Авто' }, ...sources]} onChange={onSource} />
+            <p className={styles.quality}>{quality}</p>
             {secondary}
           </div>
+          </FloatingMenu>}
       </div>
     </div>
   );
