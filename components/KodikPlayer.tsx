@@ -676,7 +676,7 @@ const KodikPlayer = forwardRef<KodikPlayerHandle, Props>(function KodikPlayer({
         pauseInferenceTimerRef.current = null;
       }
     };
-  }, [episodeNumber, expectedOrigin]);
+  }, [episodeNumber, expectedOrigin, playerSrc]);
 
   return (
     <>
