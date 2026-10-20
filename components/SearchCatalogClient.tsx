@@ -548,6 +548,8 @@ export default function SearchCatalogClient({
             season: providerFilters.season,
             studioNames: providerFilters.studioNames.length > 0 ? providerFilters.studioNames : undefined,
             mood: selectedMood,
+            // Use the same playable snapshot across all catalog pages.
+            catalogSource: filters.status === 'upcoming' ? undefined : ('saved' as const),
           };
 
           const payload = await getAnimesWithMeta(
@@ -557,14 +559,16 @@ export default function SearchCatalogClient({
 
           // Partial saved responses do not cancel a slower verified preview.
           // Keep the saved page interactive without waiting for the instant lane.
-          acceptLatePreview = page === 1 && payload.catalogMeta?.source === 'saved';
+          acceptLatePreview = page === 1 && payload.catalogMeta?.source === 'saved' && payload.catalogMeta?.completeness !== 'full';
           excludedPreviewIds = payload.availabilityExcludedIds ?? [];
           authoritativeSettled = true;
           if (!requestIsCurrent()) return;
           const source = payload.catalogMeta?.source ?? 'provider';
           if (page > 1 && paginationSourceRef.current !== source) {
-            retryPageRef.current = 1;
-            throw new Error('CATALOG_PAGE_SOURCE_CHANGED');
+            // SSR and API offsets differ; restart cleanly, never mix pages.
+            paginationSourceRef.current = source;
+            setPageState({ query, page: 1 });
+            return;
           }
           setInstantPreviewQuery(null);
           setCatalogNotice(payload.catalogMeta?.message ?? '');
@@ -587,7 +591,7 @@ export default function SearchCatalogClient({
             page === 1
               ? reconcileCatalogFirstPage(payload.anime, current, {
                   sameScope,
-                  partial: Boolean(payload.catalogMeta),
+                  partial: Boolean(payload.catalogMeta) && payload.catalogMeta?.completeness !== 'full',
                   registryDegraded: source === 'degraded',
                   excludedIds: payload.availabilityExcludedIds,
                 })
