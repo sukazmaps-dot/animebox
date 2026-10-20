@@ -6,7 +6,7 @@ import { publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 import { observeApiRoute } from '@/lib/request-observability-server';
 import {
   localAnimeSearchHitToAnime,
-  searchLocalAnimeIndex,
+  searchInstantLocalIndex,
 } from '@/lib/search-index-server';
 
 import { getSavedAnimeMetadata } from '@/lib/saved-catalog-server';
@@ -58,7 +58,7 @@ async function observedGET(request: NextRequest) {
   const startedAt = performance.now();
 
   try {
-    const hits = await searchLocalAnimeIndex(query, limit);
+    const hits = await searchInstantLocalIndex(query, limit);
     const lexicalMs = Math.max(0, Math.round(performance.now() - startedAt));
     const enrichmentStartedAt = performance.now();
     let metadataMs = 0;
@@ -110,7 +110,7 @@ async function observedGET(request: NextRequest) {
             edgeSeconds: 180,
             staleWhileRevalidateSeconds: 600,
           }),
-          'X-AnimeBox-Search-Path': 'instant-local-v1',
+          'X-AnimeBox-Search-Path': 'instant-indexed-contains-v1',
           'Server-Timing': `animebox_search_local;dur=${tookMs}, animebox_rate_limit;dur=${rateLimitMs}, animebox_lexical;dur=${lexicalMs}, animebox_availability;dur=${availabilityMs}, animebox_metadata;dur=${metadataMs}`,
         },
       },

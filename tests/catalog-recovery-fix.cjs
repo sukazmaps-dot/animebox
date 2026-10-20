@@ -4,7 +4,7 @@ const path = require('node:path');
 const Module = require('node:module');
 const ts = require('typescript');
 const originalLoad = Module._load, originalResolve = Module._resolveFilename;
-let outage = false, viewMissing = true, optionalFailure = false, providerCalls = 0;
+let outage = false, viewMissing = true, optionalFailure = false, providerCalls = 0, providerShieldOpen = false;
 const rows = Array.from({length:7},(_,i)=>({ anime_id:i+1,title:'Наруто '+(i+1),aliases:['Naruto'],slug:null,
   search_text:'наруто naruto',genres:['Экшен'],tags:[],studios:[],poster_url:'https://shikimori.io/poster.jpg',format:'TV',start_year:2020,total_episodes:12,finished:true }));
 const availability = [2,4,5,7].map(id=>({anime_id:id,mal_id:100+id,availability_status:'playable',max_episode:12}));
@@ -36,6 +36,7 @@ const stubs={
     providerCalls++;if(optionalFailure && providerCalls===1){options?.onPageInfo?.({hasNextPage:false});return [{id:2,title:{russian:'Наруто',romaji:'Naruto'},genres:[]}];}
     throw new Error('provider blocked');}},
   '@/lib/search-index-server':{searchLocalAnimeIndex:async()=>[],indexAnimeSearchDocuments:async()=>{}},
+  '@/lib/upstream-resilience-server':{getUpstreamRuntimeSnapshot:()=>[{key:'anilist',circuit:providerShieldOpen?'open':'closed'},{key:'shikimori',circuit:'closed'}]},
   '@/lib/catalog-availability-server':{filterAnimeByAvailability:async items=>({items,refreshTargets:[]})},
   '@/lib/request-observability-server':{observeApiRoute:(_name,handler)=>handler},
 };
@@ -63,6 +64,14 @@ async function main(){
   providerCalls=0;optionalFailure=true;
   const recovered=await GET({nextUrl:new URL('https://youranimebox.com/api/anime?search=Наруто%20сезон%202')});
   assert.equal(recovered.status,200);assert.ok((await recovered.json()).anime.length>0,'optional provider failure must preserve primary results');
+  providerShieldOpen=true;
+  providerCalls=0;optionalFailure=false;
+  const shielded=await GET({nextUrl:new URL('https://youranimebox.com/api/anime?search=Наруто&limit=2')});
+  assert.equal(shielded.status,200);
+  assert.equal((await shielded.json()).catalogMeta.source,'saved');
+  assert.equal(providerCalls,0,'open upstream circuit must not receive another catalog request');
+  providerShieldOpen=false;
+
   const {withCatalogProviderBudget}=require('../lib/catalog-provider-budget.ts');
   let aborted=false;
   await assert.rejects(withCatalogProviderBudget(signal=>{signal.addEventListener('abort',()=>{aborted=true;});return new Promise(()=>{});},5),{name:'TimeoutError'});

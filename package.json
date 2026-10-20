@@ -128,7 +128,7 @@
     "patch27:check": "node tests/home-retention-policy.cjs && node tests/home-visible-impression.cjs",
     "patch28:check": "node tests/watch-party-entry.cjs",
     "hotfix28-1:check": "node tests/scroll-row-momentum.cjs",
-    "schedule-media:check": "node tests/media-edge-cooldown.cjs && node tests/media-schedule-fix.cjs && node tests/catalog-recovery-fix.cjs && node tests/manifest-icons-fix.cjs",
+    "schedule-media:check": "node tests/media-edge-cooldown.cjs && node tests/media-schedule-fix.cjs && node tests/catalog-recovery-fix.cjs && node tests/catalog-instant-fastpath.cjs && node tests/manifest-icons-fix.cjs",
     "home-visual-analytics:check": "node tests/analytics-railway-origin.cjs",
     "auth-access:check": "node tests/auth-access-runtime.cjs && node tests/access-ops.mjs",
     "telegram:webhook:check": "node scripts/telegram-webhook-ops.mjs",

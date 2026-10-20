@@ -282,6 +282,12 @@ async function searchRussianAnime(
       { signal },
     );
   } catch (error) {
+    if (signal?.aborted) throw signal.reason ?? new DOMException('Aborted', 'AbortError');
+    if (signal) {
+      // The catalogue route has a verified saved fallback. Do not amplify
+      // an overloaded AniList batch failure into twelve unsignalled requests.
+      throw error;
+    }
     if (error instanceof Error && error.name === 'AbortError') throw error;
 
     // Batch-запрос может временно не сработать из-за лимита AniList.
@@ -289,7 +295,8 @@ async function searchRussianAnime(
     // чтобы русский поиск не превращался в пустой экран.
     const recovered: Anime[] = [];
     for (const item of candidates.slice(0, 12)) {
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      // A signalled request has already thrown above; this legacy retry
+      // path is only entered by unsignalled standalone consumers.
       const media = await getAniListByMalId(item.id);
       if (media && Number.isSafeInteger(Number(media.id))) {
         const mapped = await getAniListAnimeById(Number(media.id));
@@ -299,10 +306,17 @@ async function searchRussianAnime(
     aniListMatches = recovered;
   }
 
+  if (aniListMatches.length === 0 && signal) {
+    // Avoid per-title retries with no AbortSignal when a bounded catalogue
+    // request can resolve the same query from its saved playable snapshot.
+    throw new Error('AniList MAL batch returned no mapped titles');
+  }
+
   if (aniListMatches.length === 0) {
     const recovered: Anime[] = [];
     for (const item of candidates.slice(0, 12)) {
-      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      // A signalled request has already thrown above; this legacy retry
+      // path is only entered by unsignalled standalone consumers.
       const media = await getAniListByMalId(item.id);
       if (media && Number.isSafeInteger(Number(media.id))) {
         const mapped = await getAniListAnimeById(Number(media.id));
