@@ -39,6 +39,14 @@ const modules = await Promise.all([
   cssModule('components/ui/HorizontalNavRail.module.css', 'navrail'),
   cssModule('components/AnimeFranchise.module.css', 'franchise'),
 ]);
+// Tie the synthetic browser fixture to the real server-rendered detail route.
+const detailRoute = await fs.readFile('app/anime/[slug]/page.tsx', 'utf8');
+assert(detailRoute.includes('imageCascade.banner && ('), 'wide artwork must remain optional decorative background');
+assert(detailRoute.includes('className={layout.poster}'), 'poster is missing from detail hero');
+assert(detailRoute.includes('sources={posterSources}'), 'detail poster must use original candidate cascade');
+assert(!detailRoute.includes("imageCascade.banner ? (\n"), 'poster must not disappear when banner exists');
+assert(detailRoute.includes('className={`${layout.primaryGrid} ${playbackRestricted ? layout.solo : \'\'}`}>'), 'restricted titles need one-column layout');
+
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.CHROMIUM_EXECUTABLE_PATH } : {}),
