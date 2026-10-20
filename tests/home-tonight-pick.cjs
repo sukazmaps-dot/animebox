@@ -143,27 +143,36 @@ assert(!html.includes('★') && !html.includes('2024') && !html.includes('Ист
   } });
   try {
     const Artwork = load('components/home/HomeTonightArtwork.tsx').default;
+    const primary = () => tree.root.findAll(node => typeof node.props?.['data-hero-art'] === 'string')[0].findByType('img');
+    const ambiance = () => tree.root.findAll(node => Object.hasOwn(node.props ?? {}, 'data-poster-atmosphere'));
+
     const artworkAnime = { ...a.anime, bannerImage: 'https://example.org/banner.jpg', coverImage: { extraLarge: 'https://example.org/poster.jpg' } };
     await act(async () => { tree = create(React.createElement(Artwork, { anime: artworkAnime })); });
-    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.bannerImage);
-    assert.equal(tree.root.findByType('img').props['data-loading'], 'eager');
-    await act(async () => tree.root.findByType('img').props.onError());
-    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'failed banner recovers the same title poster');
+    assert.equal(primary().props['data-image'].extraLarge, artworkAnime.bannerImage);
+    assert.equal(primary().props['data-loading'], 'eager');
+    await act(async () => primary().props.onError());
+    assert.equal(primary().props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'failed banner recovers the same title poster');
     assert.equal(tree.root.findByProps({ 'data-hero-art': 'poster' }).props['aria-hidden'], 'true');
-    assert.equal(tree.root.findByType('img').props['data-preset'], 'large', 'poster is sized for its own slot');
-    assert(tree.root.findByType('img').props['data-sizes'].includes('96px'));
+    assert.equal(ambiance().length, 1, 'desktop banner failure uses the same cover to paint its ambient backdrop');
+    assert.equal(ambiance()[0].findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge);
+    assert.equal(ambiance()[0].props['data-ready'], 'false', 'ambient starts transparent until image loads');
+    assert.equal(primary().props['data-preset'], 'large', 'poster is sized for its own slot');
+    assert(primary().props['data-sizes'].includes('96px'));
     phone = true;
     await act(async () => { for (const fn of mediaListeners) fn(); });
-    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'phone uses portrait');
+    assert.equal(primary().props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'phone uses portrait');
+    assert.equal(ambiance().length, 0, 'phone must never mount an extra ambient image');
     await act(async () => tree.update(React.createElement(Artwork, { anime: { ...artworkAnime, mobileHeroImage: 'https://example.org/mobile.jpg' } })));
-    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, 'https://example.org/mobile.jpg');
+    assert.equal(primary().props['data-image'].extraLarge, 'https://example.org/mobile.jpg');
     assert(tree.root.findByProps({ 'data-hero-art': 'portrait' }));
-    await act(async () => tree.root.findByType('img').props.onError());
-    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'failed mobile artwork also recovers the poster');
+    await act(async () => primary().props.onError());
+    assert.equal(primary().props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'failed mobile artwork also recovers the poster');
     phone = false;
     await act(async () => { for (const fn of mediaListeners) fn(); });
     await act(async () => tree.update(React.createElement(Artwork, { anime: { ...artworkAnime, bannerImage: null } })));
-    assert.equal(tree.root.findByType('img').props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'desktop without banner uses poster');
+    assert.equal(primary().props['data-image'].extraLarge, artworkAnime.coverImage.extraLarge, 'desktop without banner uses poster');
+    assert.equal(ambiance().length, 1, 'saved desktop poster restores the empty hero background');
+    assert.equal(ambiance()[0].findByType('img').props['data-sizes'], primary().props['data-sizes'], 'same source sizing avoids a second distinct image request');
     await act(async () => tree.unmount());
     assert.equal(mediaListeners.size, 0, 'resize subscription cleaned up');
 

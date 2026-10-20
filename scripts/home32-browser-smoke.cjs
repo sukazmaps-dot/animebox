@@ -348,6 +348,30 @@ fs.mkdirSync(output, { recursive: true });
           });
           assert(posterLayout && Math.abs(posterLayout.ratio - 2 / 3) < .01, name + ' poster keeps 2:3 slot');
           assert(posterLayout.bodySeparate && posterLayout.actionsSeparate, name + ' poster never overlaps copy or controls');
+          if (c.width > 768) {
+            await page.waitForFunction(() => document.querySelector('[data-poster-atmosphere]')?.dataset.ready === 'true');
+            const atmosphere = await tonight.evaluate(card => {
+              const ambient = card.querySelector('[data-poster-atmosphere]');
+              const art = card.querySelector('[data-hero-art="poster"]');
+              const poster = art.querySelector('img');
+              const background = ambient.querySelector('img');
+              const a = ambient.getBoundingClientRect(), b = card.getBoundingClientRect();
+              return {
+                visible: getComputedStyle(ambient).opacity === '1',
+                pointerEvents: getComputedStyle(ambient).pointerEvents,
+                coversCard: a.width >= b.width - 2 && a.height >= b.height - 2,
+                blurred: getComputedStyle(background).filter.includes('blur('),
+                identicalSource: poster.currentSrc === background.currentSrc,
+              };
+            });
+            assert(atmosphere.visible && atmosphere.coversCard && atmosphere.blurred,
+              name + ' verified poster paints ambient background');
+            assert.equal(atmosphere.pointerEvents, 'none', name + ' artwork must never intercept hero actions');
+            assert(atmosphere.identicalSource, name + ' atmosphere reuses same poster bytes');
+          } else {
+            assert.equal(await tonight.locator('[data-poster-atmosphere]').count(), 0,
+              name + ' mobile poster must not download duplicate ambient media');
+          }
         }
         assert.equal(await page.locator('.home-anime-rail__view-all').count(), 0, name + ' catalogue ends with actual titles, not a clipped CTA tile');
         assert.equal(await page.locator('main h1').count(), 1, name + ' one page H1');
