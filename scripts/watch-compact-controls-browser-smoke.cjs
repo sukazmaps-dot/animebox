@@ -66,7 +66,7 @@ const read = p => fs.readFileSync(p, 'utf8');
         const menu = page.getByLabel('Ещё настройки просмотра');
         const episodes = page.locator('.episode-quick-compact__trigger');
         const layout = await page.evaluate(() => {
-          const nodes=[document.querySelector('.episode-quick-compact__trigger'), document.querySelector('summary')];
+          const nodes=[document.querySelector('.episode-quick-compact__trigger'), document.querySelector('[aria-label="Ещё настройки просмотра"]')];
           return {overflow:document.documentElement.scrollWidth>innerWidth,rects:nodes.map(n=>{const r=n.getBoundingClientRect();return {y:r.y,w:r.width,h:r.height}}),settingsVisible:document.querySelector('select[aria-label="Источник видео"]').checkVisibility()};
         });
         assert(!layout.overflow);assert(!layout.settingsVisible);assert.equal(layout.rects[0].y,layout.rects[1].y);

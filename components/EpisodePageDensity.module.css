@@ -11,7 +11,7 @@
 .page :global([data-watch-dialog='true']) :global(.episode-quick-compact__steps),
 .page :global([data-watch-dialog='true']) :global(.episode-quick-nav__full) { flex-shrink: 0; }
 .page :global([data-watch-dialog='true']) :global(.episode-quick-nav__sheet-head) > button { width: 44px; height: 44px; }
-.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__grid) { min-height: 0; max-height: none; overflow-y: auto; }
+.page :global([data-watch-dialog='true']) :global(.episode-quick-nav__grid) { position: relative; min-height: 0; max-height: none; overflow-y: auto; }
 .page :global([data-watch-dialog='true']) :global(.episode-quick-nav__grid) button,
 .page :global([data-watch-dialog='true']) :global(.episode-quick-nav__full) { min-height: 44px; }
 .page:global(.episode-page) :global(.episode-seo-breadcrumbs) { margin-bottom: 12px !important; font-size: 12px !important; }

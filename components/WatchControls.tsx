@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import styles from './WatchControls.module.css';
 
 type Choice = { id: string; label: string };
@@ -23,18 +23,21 @@ export default function WatchControls({
   theater: boolean;
   onTheater: () => void;
 }) {
-  const menuRef = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const panelId = useId();
 
   useEffect(() => {
+    if (!open) return;
     const close = (event: KeyboardEvent | PointerEvent) => {
-      const menu = menuRef.current;
-      if (!menu?.open) return;
       if (event instanceof KeyboardEvent) {
         if (event.key !== 'Escape') return;
-        menu.open = false;
-        menu.querySelector('summary')?.focus({ preventScroll: true });
-      } else if (event.target instanceof Node && !menu.contains(event.target)) {
-        menu.open = false;
+        setOpen(false);
+        triggerRef.current?.focus({ preventScroll: true });
+      } else if (event.target instanceof Node &&
+        !panelRef.current?.contains(event.target) && !triggerRef.current?.contains(event.target)) {
+        setOpen(false);
       }
     };
     document.addEventListener('keydown', close);
@@ -43,7 +46,7 @@ export default function WatchControls({
       document.removeEventListener('keydown', close);
       document.removeEventListener('pointerdown', close);
     };
-  }, []);
+  }, [open]);
 
   return (
     <div className={styles.controls} data-watch-controls>
@@ -59,9 +62,10 @@ export default function WatchControls({
             </select>
           </label>
         ) : <span />}
-        <details ref={menuRef} className={styles.menu}>
-          <summary aria-label="Ещё настройки просмотра" title="Настройки просмотра">⋯</summary>
-          <div className={styles.panel}>
+        <button ref={triggerRef} type="button" className={styles.more}
+          aria-label="Ещё настройки просмотра" aria-expanded={open} aria-controls={panelId}
+          title="Настройки просмотра" onClick={() => setOpen((value) => !value)}>⋯</button>
+          <div ref={panelRef} id={panelId} hidden={!open} className={styles.panel}>
             <label className={styles.source}>
               <span>Источник видео</span>
               <select aria-label="Источник видео" value={source}
@@ -73,14 +77,13 @@ export default function WatchControls({
             <p className={styles.quality}>{quality}</p>
             <button type="button" data-player-action="theater" aria-pressed={theater}
               className={styles.theater} onClick={() => {
-                if (menuRef.current) menuRef.current.open = false;
+                setOpen(false);
                 onTheater();
               }}>
               {theater ? 'Обычный режим' : 'Кинотеатр'}
             </button>
             {secondary}
           </div>
-        </details>
       </div>
     </div>
   );

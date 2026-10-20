@@ -5,14 +5,12 @@
 .translation > span { position: absolute; top: 3px; left: 8px; pointer-events: none; font-size: 10px; color: var(--ab-ui-muted); }
 .translation select { position: absolute; inset: 0; width: 100%; min-width: 0; height: 100%; min-height: 44px; border: 0; border-radius: inherit; padding: 14px 8px 2px; background: transparent; color: inherit; font-size: 12px; text-overflow: ellipsis; }
 .controls option { color: var(--ab-ui-text); background: var(--ab-ui-surface); }
-.menu { display: contents; }
-.menu > summary { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-radius: 10px; cursor: pointer; list-style: none; background: var(--ab-ui-raised); font-size: 24px; line-height: 1; }
-.menu > summary::-webkit-details-marker { display: none; }
-.menu[open] > summary { outline: 1px solid var(--ab-ui-accent); }
+.more { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; cursor: pointer; background: var(--ab-ui-raised); color: inherit; font-size: 24px; line-height: 1; }
+.more[aria-expanded='true'] { outline: 1px solid var(--ab-ui-accent); }
 .panel { grid-column: 1 / -1; min-width: 0; padding: 12px; border: 1px solid var(--ab-ui-border); border-radius: 12px; background: var(--ab-ui-surface); }
 .source { display: grid; gap: 6px; font-size: 12px; color: var(--ab-ui-muted); }
 .source select { min-height: 44px; width: 100%; min-width: 0; border: 1px solid var(--ab-ui-border); border-radius: 8px; padding: 8px; background: var(--ab-ui-raised); color: var(--ab-ui-text); font-size: 14px; }
 .quality { margin: 8px 0; overflow-wrap: anywhere; font-size: 12px; color: var(--ab-ui-muted); }
 .theater { min-height: 44px; padding: 8px 12px; border: 1px solid var(--ab-ui-border); border-radius: 8px; color: inherit; background: var(--ab-ui-raised); }
-.controls :is(button, select, summary):focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 2px; }
+.controls :is(button, select):focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 2px; }
 @media (min-width: 768px) { .toolbar { grid-template-columns: minmax(110px, auto) minmax(0, 320px) 44px; } }
