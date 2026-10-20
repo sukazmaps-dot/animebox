@@ -47,7 +47,7 @@ const Component=loadRating();
 const compact=renderToStaticMarkup(React.createElement(Component,{animeId:42,variant:'compact'}));
 const ordinary=renderToStaticMarkup(React.createElement(Component,{animeId:42}));
 assert(compact.includes('data-rating-compact="true"'));
-assert(compact.includes('data-rating-disclosure=""'));
+assert(compact.includes('data-rating-disclosure="true"'));
 assert(compact.includes('<summary') && compact.includes('Моя оценка') && compact.includes('Оценить /10'));
 assert(!/<details[^>]*\bopen=/.test(compact), 'compact rating must initially be closed');
 assert.equal((compact.match(/aria-label="Поставить \d+ из 10"/g)||[]).length,10, 'all ten score actions retained on disclosure');
