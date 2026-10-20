@@ -58,6 +58,7 @@ const read = p => fs.readFileSync(p, 'utf8');
         await page.goto('https://fixture.test/'+(sparse?'?sparse':''));
         await page.addScriptTag({content:js});
         await page.locator('#video').waitFor();
+        await page.frameLocator('#video').getByText('Video', {exact:true}).waitFor();
         await page.evaluate(() => {
           window.originalFrame=document.querySelector('#video');window.originalWindow=originalFrame.contentWindow;window.frameLoads=0;
           originalFrame.addEventListener('load',()=>window.frameLoads++);
@@ -83,6 +84,9 @@ const read = p => fs.readFileSync(p, 'utf8');
         const dialog=page.getByRole('dialog',{name:'Выбор серии'});
         await dialog.waitFor({state:'visible'});
         assert.equal(await page.evaluate(()=>scrollY),before,'opening episodes must not scroll document');
+        const fullList = dialog.getByRole('link',{name:'Открыть полный список серий'});
+        await fullList.focus();await page.keyboard.press('Tab');
+        assert(await dialog.getByRole('button',{name:'Закрыть',exact:true}).evaluate(n=>document.activeElement===n),'Tab stays in dialog');
         await dialog.getByRole('button',{name:'Пред.',exact:true}).isDisabled().then(value=>assert(value));
         if (sparse) assert(await dialog.getByRole('button',{name:'Следующая серия',exact:true}).isDisabled());
         // Current episode is a no-op and closes the dialog.
