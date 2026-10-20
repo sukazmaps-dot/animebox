@@ -28,13 +28,13 @@ global.window = {
 };
 // No IntersectionObserver: the visibility path must still bootstrap rows.
 delete global.IntersectionObserver;
-function loadFeed() {
+function loadFeed({ realLayout = false } = {}) {
   const filename = path.resolve('components/SmartRecommendationFeed.tsx');
   const mod = new Module(filename); mod.filename = filename; mod.paths = Module._nodeModulePaths(process.cwd());
   const req = mod.require.bind(mod);
   const rail = (id, items) => ({ id, items, title: id, subtitle: '', source: id, badge: id });
   const mocks = {
-    '@/components/SmartRecommendationCard': { default: ({ recommendation }) => React.createElement('article', { 'data-id': recommendation.anime.id }) },
+    '@/components/SmartRecommendationCard': { default: ({ recommendation, onHidden }) => React.createElement('article', { 'data-id': recommendation.anime.id, onHide: () => onHidden(recommendation.anime.id) }) },
     '@/components/home/HomeLoadingSkeletons': { RecommendationCardSkeleton: () => React.createElement('i') },
     '@/components/ui/ScrollRow': { default: ({ children }) => React.createElement('div', null, children) },
     '@/lib/recommendations': { getPersonalizedRecommendations: (items) => items.map((anime) => ({ anime })) },
@@ -49,6 +49,20 @@ function loadFeed() {
       buildRecommendationRailLayout: (items, { ownership }) => ({ ownership, rails: ['top_match', 'endless'].map((id) => rail(id, items.filter((item) => ownership.get(item.anime.id) === id))) }),
     },
   };
+  if (realLayout) {
+    // Keep the actual allocation and reconciliation engines. The old fixture
+    // invented rows even when the production layout returned no rows at all.
+    const compile = (file, requireModule) => {
+      const target = { exports: {} };
+      new Function('require', 'exports', 'module', ts.transpileModule(fs.readFileSync(file, 'utf8'), {
+        compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+      }).outputText)(requireModule, target.exports, target);
+      return target.exports;
+    };
+    mocks['@/lib/recommendation-rails'] = compile('lib/recommendation-rails.ts',
+      () => ({ getRecommendationMoodLabel: x => x }));
+    mocks['@/lib/home-rail-session'] = compile('lib/home-rail-session.ts', req);
+  }
   for (const value of Object.values(mocks)) value.__esModule = true;
   mod.require = (name) => mocks[name] ?? req(name);
   mod._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText, filename);
@@ -151,4 +165,79 @@ async function mount(Feed) {
   await act(async () => tree.unmount());
   sectionTop = 0; viewportWidth = 390;
   console.log('PASS: desktop density, shared pagination, bounded resize refill, unique cards, offscreen rows and listener cleanup.');
+
+  // A real empty layout must mount a recovery row, consume the first loaded
+  // page and expose all local cards even after that page ends API pagination.
+  viewportWidth = 390; calls = 0;
+  const terminalItems = Array.from({ length: 20 }, (_, index) => ({
+    id: 1000 + index, genres: [], episodes: 60, format: 'TV',
+  }));
+  global.fetch = async () => {
+    calls++;
+    return { ok: true, json: async () => payload(terminalItems) };
+  };
+  tree = await mount(loadFeed({ realLayout: true })); await settle();
+  assert.ok(tree.root.findAllByType('article').length > 0,
+    'real allocation engine must recover from an empty initial pool');
+  const terminalCalls = calls;
+  let loadSteps = 0;
+  for (;;) {
+    const row = tree.root.findAll(x => typeof x.props.onEndReached === 'function' && x.props.hasMore)[0];
+    if (!row) break;
+    assert.ok(++loadSteps <= 12, 'local pagination terminates instead of looping');
+    await act(async () => row.props.onEndReached()); await settle();
+  }
+  const terminalIds = tree.root.findAllByType('article').map(x => x.props['data-id']);
+  assert.deepEqual([...terminalIds].sort((a, b) => a - b), terminalItems.map(x => x.id),
+    'all terminal-page candidates remain reachable beyond initial row limits');
+  assert.equal(new Set(terminalIds).size, terminalIds.length);
+  assert.equal(calls, terminalCalls, 'revealing loaded cards after API exhaustion makes no requests');
+  await act(async () => tree.unmount());
+
+  // Empty terminal results have a finite empty state, while a failed empty
+  // start retains visible manual recovery using the production layout.
+  calls = 0;
+  global.fetch = async () => { calls++; return { ok: true, json: async () => payload([]) }; };
+  tree = await mount(loadFeed({ realLayout: true })); await settle();
+  assert.ok(tree.root.findAll(x => x.props.className === 'smart-feed__empty').length);
+  assert.equal(calls, 1);
+  await act(async () => tree.unmount());
+  calls = 0; let available = false;
+  global.fetch = async () => {
+    calls++;
+    return available ? { ok: true, json: async () => payload(terminalItems.slice(0, 3)) }
+      : { ok: false, status: 400 };
+  };
+  tree = await mount(loadFeed({ realLayout: true })); await settle();
+  const realRetry = tree.root.findAllByType('button').find(x => String(x.props.children).includes('Повторить'));
+  assert.ok(realRetry, 'empty production layout retains retry after an API failure');
+  const beforeErrorResize = calls;
+  await resize(); await resize();
+  assert.equal(calls, beforeErrorResize, 'resize must not restart a failed request');
+  available = true;
+  await act(async () => realRetry.props.onClick()); await settle();
+  assert.equal(tree.root.findAllByType('article').length, 3);
+  await act(async () => tree.unmount());
+
+  // A user-created vacancy must re-arm bootstrap at the SAME target width.
+  calls = 0;
+  global.fetch = async url => {
+    calls++;
+    const page = Number(new URL(url, 'https://test.local').searchParams.get('page'));
+    const items = ['top_match', 'endless'].flatMap((lane, laneIndex) =>
+      Array.from({ length: 5 }, (_, index) => ({ id: page * 100 + laneIndex * 10 + index, lane })));
+    return { ok: true, json: async () => ({ ...payload(items, true, page + 1), page }) };
+  };
+  tree = await mount(loadFeed()); await settle();
+  const hiddenId = tree.root.findAllByType('article')[0].props['data-id'];
+  const beforeHideCalls = calls;
+  await act(async () => tree.root.findAllByType('article')[0].props.onHide()); await settle();
+  assert.deepEqual(rowCounts(), [5, 5], 'hiding a card refills its row without a swipe or resize');
+  assert.ok(!tree.root.findAllByType('article').some(x => x.props['data-id'] === hiddenId),
+    'refill must not resurrect the hidden title');
+  assert.ok(calls <= beforeHideCalls + 1, 'vacancy recovery shares the prefetched page');
+  await act(async () => tree.unmount());
+  assert.ok([...windowListeners.values()].every(set => set.size === 0));
+  console.log('PASS: production empty-start recovery, terminal local pagination, finite empty/error states and refill after hiding.');
+
 })().catch((error) => { console.error(error); process.exitCode = 1; });
