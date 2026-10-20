@@ -15,9 +15,11 @@ export default async function Home32Fixture({ searchParams }: {
     'Летний дождь', 'Стражи рассвета', 'Тихий океан', 'Сад воспоминаний',
     'Письма из будущего', 'Музыка ветра', 'Серебряный маяк', 'Крылья надежды',
     'Снежный перевал', 'Лунная библиотека'];
-  const items = Array.from({ length: 16 }, (_, i) => ({
+  // Normal matrix needs a genuinely stocked pool at desktop fill targets.
+  // Sparse mode separately proves that three real cards never expose a shelf.
+  const items = Array.from({ length: mode === 'sparse' ? 3 : 60 }, (_, i) => ({
     id: 100 + i,
-    title: { russian: titles[i] },
+    title: { russian: titles[i % titles.length] + (i >= titles.length ? ` · ${i}` : '') },
     mobileHeroPosition: { x: 60, y: 18 },
     genres: ['Adventure', 'Fantasy'], score: 9.1, episodes: 24, format: 'TV',
     status: 'RELEASING', startDate: { year: 2026 },

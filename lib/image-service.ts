@@ -89,6 +89,28 @@ function prefersLegacyProxy(value: string): boolean {
  * bounded fallback chain. We intentionally do not fan every AniList size
  * through both direct and proxied URLs.
  */
+// Only classify URLs actually present in metadata. Never manufacture a
+// larger path by replacing /small/ or guessing a provider filename.
+function posterSourceQuality(value: string): number {
+  try {
+    const url = new URL(value);
+    if (url.hostname === 'anilist.co' || url.hostname.endsWith('.anilist.co')) {
+      if (/\/cover\/small\//.test(url.pathname)) return 0;
+      if (/\/cover\/medium\//.test(url.pathname)) return 1;
+      if (/\/cover\/large\//.test(url.pathname)) return 3;
+    }
+    if (prefersLegacyProxy(value) && /\/(?:preview|x48|x96)\//.test(url.pathname)) return 0;
+  } catch { /* Local candidates preserve their existing relative order. */ }
+  return 2;
+}
+
+function optimizeRecoveryProxy(value: string | null): string | null {
+  if (!value) return null;
+  const url = new URL(value, 'https://youranimebox.com');
+  url.searchParams.set('optimize', 'webp');
+  return url.pathname + url.search;
+}
+
 export function buildImageCandidateChain(
   values: Array<string | null | undefined>,
   delivery?: {
@@ -112,6 +134,11 @@ export function buildImageCandidateChain(
     return local;
   }
 
+  // The field named extraLarge may itself contain a thumbnail from a saved
+  // snapshot. Move known small/medium URLs behind available originals only.
+  if (delivery && delivery.preset !== 'tiny') {
+    remote.sort((a, b) => posterSourceQuality(b) - posterSourceQuality(a));
+  }
   const primary = remote[0];
   const secondary = remote.find((value) => new URL(value).origin !== new URL(primary).origin)
     ?? remote.find((value) => value !== primary) ?? null;
@@ -137,6 +164,18 @@ export function buildImageCandidateChain(
   );
   const legacyProxy = proxyImageUrl(primary);
   const result: string[] = [...mediaCandidates];
+  if (delivery && delivery.preset !== 'tiny') {
+    // A blocked edge does not prove the source is unavailable to the app.
+    // Recover the SAME best-known original before accepting a small size.
+    const recoveryProxy = optimizeRecoveryProxy(legacyProxy);
+    if (recoveryProxy) result.push(recoveryProxy);
+    if (secondaryFallback) result.push(secondaryFallback);
+    if (!prefersLegacyProxy(primary)) result.push(primary);
+    result.push(...remaining);
+    if (secondaryProxy && !result.includes(secondaryProxy)) result.push(secondaryProxy);
+    result.push(...local.slice(0, 2));
+    return Array.from(new Set(result));
+  }
 
   // Compact schedule posters have a verified same-origin recovery path.
   // Avoid trying several blocked browser sizes before this route after edge 403.
@@ -222,7 +261,11 @@ function primaryRemoteImage(
   preference: ImageCandidatePreference,
   preset?: MediaImagePreset,
 ): string | null {
-  for (const value of imageValues(image, preference, preset)) {
+  const values = imageValues(image, preference, preset);
+  if (preset && preset !== 'tiny') {
+    values.sort((a, b) => posterSourceQuality(b ?? '') - posterSourceQuality(a ?? ''));
+  }
+  for (const value of values) {
     const normalized = normalizeImageUrl(value);
     if (normalized && !normalized.startsWith('/')) return normalized;
   }
@@ -280,7 +323,9 @@ export function getRawImageMediaSrcSet(
   quality?: number,
   format: MediaImageFormat = 'webp',
 ): string | undefined {
-  for (const value of values) {
+  const preferred = preset === 'tiny' ? values : [...values]
+    .sort((a, b) => posterSourceQuality(b ?? '') - posterSourceQuality(a ?? ''));
+  for (const value of preferred) {
     const normalized = normalizeImageUrl(value);
     if (!normalized || normalized.startsWith('/')) continue;
 
