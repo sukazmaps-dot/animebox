@@ -20,7 +20,10 @@ type FieldMetric = {
 };
 
 function report(metric: FieldMetric) {
-  if (process.env.NODE_ENV !== 'production' || typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return;
+  // Never report local development sessions; this Client Component deliberately
+  // does not read private process.env variables (security-boundary invariant).
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return;
   if (sampleDecision === null) sampleDecision = Math.random() < SAMPLE_RATE;
   if (!sampleDecision) return;
 
