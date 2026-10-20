@@ -7,6 +7,7 @@ import { getAnimesWithShikimori } from '@/lib/combined-anime';
 import { getSavedCatalogPage } from '@/lib/saved-catalog-server';
 import { withCatalogProviderBudget } from '@/lib/catalog-provider-budget';
 import type { Anime } from '@/types/anime';
+import type { GetAnimesOptions } from '@/lib/anilist';
 import { CATALOG_PAGE_SIZE } from '@/lib/catalog-pagination';
 import {
   catalogFiltersToProviderOptions,
@@ -61,7 +62,7 @@ export async function generateMetadata({
 
 async function loadInitialCatalog(filters: CatalogFiltersState): Promise<Anime[]> {
   const providerFilters = catalogFiltersToProviderOptions(filters);
-  const options = {
+  const options: GetAnimesOptions = {
     page: 1,
     limit: CATALOG_PAGE_SIZE,
     order: providerFilters.order,
