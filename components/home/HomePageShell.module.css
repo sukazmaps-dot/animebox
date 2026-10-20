@@ -14,6 +14,10 @@
 }
 .shelves { position: relative; display: flex; flex-direction: column; min-width: 0; gap: 32px; padding: 24px var(--gutter) 28px; }
 .shelves > :first-child { margin-top: 0; }
+/* Lazy personal blocks can legitimately render null. Their empty hosts must
+   not remain flex items and reserve another inter-section gap. */
+.shelves > :global(.deferred-mount[data-ready='true']:empty) { display: none; }
+.page :global(.home-retention), .page :global(.home-pulse) { margin-block: 0; }
 .page :global(.section) { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .page :global(.section-head) { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 18px; }
 .page :global(.section-title) { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ab-ui-text); font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -.025em; }

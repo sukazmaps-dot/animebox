@@ -443,7 +443,7 @@ fs.mkdirSync(output, { recursive: true });
           const mounts = page.locator('[data-home-layout="cinematic"] .deferred-mount');
           const count = await mounts.count();
           for (let i = 0; i < count; i++) {
-            await mounts.nth(i).scrollIntoViewIfNeeded();
+            if (await mounts.nth(i).getAttribute('data-ready') !== 'true') await mounts.nth(i).scrollIntoViewIfNeeded();
             await page.waitForFunction(index => {
               const elements = document.querySelectorAll('[data-home-layout="cinematic"] .deferred-mount');
               return elements[index]?.getAttribute('data-ready') === 'true';
@@ -458,6 +458,9 @@ fs.mkdirSync(output, { recursive: true });
             const watch = area.querySelector('[id="animebox-watch-together"]');
             const nav = area.querySelector('nav[aria-label="Разделы AnimeBox"]');
             const promoErrors = [];
+            for (const empty of area.querySelectorAll('.deferred-mount[data-ready="true"]:empty')) {
+              if (getComputedStyle(empty).display !== 'none') promoErrors.push('empty personal host reserves a shelf gap');
+            }
             const promoStrip = area.querySelector('section[aria-label="Поддержка и Telegram AnimeBox"]');
             const promoCards = [...area.querySelectorAll('.home-deferred--support > section, .home-deferred--telegram > section')];
             if (promoStrip) {
