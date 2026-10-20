@@ -46,6 +46,7 @@ import {
 import { observeApiRoute } from '@/lib/request-observability-server';
 import { enrichAnimesWithSavedMetadata, getSavedCatalogPage } from '@/lib/saved-catalog-server';
 import { withCatalogProviderBudget } from '@/lib/catalog-provider-budget';
+import { getUpstreamRuntimeSnapshot } from '@/lib/upstream-resilience-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -187,17 +188,33 @@ async function observedGET(
           })
         : Promise.resolve([]);
 
+    // The AniList circuit can already be open due to unrelated title traffic.
+    // Skip the doomed provider attempt only while its shared shield reports
+    // pressure. After the circuit cooldown expires, live requests resume.
+    const upstreamState = getUpstreamRuntimeSnapshot();
+    const providerShieldOpen = upstreamState.some(({ key, circuit }) =>
+      circuit !== 'closed' && (
+        key === 'anilist' ||
+        (key === 'shikimori' && /[А-Яа-яЁё]/.test(search ?? ''))
+      ),
+    );
+
     const [primary, localHits] = await Promise.all([
-      withCatalogProviderBudget(signal => getAnimesWithShikimori(
-        options,
-        {
-          signal,
-          onPageInfo: (pageInfo) => {
-            if (!signal.aborted) providerHasNextPage = pageInfo.hasNextPage;
-          },
-        },
-      ), rawSearch ? 4500 : 8000).catch(async (providerError) => {
-        console.warn('[Anime catalog] provider unavailable; reading saved documents:', providerError);
+      (providerShieldOpen
+        ? Promise.reject(new Error('Catalog upstream circuit currently open'))
+        : withCatalogProviderBudget(signal => getAnimesWithShikimori(
+            options,
+            {
+              signal,
+              onPageInfo: (pageInfo) => {
+                if (!signal.aborted) providerHasNextPage = pageInfo.hasNextPage;
+              },
+            },
+          ), rawSearch ? 2600 : 3500)
+      ).catch(async (providerError) => {
+        // Fail fast to the verified, paginated saved catalogue instead of
+        // holding every keystroke on overloaded upstream services.
+        if (!providerShieldOpen) console.warn('[Anime catalog] provider unavailable; reading saved documents:', providerError);
         fallbackState.saved = await getSavedCatalogPage({...options, limit});
         providerHasNextPage = fallbackState.saved.hasNextPage;
         return fallbackState.saved.anime;
