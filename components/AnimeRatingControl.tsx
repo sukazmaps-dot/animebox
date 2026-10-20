@@ -22,8 +22,10 @@ function formatRatingScore(score: number) {
 
 export default function AnimeRatingControl({
   animeId,
+  variant = 'default',
 }: {
   animeId: number;
+  variant?: 'default' | 'compact';
 }) {
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuthState();
@@ -182,8 +184,8 @@ export default function AnimeRatingControl({
 
   const visualScore = hoverScore ?? myScore ?? 0;
 
-  return (
-    <section className={`${styles.control} anime-rating-control`} aria-labelledby="animebox-rating-title">
+  const ratingContent = (
+    <>
       <div className="anime-rating-control__head">
         <div>
           <span className="anime-rating-control__eyebrow">ОЦЕНКА ANIMEBOX</span>
@@ -298,6 +300,31 @@ export default function AnimeRatingControl({
           {message}
         </div>
       )}
+    </>
+  );
+
+  return (
+    <section
+      className={`${styles.control} ${variant === 'compact' ? styles.compactControl : ''} anime-rating-control`}
+      aria-label={variant === 'compact' ? 'Оценка AnimeBox' : undefined}
+      aria-labelledby={variant === 'compact' ? undefined : 'animebox-rating-title'}
+    >
+      {variant === 'compact' ? (
+        <details className={styles.compactDisclosure} data-rating-disclosure>
+          <summary className={styles.compactSummary}>
+            <span className={styles.compactTitle}><span aria-hidden="true">★</span> Моя оценка</span>
+            <span className={styles.compactValue}>
+              {myScore != null
+                ? `${formatRatingScore(myScore)} / 10`
+                : loaded && average != null
+                  ? `Сообщество ${average.toFixed(1)} / 10`
+                  : 'Оценить /10'}
+            </span>
+            <span className={styles.compactChevron} aria-hidden="true" />
+          </summary>
+          <div className={styles.compactBody}>{ratingContent}</div>
+        </details>
+      ) : ratingContent}
     </section>
   );
 }
