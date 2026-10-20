@@ -168,6 +168,7 @@ export function useWatchSession({
     generation: number;
     promise: Promise<void>;
     resolve: () => void;
+    throttled: boolean;
   } | null>(null);
   const disabledRef = useRef(false);
   const supersededRef = useRef(false);
@@ -349,7 +350,9 @@ export function useWatchSession({
         const active = heartbeatDoneRef.current;
         if (!force || active?.generation !== generation) return;
         await active.promise;
-        if (generation === lifecycleGenerationRef.current) {
+        // A 429 deliberately rejects an early sync. Never turn one forced
+        // flush into a burst of rate-limited retries.
+        if (generation === lifecycleGenerationRef.current && !active.throttled) {
           await sendHeartbeat(true, keepalive);
         }
       }
@@ -407,6 +410,7 @@ export function useWatchSession({
           resolveHeartbeat = resolve;
         }),
         resolve: () => resolveHeartbeat(),
+        throttled: false,
       };
       heartbeatDoneRef.current = heartbeatDone;
       const seq = seqRef.current + 1;
@@ -479,6 +483,7 @@ export function useWatchSession({
           setRecovering(false);
           setMessage('');
         } else if (status === 429) {
+          heartbeatDone.throttled = true;
           // The server deliberately ignores an over-eager forced heartbeat
           // before its persistence window. Keep the same seq/provider skip
           // pending and retry on the next normal sync without showing a false
