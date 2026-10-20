@@ -70,6 +70,8 @@ const read = p => fs.readFileSync(p, 'utf8');
           return {overflow:document.documentElement.scrollWidth>innerWidth,rects:nodes.map(n=>{const r=n.getBoundingClientRect();return {y:r.y,w:r.width,h:r.height}}),settingsVisible:document.querySelector('select[aria-label="Источник видео"]').checkVisibility()};
         });
         assert(!layout.overflow);assert(!layout.settingsVisible);assert.equal(layout.rects[0].y,layout.rects[1].y);
+        const identitySpacing=await page.locator('[data-watch-controls] .episode-page__identity-compact').evaluate(node=>({marginTop:getComputedStyle(node).marginTop,paddingTop:getComputedStyle(node).paddingTop}));
+        assert.deepEqual(identitySpacing,{marginTop:'0px',paddingTop:'0px'},'compact identity must not inherit legacy page spacing');
         assert(layout.rects.every(r=>r.w>=44&&r.h>=44));
         await menu.click();
         await page.getByLabel('Источник видео').selectOption('0');
