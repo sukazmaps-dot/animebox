@@ -54,6 +54,7 @@
 .compactChevron { flex: 0 0 7px; width: 7px; height: 7px; margin: -4px 3px 0 0; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); color: var(--ab-ui-muted); }
 .compactDisclosure[open] .compactChevron { transform: rotate(225deg); margin-top: 4px; }
 .compactBody { min-width: 0; padding: 4px 12px 12px; border-top: 1px solid var(--ab-ui-border); }
-.compactBody :global(.anime-rating-control__head) { display: none; }
+.compactBody :global(.anime-rating-control__head) { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px; }
+.compactBody :global(.anime-rating-control__head) > div:first-child { display: none; }
 .compactBody :global(.anime-rating-control__footer) { margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) { .compactChevron { transition: none; } }
