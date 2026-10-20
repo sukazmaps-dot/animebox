@@ -37,7 +37,7 @@ import {
   type RecommendationRailId,
   type RecommendationRailLimits,
 } from '@/lib/recommendation-rails';
-import { reconcileHomeRails } from '@/lib/home-rail-session';
+import { admitHomeRails, reconcileHomeRails } from '@/lib/home-rail-session';
 import {
   readCachedTasteGraph,
   type TasteGraph,
@@ -591,6 +591,8 @@ export default function SmartRecommendationFeed({
   // Keep existing state-hook ordering intact for mounted rail/session recovery.
   const [railViewportRevision, setRailViewportRevision] = useState(0);
 
+  const [railInitialTargets, setRailInitialTargets] = useState<Map<RecommendationRailId, number>>(() => new Map());
+  const [railAdmission, setRailAdmission] = useState(() => ({ session: sessionId, rows: new Set<RecommendationRailId>() as ReadonlySet<RecommendationRailId> }));
   const bucket = useMemo(() => getSessionBucket(sessionId), [sessionId]);
 
   const initialSignature = useMemo(
@@ -819,9 +821,48 @@ export default function SmartRecommendationFeed({
     setRailSession({ mood: displayedMood, layout: orderedRails, rails, available: filtered });
   }
 
+  const nextAdmission = admitHomeRails(railAdmission, sessionId, rails, railInitialTargets);
+  if (nextAdmission !== railAdmission) setRailAdmission(nextAdmission);
+  const readyRails = nextAdmission.rows;
+  const renderRails = useMemo(() => {
+    const exposedOrder = new Map([...readyRails].map((id, index) => [id, index] as const));
+    return [...rails].sort((a, b) => (exposedOrder.get(a.id) ?? 999) - (exposedOrder.get(b.id) ?? 999));
+  }, [rails, readyRails]);
+
+  useEffect(() => {
+    const measure = () => {
+      const targets = new Map<RecommendationRailId, number>();
+      for (const [id, section] of sparseRailSectionRefs.current) {
+        const track = section.querySelector<HTMLElement>('[role="region"]');
+        const slide = track?.querySelector<HTMLElement>('.smart-feed__slide');
+        if (!track || track.clientWidth <= 0 || !slide || slide.getBoundingClientRect().width <= 0) continue;
+        // Bootstrap includes one spare card; first exposure needs the viewport
+        // itself filled, with the same minimum-five policy on small screens.
+        targets.set(id, Math.max(MIN_INITIAL_RAIL_ITEMS, getVisibleRailFillTarget(section) - 1));
+      }
+      if (railInitialTargets.size === targets.size &&
+          [...targets].every(([id, target]) => railInitialTargets.get(id) === target)) return;
+      setRailInitialTargets(targets);
+      setRailLimits(previous => {
+        const next = { ...previous };
+        for (const [id, target] of targets) next[id] = Math.max(previous[id] ?? DEFAULT_RECOMMENDATION_RAIL_LIMIT, target + 1);
+        return next;
+      });
+      // Initial default allocations may have split 20 candidates into three
+      // seven-card rows before desktop geometry was known. Only unexposed
+      // allocations can be rebuilt to the measured limits; visible rows stay.
+      setRailOwnership(new Map([...railOwnershipRef.current].filter(([, owner]) =>
+        !targets.has(owner) || (railAdmission.session === sessionId && railAdmission.rows.has(owner)))));
+    };
+    const frame = window.requestAnimationFrame(measure);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    for (const section of sparseRailSectionRefs.current.values()) observer?.observe(section);
+    return () => { window.cancelAnimationFrame(frame); observer?.disconnect(); };
+  }, [rails, railViewportRevision, rowVersion, railInitialTargets, railAdmission, sessionId]);
+
   const midFeedInsertAfterIndex = useMemo(
-    () => (midFeedSlot ? getHomeScheduleInsertionIndex(rails) : -1),
-    [midFeedSlot, rails],
+    () => (midFeedSlot ? getHomeScheduleInsertionIndex(renderRails) : -1),
+    [midFeedSlot, renderRails],
   );
 
   const fetchNextCandidateBatch = useCallback(async () => {
@@ -1334,7 +1375,7 @@ export default function SmartRecommendationFeed({
           (!exhaustedRails.has(rail.id) || hasLocalRailCandidates(rail)) &&
           !railErrors.has(rail.id) &&
           (!sparseRailPrimedRef.current.has(rail.id) ||
-            (sparseRailPrimedTargetRef.current.get(rail.id) ?? 0) < target)
+            (sparseRailPrimedTargetRef.current.get(rail.id) ?? 0) < target || hasLocalRailCandidates(rail))
         );
       }).map((rail) => [rail.id, rail] as const),
     );
@@ -1345,7 +1386,7 @@ export default function SmartRecommendationFeed({
       if (!rail) return;
       const target = getVisibleRailFillTarget(sparseRailSectionRefs.current.get(railId));
       if (sparseRailPrimedRef.current.has(railId) &&
-          (sparseRailPrimedTargetRef.current.get(railId) ?? 0) >= target) return;
+          (sparseRailPrimedTargetRef.current.get(railId) ?? 0) >= target && !hasLocalRailCandidates(rail)) return;
       sparseRailPrimedRef.current.add(railId);
       sparseRailPrimedTargetRef.current.set(railId, target);
       // Rows share candidate requests, but never wait for another row's
@@ -1411,7 +1452,7 @@ export default function SmartRecommendationFeed({
 
   const visibleAcrossRails = new Set<number>();
   return (
-    <div className="smart-feed">
+    <div className="smart-feed" data-recommendation-ready-count={readyRails.size}>
       <div
         className={
           isMoodSwapping
@@ -1421,7 +1462,7 @@ export default function SmartRecommendationFeed({
         aria-busy={isMoodSwapping}
       >
         <div className="smart-feed__rails">
-          {rails.map((rail, railIndex) => {
+          {renderRails.map((rail, railIndex) => {
             const railLoading = loadingRails.has(rail.id);
             const railFailed = railErrors.has(rail.id);
             const localCandidates = hasLocalRailCandidates(rail);
@@ -1439,12 +1480,11 @@ export default function SmartRecommendationFeed({
                 ? MIN_INITIAL_RAIL_ITEMS
                 : RAIL_SKELETON_COUNT;
             const displayItems = rail.items.filter(item => !visibleAcrossRails.has(item.anime.id));
-            // Never suppress a real 1–3-title continuation. A terminal small
-            // collection gets a compact layout instead of a full-width void.
-            // An empty, recoverable row still exposes its retry control.
+            // An unadmitted row stays measurable but takes no layout space.
+            // Already shown rows retain their cards and manual recovery.
             const hideSparse = !showRailSkeleton && !railLoading &&
               !railFailed && !hasMore && displayItems.length === 0;
-            const compactSparse = displayItems.length > 0 && displayItems.length <= 2 &&
+            const compactSparse = readyRails.has(rail.id) && displayItems.length > 0 && displayItems.length <= 2 &&
               !railLoading && !showRailSkeleton &&
               (!hasMore || exhaustedRails.has(rail.id));
             // Preserve the mounted row slot and keys for session-stable rail
@@ -1457,7 +1497,9 @@ export default function SmartRecommendationFeed({
                 ref={(node) => registerSparseRailSection(rail.id, node)}
                 className="smart-feed__personal-rail"
                 hidden={hideSparse}
-                aria-hidden={hideSparse || undefined}
+                aria-hidden={hideSparse || !readyRails.has(rail.id) || undefined}
+                inert={!readyRails.has(rail.id) || undefined}
+                data-recommendation-rail-ready={readyRails.has(rail.id) ? 'true' : 'false'}
                 style={hideSparse ? { display: 'none' } : undefined}
                 data-recommendation-rail-id={rail.id}
                 data-recommendation-rail-items={rail.items.length}
@@ -1572,6 +1614,17 @@ export default function SmartRecommendationFeed({
           })}
         </div>
       </div>
+
+      {readyRails.size === 0 && loadingRails.size === 0 && hasMore &&
+        (railErrors.size > 0 || exhaustedRails.size > 0) && (
+        <button type="button" className="smart-feed__rail-retry" onClick={() => {
+          const rail = rails.find(item => railErrors.has(item.id) || exhaustedRails.has(item.id));
+          if (rail) void ensureRailDepth(rail, { retry: true, bootstrap: true,
+            targetCount: getVisibleRailFillTarget(sparseRailSectionRefs.current.get(rail.id)) });
+        }}>
+          {railErrors.size > 0 ? 'Не удалось загрузить подборку · Повторить' : 'Показать больше похожих аниме'}
+        </button>
+      )}
 
       {feedbackUndo && (
         <div className="smart-feed__feedback-undo" role="status">

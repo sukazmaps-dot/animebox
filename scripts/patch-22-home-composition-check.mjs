@@ -21,7 +21,9 @@ for (const [label, source, needle] of [
   ['schedule insertion helper', rails, 'getHomeScheduleInsertionIndex'],
   ['single-runtime interleave slot', feed, 'midFeedSlot?: ReactNode'],
   ['schedule slot marker', feed, 'data-home-composition-slot="personal-schedule"'],
-  ['schedule insertion helper usage', feed, 'getHomeScheduleInsertionIndex(rails)'],
+  // Admission may append a newly filled row below already exposed rows.
+  // Keep the schedule attached to that rendered order, not the hidden order.
+  ['schedule insertion helper usage', feed, 'getHomeScheduleInsertionIndex(renderRails)'],
   ['home schedule before discovery', discovery, '<HomePersonalScheduleSection />'],
   ['single discovery surface retained', shell, '<HomeDiscoverySection />'],
   ['phase L docs', docs, 'Status: **implemented / under CI**'],

@@ -120,6 +120,7 @@ for (const fail of [false, true]) {
     sparseRailPrimedTargetRef: { current: new Map() },
     sparseRailSectionRefs: { current: new Map() },
     getVisibleRailFillTarget: () => 9,
+    hasLocalRailCandidates: () => false,
     ensureRailDepth: async (rail, opts) => { calls.push([rail.id, opts.targetCount]); },
   });
   vm.runInContext(ts.transpile(feed.slice(primeStart, primeEnd), { target: ts.ScriptTarget.ES2022 }) + '\nglobalThis.primeRow = prime;', c);

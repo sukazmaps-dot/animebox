@@ -116,7 +116,10 @@ try {
   const card = runtime.getImageCandidates(poster, 'compact', {preset:'card'});
   // Card slots now use extraLarge for DPR fidelity; tiny policy above stays unchanged.
   assert.equal(new URL(card[0]).searchParams.get('url'), poster.extraLarge);
-  assert.equal(card[1], poster.large, 'The smaller original remains a bounded fallback');
+  assert.ok(card[1].startsWith('/api/image?'), 'Recover the best original before accepting a smaller size');
+  assert.equal(new URL(card[1], 'https://youranimebox.com').searchParams.get('url'), poster.extraLarge);
+  assert.equal(new URL(card[1], 'https://youranimebox.com').searchParams.get('optimize'), 'webp');
+  assert.ok(card.includes(poster.large), 'The smaller original remains a bounded last resort');
   const srcSet = runtime.getImageMediaSrcSet(poster, 'compact', 'tiny');
   assert.ok(srcSet.includes('96w') && srcSet.includes('144w') && srcSet.includes('240w'));
   for (const path of ['app/login/layout.tsx', 'app/settings/page.tsx', 'app/admin/layout.tsx']) {

@@ -11,6 +11,7 @@ const evaluate = new Function('input', `
   const { items, hasMore, exhausted, loading, failed, skeleton } = input;
   const rail = { id: 'continuation' };
   const displayItems = Array.from({length: items}, (_, index) => ({anime:{id:index+1}}));
+  const readyRails = new Set(input.admitted ? [rail.id] : []);
   const exhaustedRails = new Set(exhausted ? [rail.id] : []);
   const railLoading = loading;
   const railFailed = failed;
@@ -21,11 +22,11 @@ const evaluate = new Function('input', `
 `);
 const state = (items, more, options = {}) => evaluate({
   items, hasMore: more, exhausted: false, loading: false,
-  failed: false, skeleton: false, ...options,
+  failed: false, skeleton: false, admitted: true, ...options,
 });
 
 assert.deepEqual(state(1, false), { hideSparse: false, compactSparse: true },
-  'single real recommendation must remain visible and compact');
+  'an already admitted single recommendation stays visible and compact');
 assert.deepEqual(state(2, true, { exhausted: true }), { hideSparse: false, compactSparse: true },
   'locally exhausted two-card rail remains compact even when global pool has more');
 assert.deepEqual(state(3, false), { hideSparse: false, compactSparse: false },

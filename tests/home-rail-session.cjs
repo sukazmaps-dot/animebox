@@ -6,7 +6,7 @@ const code = ts.transpileModule(fs.readFileSync('lib/home-rail-session.ts', 'utf
   compilerOptions: { module: ts.ModuleKind.CommonJS },
 }).outputText;
 new Function('exports', 'module', code)(mod.exports, mod);
-const { reconcileHomeRails } = mod.exports;
+const { reconcileHomeRails, admitHomeRails } = mod.exports;
 const rail = (id, ids) => ({ id, title: id, items: ids.map(id => ({ anime: { id } })) });
 const ids = new Set([1, 2, 3, 4, 5]);
 const initial = [rail('top_match', [1]), rail('explore', [2]), rail('endless', [3])];
@@ -66,7 +66,7 @@ const feed = compile('components/SmartRecommendationFeed.tsx', name => {
   if (name === 'react') return react;
   if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
   if (name === '@/lib/recommendation-rails') return engine;
-  if (name === '@/lib/home-rail-session') return { reconcileHomeRails };
+  if (name === '@/lib/home-rail-session') return { reconcileHomeRails, admitHomeRails };
   if (name === '@/lib/taste-graph') return { readCachedTasteGraph: () => null };
   return { default: name, RecommendationCardSkeleton: 'skeleton' };
 }).default;
@@ -114,3 +114,21 @@ const allocation = engine.buildRecommendationRailLayout([item(1, { moodTier: 'st
 assert.deepEqual(allocation.rails.find(r => r.id === 'mood_lane').items.map(x => x.anime.id), [7, 1],
   'candidate ranking cannot change the order of previously allocated cards');
 console.log('Actual feed: allocation persistence, bounded rerenders, late rows and sparse exhaustion passed.');
+
+// Initial visibility follows the user policy; already exposed rows stay stable.
+const targets = new Map([['top_match', 8], ['explore', 5]]);
+const emptyAdmission = { session: 'a', rows: new Set() };
+let admission = admitHomeRails(emptyAdmission, 'a', [rail('top_match', [1,2,3,4,5,6,7]), rail('explore', [8,9])], targets);
+assert.strictEqual(admission, emptyAdmission, 'short initial shelves never appear');
+admission = admitHomeRails(admission, 'a', [rail('top_match', [1,2,3,4,5,6,7,8])], targets);
+assert.ok(admission.rows.has('top_match'), 'a measured full shelf is admitted');
+assert.strictEqual(admitHomeRails(admission, 'a', [rail('top_match', [1])], targets), admission,
+  'hiding titles cannot collapse a shelf already shown');
+assert.equal(admitHomeRails(admission, 'b', [rail('top_match', [1])], targets).rows.size, 0, 'new mood/session resets admission');
+assert.equal(admitHomeRails(emptyAdmission, 'a', [rail('explore', [1,2,3,4,5])], new Map()).rows.size, 0, 'unmeasured rows cannot flash before layout');
+assert.equal(admitHomeRails(emptyAdmission, 'a', [rail('explore', [1,1,1,1,1])], targets).rows.size, 0, 'duplicates cannot satisfy the initial target');
+console.log('Initial rail admission: measured width, hidden sparse rows, sticky exposure, mood reset and deduplication passed.');
+
+const firstExposed = admitHomeRails(emptyAdmission, 'a', [rail('explore', [1,2,3,4,5])], targets);
+const laterExposed = admitHomeRails(firstExposed, 'a', [rail('top_match', [6,7,8,9,10,11,12,13]), rail('explore', [1,2,3,4,5])], targets);
+assert.deepEqual([...laterExposed.rows], ['explore', 'top_match'], 'late admission appends below exposed rows');

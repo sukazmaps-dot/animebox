@@ -32,6 +32,10 @@ function loadFeed({ realLayout = false } = {}) {
   const filename = path.resolve('components/SmartRecommendationFeed.tsx');
   const mod = new Module(filename); mod.filename = filename; mod.paths = Module._nodeModulePaths(process.cwd());
   const req = mod.require.bind(mod);
+  const sessionModule = { exports: {} };
+  new Function('module', 'exports', ts.transpileModule(fs.readFileSync('lib/home-rail-session.ts', 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText)(sessionModule, sessionModule.exports);
   const rail = (id, items) => ({ id, items, title: id, subtitle: '', source: id, badge: id });
   const mocks = {
     '@/components/SmartRecommendationCard': { default: ({ recommendation, onHidden }) => React.createElement('article', { 'data-id': recommendation.anime.id, onHide: () => onHidden(recommendation.anime.id) }) },
@@ -40,7 +44,7 @@ function loadFeed({ realLayout = false } = {}) {
     '@/lib/recommendations': { getPersonalizedRecommendations: (items) => items.map((anime) => ({ anime })) },
     '@/lib/taste-graph': { readCachedTasteGraph: () => null },
     '@/lib/product-events-client': { trackProductClientEvent() {} },
-    '@/lib/home-rail-session': { reconcileHomeRails: (_, incoming) => incoming },
+    '@/lib/home-rail-session': { ...sessionModule.exports, reconcileHomeRails: (_, incoming) => incoming },
     '@/lib/recommendation-rails': {
       DEFAULT_RECOMMENDATION_RAIL_LIMIT: 5, RECOMMENDATION_RAIL_BATCH_SIZE: 5,
       SESSION_STABLE_RAIL_ORDER: ['top_match', 'endless'], getHomeScheduleInsertionIndex: () => -1,
@@ -67,6 +71,14 @@ function loadFeed({ realLayout = false } = {}) {
   mod.require = (name) => mocks[name] ?? req(name);
   mod._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText, filename);
   return mod.exports.default;
+}
+function visibleButtons(tree) {
+  return tree.root.findAllByType('button').filter(node => {
+    for (let parent = node.parent; parent; parent = parent.parent) {
+      if (parent.props['data-recommendation-rail-ready'] === 'false' || parent.props.hidden) return false;
+    }
+    return true;
+  });
 }
 const payload = (items, hasMore = false, nextPage = null) => ({ items, page: 2, hasMore, bucket: 0, nextPage, nextCursor: null });
 async function settle() { for (let n = 0; n < 5; n++) await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); }); }
@@ -97,7 +109,7 @@ async function mount(Feed) {
   let recover = false;
   global.fetch = async () => { calls++; return !recover ? { ok: false, status: 400 } : { ok: true, json: async () => payload([{ id: 201, lane: 'top_match' }, { id: 202, lane: 'endless' }]) }; };
   tree = await mount(loadFeed()); await settle();
-  const retry = tree.root.findAllByType('button').find((x) => String(x.props.children).includes('Повторить'));
+  const retry = visibleButtons(tree).find((x) => String(x.props.children).includes('Повторить'));
   assert.ok(retry, 'error exposes recovery instead of an endless skeleton');
   assert.ok(!tree.root.findAllByType('section').find(x => x.props.className === 'smart-feed__personal-rail' && x.findAllByType('button').includes(retry))?.props.hidden, 'error recovery must remain visible');
   recover = true;
@@ -111,10 +123,13 @@ async function mount(Feed) {
   tree = await mount(loadFeed()); await settle();
   // Home 32 renamed the sparse-window action; retain the recovery behavior
   // contract and also guard against hiding the button with its parent rail.
-  const resume = tree.root.findAllByType('button').find((x) => String(x.props.children).includes('Показать больше похожих аниме'));
+  const resume = visibleButtons(tree).find((x) => String(x.props.children).includes('Показать больше похожих аниме'));
   assert.ok(resume, 'a sparse window with hasMore is recoverable');
   const resumeRail = tree.root.findAllByType('section').find(x => x.props.className === 'smart-feed__personal-rail' && x.findAllByType('button').includes(resume));
-  assert.ok(resumeRail && !resumeRail.props.hidden && resumeRail.props.style?.display !== 'none', 'sparse recovery must remain visible');
+  // User policy now hides incomplete initial shelves. Manual recovery is a
+  // single visible feed-level action, not a partial row with a heading.
+  assert.ok(!resumeRail || resumeRail.props['data-recommendation-rail-ready'] === 'true',
+    'manual recovery cannot expose an incomplete initial shelf');
   refill = true;
   await act(async () => resume.props.onClick()); await settle();
   assert.ok(tree.root.findAllByType('article').some((x) => x.props['data-id'] === 301));
@@ -209,7 +224,7 @@ async function mount(Feed) {
       : { ok: false, status: 400 };
   };
   tree = await mount(loadFeed({ realLayout: true })); await settle();
-  const realRetry = tree.root.findAllByType('button').find(x => String(x.props.children).includes('Повторить'));
+  const realRetry = visibleButtons(tree).find(x => String(x.props.children).includes('Повторить'));
   assert.ok(realRetry, 'empty production layout retains retry after an API failure');
   const beforeErrorResize = calls;
   await resize(); await resize();
@@ -239,5 +254,37 @@ async function mount(Feed) {
   await act(async () => tree.unmount());
   assert.ok([...windowListeners.values()].every(set => set.size === 0));
   console.log('PASS: production empty-start recovery, terminal local pagination, finite empty/error states and refill after hiding.');
+
+  // User policy: a terminal short collection is data, but is not yet a shelf.
+  global.fetch = async () => ({ ok: true, json: async () => payload([
+    { id: 9001, lane: 'top_match' }, { id: 9002, lane: 'endless' },
+  ]) });
+  const GateFeed = loadFeed();
+  tree = await mount(GateFeed); await settle();
+  const sections = () => tree.root.findAllByType('section').filter(x => x.props['data-recommendation-rail-id']);
+  assert.ok(sections().every(x => x.props['data-recommendation-rail-ready'] === 'false' && x.props['aria-hidden'] && x.props.inert),
+    'short first-page rows stay invisible and unfocusable');
+  const enough = ['top_match', 'endless'].flatMap((lane, offset) =>
+    Array.from({ length: 5 }, (_, i) => ({ anime: { id: 9100 + offset * 10 + i, lane } })));
+  await act(async () => tree.update(React.createElement(GateFeed, { items: enough, mood: 'any', hasWatchHistory: false })));
+  await settle();
+  assert.ok(sections().every(x => x.props['data-recommendation-rail-ready'] === 'true'),
+    'later cached candidates can admit rows even after API exhaustion');
+  await act(async () => tree.root.findAllByType('article')[0].props.onHide()); await settle();
+  assert.ok(sections().every(x => x.props['data-recommendation-rail-ready'] === 'true'),
+    'already exposed rows do not collapse after hiding a title');
+  await act(async () => tree.unmount());
+  console.log('PASS: hidden initial short rows, later local admission, and sticky exposed rows.');
+  viewportWidth = 1460;
+  global.fetch = async () => ({ ok: true, json: async () => payload(terminalItems) });
+  tree = await mount(loadFeed({ realLayout: true })); await settle();
+  assert.ok(sections().some(row => row.props['data-recommendation-rail-ready'] === 'true'),
+    'desktop reallocates unexposed seven-card defaults instead of hiding a sufficient twenty-title pool');
+  for (const section of sections().filter(row => row.props['data-recommendation-rail-ready'] === 'true')) {
+    assert.ok(section.props['data-recommendation-visible-items'] >= 9, 'first desktop exposure fills its measured width');
+  }
+  await act(async () => tree.unmount()); viewportWidth = 390;
+
+
 
 })().catch((error) => { console.error(error); process.exitCode = 1; });

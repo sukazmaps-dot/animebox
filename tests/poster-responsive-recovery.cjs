@@ -58,6 +58,23 @@ for (const invalid of [poster.extraLarge, '/api/image?url=x', '/anime-placeholde
 }
 assert.ok(candidates.length <= 9, 'independent sources remain bounded with two configured media origins');
 assert.equal(candidates.length, new Set(candidates).size);
+const mislabeled = {
+  extraLarge: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/known.jpg',
+  large: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/known.jpg',
+  original: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/known.jpg',
+};
+const repaired = service.getImageCandidates(mislabeled, 'compact', { preset: 'card' });
+assert.equal(new URL(repaired[0]).searchParams.get('url'), mislabeled.original,
+  'a field named extraLarge cannot promote a known thumbnail above an available original');
+assert.equal(new URL(repaired[2], 'https://youranimebox.com').searchParams.get('url'), mislabeled.original);
+assert.equal(new URL(repaired[2], 'https://youranimebox.com').searchParams.get('optimize'), 'webp');
+assert.ok(repaired.indexOf(repaired[2]) < repaired.indexOf(mislabeled.extraLarge));
+assert.ok(parseSet(service.getImageMediaSrcSet(mislabeled, 'compact', 'card')).every(x =>
+  x.url.searchParams.get('url') === mislabeled.original), 'srcset follows the same reordered source');
+const thumbnailOnly = service.getImageCandidates({ extraLarge: mislabeled.extraLarge }, 'compact', { preset: 'card' });
+assert.ok(thumbnailOnly.every(value => value.startsWith('/') || value === mislabeled.extraLarge ||
+  new URL(value).searchParams.get('url') === mislabeled.extraLarge), 'missing high-resolution URLs are never invented');
+
 
 // Actual mounted components: onError must switch BOTH src and srcset. Neither
 // picture source may keep pointing at the failed primary, including auto mode.
@@ -96,7 +113,9 @@ async function mounted(file, props) {
     assert.ok(parseSet(source.props.srcSet).every(x => x.url.origin === 'https://ru-media.test'));
   }
   await act(async () => img().props.onError());
-  assert.ok(img().props.src.startsWith('/api/image?'), 'independent Shikimori recovery stays server-side');
+  assert.ok(img().props.src.startsWith('/api/image?'), 'same best-original recovery stays server-side');
+  assert.equal(new URL(img().props.src, 'https://youranimebox.com').searchParams.get('url'), poster.extraLarge);
+  assert.equal(new URL(img().props.src, 'https://youranimebox.com').searchParams.get('optimize'), 'webp');
   assert.equal(img().props.srcSet, undefined);
   assert.equal(tree.root.findAllByType('source').length, 0, 'picture cannot revive failed primary on raw/proxy recovery');
   const previousLoad = img().props.onLoad;
