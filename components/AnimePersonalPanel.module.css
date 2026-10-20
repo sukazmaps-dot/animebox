@@ -1,6 +1,8 @@
 .guest { display: block; padding: 10px 0; color: var(--ab-ui-accent); font-size: 13px; line-height: 1.5; min-height: 44px; }
-.panel { display: grid; gap: 12px; min-width: 0; width: 100%; }
+.panel { display: grid; gap: 8px; min-width: 0; width: 100%; }
 /* Compact detail-card geometry: keep one owner for the stars in AnimeRatingControl.module.css. */
+.panel :global(.anime-rating-control[data-rating-compact='true']) { padding: 0 !important; border-radius: 10px !important; min-height: 0 !important; }
+
 .panel :global(.anime-rating-control) { width: 100%; max-width: none; box-sizing: border-box; min-height: 0 !important; margin: 0 !important; padding: 16px !important; border-radius: 12px !important; box-shadow: none !important; }
 .panel :global(.anime-rating-control__eyebrow), .panel :global(.anime-rating-control__head) p { display: none; }
 .panel :global(.anime-rating-control__head) { align-items: center; gap: 12px; margin-bottom: 10px !important; }
