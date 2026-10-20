@@ -83,3 +83,37 @@ export function mergeAnimePages(current: Anime[], incoming: Anime[]) {
   for (const anime of incoming) byId.set(anime.id, mergeAnimeMetadata(anime, byId.get(anime.id)));
   return [...byId.values()];
 }
+
+/** A partial provider fallback may enrich, but cannot retract this query's
+ * already verified results. A healthy response still owns membership/order.
+ * Registry degradation deliberately fails closed instead of reviving previews.
+ */
+export function reconcileCatalogFirstPage(
+  incoming: Anime[],
+  previous: Anime[],
+  options: {
+    sameScope: boolean;
+    partial: boolean;
+    registryDegraded: boolean;
+    excludedIds?: number[];
+    preview?: boolean;
+  },
+) {
+  const excluded = new Set(options.excludedIds ?? []);
+  const allowedIncoming = incoming.filter(anime => !excluded.has(anime.id));
+  const allowedPrevious = options.sameScope
+    ? previous.filter(anime => !excluded.has(anime.id))
+    : [];
+  if (options.partial && !options.registryDegraded) {
+    // Index shells supplement saved/provider fields, never replace known values.
+    if (options.preview) {
+      const existing = new Map(allowedPrevious.map(anime => [anime.id, anime]));
+      return mergeAnimePages(allowedPrevious, allowedIncoming.map(anime => {
+        const known = existing.get(anime.id);
+        return known ? mergeAnimeMetadata(known, anime) : anime;
+      }));
+    }
+    return mergeAnimePages(allowedPrevious, allowedIncoming);
+  }
+  return enrichAnimeCards(allowedIncoming, allowedPrevious);
+}

@@ -35,7 +35,12 @@ export type AnimePaginationMeta = {
 
 export type AnimeListPayload = {
   anime: Anime[];
-  catalogMeta?: { source: 'saved'; message: string };
+  catalogMeta?: {
+    source: 'saved' | 'degraded';
+    message: string;
+    completeness?: 'partial';
+  };
+  availabilityExcludedIds?: number[];
   searchMeta?: AnimeSearchMeta;
   pagination?: AnimePaginationMeta;
 };
@@ -219,19 +224,19 @@ export async function getAnimes(
 
 export async function getAnimesWithMeta(
   options: ClientAnimeListOptions = {},
-  fetchOptions?: { signal?: AbortSignal },
+  fetchOptions?: { signal?: AbortSignal; refresh?: boolean },
 ): Promise<AnimeListPayload> {
   const params = buildAnimeListParams(options);
   const queryString = params.toString();
   const cacheKey = queryString || '__default__';
   const cached = readCache(searchPayloadCache, cacheKey);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined && !fetchOptions?.refresh) return cached;
 
   const response = await fetch(
     `/api/anime${queryString ? `?${queryString}` : ''}`,
     {
       signal: fetchOptions?.signal,
-      cache: 'default',
+      cache: fetchOptions?.refresh ? 'no-store' : 'default',
     },
   );
 
@@ -244,6 +249,7 @@ export async function getAnimesWithMeta(
     searchMeta?: AnimeSearchMeta;
     pagination?: AnimePaginationMeta;
     catalogMeta?: AnimeListPayload['catalogMeta'];
+    availabilityExcludedIds?: number[];
     error?: string;
   };
 
@@ -259,6 +265,7 @@ export async function getAnimesWithMeta(
       ...(data.searchMeta ? { searchMeta: data.searchMeta } : {}),
       ...(data.pagination ? { pagination: data.pagination } : {}),
       ...(data.catalogMeta ? { catalogMeta: data.catalogMeta } : {}),
+      ...(data.availabilityExcludedIds ? { availabilityExcludedIds: data.availabilityExcludedIds } : {}),
     },
     data.catalogMeta ? 15_000 : options.search?.trim() ? SEARCH_CACHE_TTL : LIST_CACHE_TTL,
     80,

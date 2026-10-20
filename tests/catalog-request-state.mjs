@@ -62,5 +62,11 @@ try {
   now += 15_001;
   await client.getAnimesWithMeta({search:'normal-cache-fixture'});
   assert.equal(fetches,3,'normal search keeps its existing longer TTL');
+  let refreshMode;
+  globalThis.fetch = async (_url, options) => {fetches++;refreshMode=options.cache;return Response.json({anime:[{id:3}]});};
+  const refreshed = await client.getAnimesWithMeta({search:'normal-cache-fixture'},{refresh:true});
+  assert.equal(fetches,4,'manual retry bypasses the current memory entry');
+  assert.equal(refreshMode,'no-store','manual retry bypasses browser HTTP cache too');
+  assert.equal(refreshed.anime[0].id,3);
 } finally {globalThis.fetch=originalFetch;Date.now=originalNow;}
 console.log('Actual anime client preserves fallback metadata and refreshes saved catalog after 15 seconds.');

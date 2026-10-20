@@ -60,7 +60,9 @@ export async function generateMetadata({
   };
 }
 
-async function loadInitialCatalog(filters: CatalogFiltersState): Promise<Anime[]> {
+async function loadInitialCatalog(filters: CatalogFiltersState): Promise<{
+  anime: Anime[]; source: 'saved' | 'provider'; hasNextPage: boolean;
+}> {
   const providerFilters = catalogFiltersToProviderOptions(filters);
   const options: GetAnimesOptions = {
     page: 1,
@@ -79,7 +81,7 @@ async function loadInitialCatalog(filters: CatalogFiltersState): Promise<Anime[]
   // trip. The client will refresh through /api/anime with the same filters.
   try {
     const saved = await getSavedCatalogPage(options);
-    if (saved.anime.length > 0) return saved.anime;
+    if (saved.anime.length > 0) return {anime: saved.anime, source: 'saved', hasNextPage: saved.hasNextPage};
   } catch (error) {
     console.warn('[Catalog SSR] saved snapshot unavailable:', error);
   }
@@ -87,13 +89,17 @@ async function loadInitialCatalog(filters: CatalogFiltersState): Promise<Anime[]
   // The snapshot can be empty during first setup or an unusual filter.
   // Preserve the original provider path, but never block first paint for 8s.
   try {
-    return await withCatalogProviderBudget(
-      signal => getAnimesWithShikimori(options, { signal }),
+    let hasNextPage = false;
+    const anime = await withCatalogProviderBudget(
+      signal => getAnimesWithShikimori(options, { signal, onPageInfo: info => {
+        if (!signal.aborted) hasNextPage = info.hasNextPage;
+      } }),
       2800,
     );
+    return {anime, source: 'provider', hasNextPage};
   } catch (error) {
     console.warn('[Catalog SSR] provider unavailable:', error);
-    return [];
+    return {anime: [], source: 'provider', hasNextPage: false};
   }
 }
 
@@ -185,7 +191,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   // Search result URLs are client-driven and noindex. Do not block first paint
   // on an unrelated popular-catalog request when the user already supplied a
   // query; SearchCatalogClient will resolve it immediately.
-  const initialResults = query || initialView === 'saved' ? [] : await loadInitialCatalog(initialFilters);
+  const initialCatalog = query || initialView === 'saved' ? null : await loadInitialCatalog(initialFilters);
+  const initialResults = initialCatalog?.anime ?? [];
 
   return (
     <>
@@ -195,6 +202,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           initialQuery={query}
           initialView={initialView}
           initialFilters={initialFilters}
+          initialSource={initialCatalog?.source}
+          initialHasNextPage={initialCatalog?.hasNextPage}
         />
       </Suspense>
       <CatalogDiscoveryLinks />
