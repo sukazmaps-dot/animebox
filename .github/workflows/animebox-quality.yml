@@ -150,7 +150,7 @@ jobs:
         env:
           ESBUILD_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/esbuild
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
-        run: npm run player-fullscreen:browser
+        run: npm run player-fullscreen:browser && node scripts/watch-compact-controls-browser-smoke.cjs
 
       - name: Profile editor responsive workspace and draft recovery
         env:

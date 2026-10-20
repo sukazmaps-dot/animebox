@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 const MAX_QUICK_EPISODES = 120;
 
 export default function EpisodeQuickSelector({
+  compact = false,
   currentEpisode,
   totalEpisodes,
   hasPrev,
@@ -15,6 +16,7 @@ export default function EpisodeQuickSelector({
   onNext,
   onSelect,
 }: {
+  compact?: boolean;
   currentEpisode: number;
   totalEpisodes: number;
   hasPrev: boolean;
@@ -26,6 +28,8 @@ export default function EpisodeQuickSelector({
   onSelect: (episode: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const sheetRef = useRef<HTMLElement | null>(null);
   const currentRef = useRef<HTMLButtonElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const safeTotal = Math.max(currentEpisode, totalEpisodes || 0, 1);
@@ -51,8 +55,16 @@ export default function EpisodeQuickSelector({
   useEffect(() => {
     if (!open) return;
 
+    const trigger = triggerRef.current;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Tab') {
+        const items = sheetRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]');
+        const first = items?.[0];
+        const last = items?.[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
     };
 
     document.addEventListener('keydown', onKeyDown);
@@ -92,6 +104,7 @@ export default function EpisodeQuickSelector({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       window.cancelAnimationFrame(frame);
+      trigger?.focus({ preventScroll: true });
     };
   }, [open]);
 
@@ -117,8 +130,8 @@ export default function EpisodeQuickSelector({
   };
 
   return (
-    <nav className="episode-quick-nav" aria-label="Быстрое переключение серий">
-      <button
+    <nav className={compact ? 'episode-quick-compact' : "episode-quick-nav"} aria-label="Быстрое переключение серий">
+      {!compact && <button
         type="button"
         className="episode-quick-nav__step episode-quick-nav__previous"
         disabled={!hasPrev}
@@ -128,23 +141,24 @@ export default function EpisodeQuickSelector({
         <span aria-hidden="true">←</span>
         <span className="episode-quick-nav__label-full">{prevLabel}</span>
         <span className="episode-quick-nav__label-compact" aria-hidden="true">Пред.</span>
-      </button>
+      </button>}
 
-      <div className="episode-quick-nav__center">
+      <div className={compact ? undefined : "episode-quick-nav__center"}>
         <button
           type="button"
-          className="episode-quick-nav__current"
+          ref={triggerRef}
+          className={compact ? 'episode-quick-compact__trigger' : "episode-quick-nav__current"}
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={() => setOpen(true)}
         >
-          <span className="episode-quick-nav__episode-index">Серия {currentEpisode}</span>
-          <small className="episode-quick-nav__episode-total">{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>
+          <span className="episode-quick-nav__episode-index">{compact ? 'Серии' : `Серия ${currentEpisode}`}</span>
+          {!compact && <small className="episode-quick-nav__episode-total">{safeTotal > 1 ? `из ${safeTotal}` : 'текущая'}</small>}
           <span className="episode-quick-nav__chevron" aria-hidden="true">⌄</span>
         </button>
       </div>
 
-      <button
+      {!compact && <button
         type="button"
         className="episode-quick-nav__step episode-quick-nav__next"
         disabled={!hasNext}
@@ -154,15 +168,15 @@ export default function EpisodeQuickSelector({
         <span className="episode-quick-nav__label-full">{nextLabel}</span>
         <span className="episode-quick-nav__label-compact" aria-hidden="true">След.</span>
         <span aria-hidden="true">→</span>
-      </button>
+      </button>}
 
-      <a
+      {!compact && <a
         className="episode-quick-nav__all"
         href="#episode-browser"
         onClick={openFullEpisodeBrowser}
       >
         Все серии
-      </a>
+      </a>}
 
       {open && (
         <>
@@ -174,6 +188,8 @@ export default function EpisodeQuickSelector({
           />
 
           <section
+            ref={sheetRef}
+            data-watch-dialog={compact ? 'true' : undefined}
             className="episode-quick-nav__sheet"
             role="dialog"
             aria-modal="true"
@@ -193,6 +209,10 @@ export default function EpisodeQuickSelector({
               </button>
             </header>
 
+            {compact && <div className="episode-quick-compact__steps">
+              <button type="button" disabled={!hasPrev} onClick={() => { setOpen(false); onPrevious(); }} aria-label={prevLabel}>← {prevLabel}</button>
+              <button type="button" disabled={!hasNext} onClick={() => { setOpen(false); onNext(); }} aria-label={nextLabel}>{nextLabel} →</button>
+            </div>}
             <div
               ref={gridRef}
               className="episode-quick-nav__grid"

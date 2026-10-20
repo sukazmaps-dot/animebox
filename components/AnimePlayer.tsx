@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '@/components/Icon';
+import WatchControls from '@/components/WatchControls';
 import { usePlayerFullscreen } from '@/hooks/usePlayerFullscreen';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import DirectVideoPlayer from '@/components/DirectVideoPlayer';
@@ -119,6 +120,7 @@ interface AnimePlayerProps {
   showEpisodeNavigation?: boolean;
   showEpisodeSelector?: boolean;
   watchTogetherMode?: boolean;
+  compactControls?: { identity: ReactNode; episodes: ReactNode; secondary: ReactNode };
 }
 
 type DropdownOption = {
@@ -422,6 +424,7 @@ export default function AnimePlayer({
   showEpisodeNavigation = true,
   showEpisodeSelector = true,
   watchTogetherMode = false,
+  compactControls,
 }: AnimePlayerProps) {
   const { user, loading: authLoading } = useAuthState();
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
@@ -2674,24 +2677,24 @@ export default function AnimePlayer({
                   </span>
                 </div>
 
-                <p className="premium-player-accent-text text-[10px] font-extrabold uppercase tracking-[0.22em] text-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)]">AnimeBox Player</p>
+                {!compactControls && <p className="premium-player-accent-text text-[10px] font-extrabold uppercase tracking-[0.22em] text-[color-mix(in_srgb,var(--ab-ui-accent)_70%,transparent)]">AnimeBox Player</p>}
                 <h2 className="mt-2 max-w-2xl text-xl font-black tracking-[-0.03em] drop-shadow-lg sm:text-2xl md:text-3xl">
                   {resumeSeconds > 0 ? 'Продолжить' : `Смотреть ${episodeNumber} серию`}
                 </h2>
-                <p className="mt-2 text-xs font-semibold text-white/55 sm:text-sm">
+                {(!compactControls || resumeSeconds > 0) && <p className="mt-2 text-xs font-semibold text-white/55 sm:text-sm">
                   {resumeSeconds > 0
                     ? `${resumeOrigin === 'server'
                         ? 'с другого устройства · '
                         : resumeOrigin === 'local_newer'
                           ? 'после последнего просмотра · '
-                          : ''}с ${Math.floor(resumeSeconds / 60)}:${String(resumeSeconds % 60).padStart(2, '0')} · ${currentTranslation?.title || sourceLabel(currentSource?.name)}`
+                          : ''}с ${Math.floor(resumeSeconds / 60)}:${String(resumeSeconds % 60).padStart(2, '0')}${compactControls ? '' : ` · ${currentTranslation?.title || sourceLabel(currentSource?.name)}`}`
                     : currentTranslation?.title || sourceLabel(currentSource?.name)}
-                </p>
+                </p>}
               </div>
 
-              <div className="animebox-player-provider-badge absolute bottom-4 left-4 px-3 py-1.5 text-[10px] font-extrabold">
+              {!compactControls && <div className="animebox-player-provider-badge absolute bottom-4 left-4 px-3 py-1.5 text-[10px] font-extrabold">
                 {sourceLabel(currentSource?.name)}
-              </div>
+              </div>}
             </button>
           ) : (
             <>
@@ -2929,7 +2932,25 @@ export default function AnimePlayer({
         </div>
       </div>
 
+      {compactControls && !watchTogetherMode && (
+        <WatchControls
+          identity={compactControls.identity}
+          episodes={compactControls.episodes}
+          secondary={compactControls.secondary}
+          translationLabel={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
+          translation={String(activeTranslationIndex)}
+          translations={translationOptions}
+          onTranslation={selectTranslation}
+          source={sourceMode === 'auto' ? 'auto' : String(activeSourceIndex)}
+          sources={sources.map((source, index) => ({ id: String(index), label: sourceLabel(source.name) }))}
+          onSource={(id) => id === 'auto' ? enableAutoSource() : selectSource(Number(id))}
+          quality={qualitySummary}
+          theater={theaterMode}
+          onTheater={() => setTheaterMode((current) => !current)}
+        />
+      )}
       {/* Premium header */}
+      {(!compactControls || watchTogetherMode) && (
       <div
         className={`${
           watchTogetherMode ? 'watch-together-player-header' : ''
@@ -3080,7 +3101,7 @@ export default function AnimePlayer({
           </div>
         </div>
       </div>
-
+      )}
 
         {sourceNotice && (
           <div
