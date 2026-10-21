@@ -104,7 +104,7 @@ const read = p => fs.readFileSync(p, 'utf8');
         await page.keyboard.press('Escape');
         await menu.focus();await page.keyboard.press('Enter');
         await page.getByRole('button',{name:'Библиотека',exact:true}).waitFor({state:'visible'});
-        await menu.click();
+        await page.getByRole('button',{name:'Закрыть настройки просмотра',exact:true}).click();
         if (!sparse) {
           await page.getByRole('button',{name:'Озвучка',exact:true}).click();
           await page.getByRole('option',{name:'Очень длинное название озвучки Crunchyroll.Subtitles',exact:true}).click();
