@@ -3573,8 +3573,12 @@ export default function WatchPartyPanel({
       <section className={`${styles.panel} ${styles.inlineCompact}`} aria-label="Watch Together">
         <div className={styles.inlineCompactInner}>
           <div className={styles.inlineCompactCopy}>
+            <span className={styles.inlineCompactIcon} aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M8 5.5v13l10-6.5-10-6.5Z" fill="currentColor" />
+              </svg>
+            </span>
             <strong>Смотреть вместе</strong>
-            <span>{episodeNumber} серия · приватная комната</span>
           </div>
           <button
             type="button"
