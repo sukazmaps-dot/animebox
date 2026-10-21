@@ -105,8 +105,6 @@ export default function AnimeNotificationControl({
   const [message, setMessage] = useState('');
   const terminalFinished = finished && !enabled;
 
-  // Finished titles have no future episode notifications; hide the disabled inline action.
-  if (inline && finished) return null;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -229,6 +227,9 @@ export default function AnimeNotificationControl({
       setBusy(false);
     }
   }
+
+  // Finished titles have no future episode notifications; hide the disabled inline action.
+  if (inline && finished) return null;
 
   if (compact) {
     const compactLabel = terminalFinished
