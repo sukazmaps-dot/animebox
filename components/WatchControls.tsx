@@ -57,7 +57,7 @@ function ChoiceSelect({ label, dataKey, value, options, onChange }: ChoiceSelect
       if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
       setOpen(false);
     };
-    const onDocumentKeyDown = (event: globalThis.KeyboardEvent) => {
+    const onDocumentKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setOpen(false);
       triggerRef.current?.focus({ preventScroll: true });
@@ -259,7 +259,7 @@ export default function WatchControls({
   const [mobile, setMobile] = useState(false);
   const [position, setPosition] = useState({ top: 80, left: 12, width: 320 });
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
   const panelId = useId();
 
   useEffect(() => {
