@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const episode = read('components/AnimeEpisodePage.tsx');
+const episodeList = read('components/EpisodeList.tsx');
+const watchControls = read('components/WatchControls.tsx');
 const quick = read('components/EpisodeQuickSelector.tsx');
 const comments = read('components/EpisodeComments.tsx');
 const library = read('components/LibraryStatusControl.tsx');
@@ -23,6 +25,13 @@ need('compact library', library, ['episode-library-compact','Статус ани
 need('library guest auth', library, ['useAuthState','useAuthModal',"intent: 'tracker'",'Чтобы пользоваться библиотекой','Войти / зарегистрироваться']);
 need('compact notifications', notifications, ['episode-notification-compact','Уведомлять о новых сериях']);
 need('compact watch together', watchParty, ["status === 'idle' && mode === 'inline'",'Создать комнату']);
+need('episode total heading', episode, ['episode-page__episodes-count','hideSelectedCount','isFinished={isFinishedAnime}']);
+need('episode list count guard', episodeList, ['hideSelectedCount = false','!hideSelectedCount &&']);
+need('custom player choice menus', watchControls, ['createPortal','role="listbox"','role="option"','data-choice-trigger','data-watch-settings-panel']);
+if (watchControls.includes('<select')) failures.push('native select remains in compact episode controls');
+need('portal tracker menu', library, ['createPortal','data-episode-library-menu','compactMenuRef','role="menu"']);
+need('finished notification suppression', notifications, ['if (inline && finished) return null;']);
+need('single-line room launcher', watchParty, ['inlineCompactIcon','Создать комнату']);
 if (smart.includes("return 'Длительность уточняется'")) failures.push('unknown duration filler remains');
 // Home 32 intentionally replaces duration with a compact year/format/score
 // line. Keep the no-filler guard above and require valid conditional metadata.
