@@ -15,9 +15,9 @@
 
 .episode-list__micro-heading {
   color: var(--ab-muted-2);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: .025em;
+  font-size: 12px;
+  font-weight: 680;
+  letter-spacing: .015em;
 }
 
 /* ---------------------------------------------------------
@@ -632,13 +632,13 @@
 .episode-library-compact__chevron { width:18px; height:18px; color:var(--ab-muted); transition:transform 150ms ease,color 150ms ease; }
 .episode-library-compact__trigger[aria-expanded='true'] .episode-library-compact__chevron { transform:rotate(180deg); color:var(--ab-ui-accent); }
 .episode-library-compact__menu { position:absolute; z-index:95; top:calc(100% + 7px); left:0; right:0; min-width:210px; padding:5px; overflow:hidden; border:1px solid color-mix(in srgb, var(--ab-ui-accent) 18%, transparent); border-radius:12px; background:color-mix(in srgb, var(--ab-ui-surface) 98.5%, transparent); box-shadow:0 20px 54px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.025); backdrop-filter:blur(18px); }
-.episode-library-compact__menu button { display:grid; width:100%; min-height:40px; grid-template-columns:25px minmax(0,1fr) 18px; align-items:center; gap:8px; padding:0 9px; border:0; border-radius:8px; background:transparent; color:var(--ab-muted); font:inherit; font-size:10px; font-weight:670; text-align:left; cursor:pointer; transition:background 130ms ease,color 130ms ease; }
+.episode-library-compact__menu button { display:grid; width:100%; min-height:44px; grid-template-columns:25px minmax(0,1fr) 18px; align-items:center; gap:8px; padding:4px 9px; border:0; border-radius:8px; background:transparent; color:var(--ab-muted); font:inherit; font-size:12px; font-weight:670; line-height:1.35; text-align:left; cursor:pointer; transition:background 130ms ease,color 130ms ease; }
 .episode-library-compact__menu button:hover { background:color-mix(in srgb, var(--ab-ui-accent) 8%, transparent); color:var(--ab-text); }
 .episode-library-compact__menu button.is-active { background:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-primary)) 12%,transparent); color:color-mix(in srgb,var(--anime-page-accent,var(--ab-ui-accent)) 54%,white 46%); }
 .episode-library-compact__menu button b { justify-self:end; color:var(--ab-ui-accent); font-size:11px; }
 .episode-library-compact__menu-icon { display:grid; width:25px; height:25px; place-items:center; border-radius:7px; background:rgba(255,255,255,.025); }
 .episode-library-compact__menu-icon img { width:16px; height:16px; object-fit:contain; }
-.episode-library-compact__remove { min-height:42px; padding:0 10px; border:1px solid color-mix(in srgb, var(--ab-ui-danger) 10%, transparent); border-radius:10px; background:color-mix(in srgb, var(--ab-ui-danger) 2.5%, transparent); color:var(--ab-ui-danger); font-size:9px; font-weight:650; cursor:pointer; transition:border-color 150ms ease,background 150ms ease,color 150ms ease; }
+.episode-library-compact__remove { min-height:44px; padding:0 10px; border:1px solid color-mix(in srgb, var(--ab-ui-danger) 10%, transparent); border-radius:10px; background:color-mix(in srgb, var(--ab-ui-danger) 2.5%, transparent); color:var(--ab-ui-danger); font-size:12px; font-weight:650; cursor:pointer; transition:border-color 150ms ease,background 150ms ease,color 150ms ease; }
 .episode-library-compact__remove:hover { border-color:color-mix(in srgb, var(--ab-ui-danger) 20%, transparent); background:color-mix(in srgb, var(--ab-ui-danger) 6.5%, transparent); color:var(--ab-ui-danger); }
 .episode-library-compact__remove.is-confirm { border-color:color-mix(in srgb, var(--ab-ui-danger) 28%, transparent); background:color-mix(in srgb, var(--ab-ui-danger) 10%, transparent); color:var(--ab-ui-danger); }
 .episode-library-compact__message,.episode-notification-compact__message { display:block; color:var(--ab-muted-2); font-size:9px; }
@@ -1273,3 +1273,31 @@
   }
 }
 
+/* Patch E1–E6: one legible episode heading and viewport-level menus. */
+.episode-page__episodes-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+.episode-page__episodes-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  color: var(--ab-ui-text);
+}
+.episode-page__episodes-count {
+  color: var(--ab-ui-muted);
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.35;
+}
+.episode-engagement-grid > .episode-library-compact:only-child {
+  grid-column: 1 / -1;
+}
+@media (max-width: 640px) {
+  .episode-page__episodes-header { margin-bottom: 12px; }
+  .episode-page__episodes-count { font-size: 12px; }
+}
