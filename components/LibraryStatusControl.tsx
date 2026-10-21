@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import quickStyles from './AnimeQuickActions.module.css';
 
 import { useAuthModal } from '@/components/AuthModalProvider';
@@ -43,6 +44,8 @@ export default function LibraryStatusControl({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const compactRootRef = useRef<HTMLElement | null>(null);
+  const compactMenuRef = useRef<HTMLDivElement | null>(null);
+  const [compactMenuPosition, setCompactMenuPosition] = useState({ top: 80, left: 12, width: 260, maxHeight: 320 });
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -56,21 +59,58 @@ export default function LibraryStatusControl({
   useEffect(() => {
     if (!compact || !statusMenuOpen) return;
 
+    const updatePosition = () => {
+      const trigger = compactRootRef.current?.querySelector<HTMLButtonElement>(
+        '.episode-library-compact__trigger',
+      );
+      const rect = trigger?.getBoundingClientRect();
+      if (!rect) return;
+
+      const width = Math.min(Math.max(rect.width, 250), window.innerWidth - 24);
+      const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+      const maxHeight = Math.min(360, window.innerHeight - 24);
+      const below = window.innerHeight - rect.bottom - 12;
+      const above = rect.top - 12;
+      const placeAbove = below < Math.min(220, maxHeight) && above > below;
+      const visibleHeight = Math.max(160, Math.min(maxHeight, placeAbove ? above : below));
+      const top = placeAbove
+        ? Math.max(12, rect.top - visibleHeight - 7)
+        : Math.min(rect.bottom + 7, window.innerHeight - 120);
+
+      setCompactMenuPosition({ top, left, width, maxHeight: visibleHeight });
+    };
+
     const onPointerDown = (event: PointerEvent) => {
-      const root = compactRootRef.current;
-      if (root && !root.contains(event.target as Node)) {
-        setStatusMenuOpen(false);
-      }
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (compactRootRef.current?.contains(target) || compactMenuRef.current?.contains(target)) return;
+      setStatusMenuOpen(false);
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setStatusMenuOpen(false);
+      if (event.key !== 'Escape') return;
+      setStatusMenuOpen(false);
+      compactRootRef.current?.querySelector<HTMLButtonElement>(
+        '.episode-library-compact__trigger',
+      )?.focus({ preventScroll: true });
     };
 
+    updatePosition();
+    const frame = window.requestAnimationFrame(() => {
+      const selected = compactMenuRef.current?.querySelector<HTMLElement>(
+        '[role="menuitemradio"][aria-checked="true"]',
+      );
+      (selected ?? compactMenuRef.current?.querySelector<HTMLElement>('button:not(:disabled)'))
+        ?.focus({ preventScroll: true });
+    });
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
-
     return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
@@ -226,6 +266,7 @@ export default function LibraryStatusControl({
 
   if (compact) {
     return (
+      <>
       <section
         ref={compactRootRef}
         className={`${inline ? quickStyles.library : ''} episode-library-compact`}
@@ -274,12 +315,51 @@ export default function LibraryStatusControl({
             </svg>
           </button>
 
-          {statusMenuOpen && (
-            <div
-              className="episode-library-compact__menu"
-              role="menu"
-              aria-label="Выбрать статус"
-            >
+
+        </div>
+
+        {message && (
+          <span className="episode-library-compact__message" role="status">{message}</span>
+        )}
+      </section>
+      {statusMenuOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={compactMenuRef}
+          className="episode-library-compact__menu"
+          role="menu"
+          aria-label="Выбрать статус"
+          data-episode-library-menu
+          style={{
+            position: 'fixed',
+            top: compactMenuPosition.top,
+            left: compactMenuPosition.left,
+            right: 'auto',
+            width: compactMenuPosition.width,
+            minWidth: Math.min(250, window.innerWidth - 24),
+            maxHeight: compactMenuPosition.maxHeight,
+            overflowY: 'auto',
+            zIndex: 10050,
+          }}
+          onKeyDown={(event) => {
+            const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+            const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              setStatusMenuOpen(false);
+              compactRootRef.current?.querySelector<HTMLButtonElement>(
+                '.episode-library-compact__trigger',
+              )?.focus({ preventScroll: true });
+            } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault();
+              const nextIndex = Math.max(0, Math.min(items.length - 1, (currentIndex < 0 ? 0 : currentIndex) + (event.key === 'ArrowDown' ? 1 : -1)));
+              items[nextIndex]?.focus({ preventScroll: true });
+            } else if (event.key === 'Home' || event.key === 'End') {
+              event.preventDefault();
+              items[event.key === 'Home' ? 0 : items.length - 1]?.focus({ preventScroll: true });
+            }
+          }}
+        >
               {Object.entries(statusLabels).map(([value, label]) => {
                 const typedValue = value as LibraryStatus;
                 const active = status === typedValue;
@@ -330,15 +410,10 @@ export default function LibraryStatusControl({
                   </span>
                 </button>
               )}
-            </div>
-          )}
-        </div>
-
-        {message && (
-          <span className="episode-library-compact__message" role="status">{message}</span>
-        )}
-      </section>
-    );
+        </div>,
+        document.body,
+      )}
+      </>);
   }
 
   if (guest) {
