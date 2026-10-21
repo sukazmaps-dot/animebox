@@ -134,7 +134,7 @@ export default function AnimeNotificationControl({
         setAuthenticated(true);
         setTelegramLinked(Boolean(data.telegramLinked));
         setTelegramReady(Boolean(data.telegramReady));
-        setFinished(Boolean(data.animeFinished ?? isFinished));
+        setFinished(Boolean(data.animeFinished ?? isFinished) || isFinished);
         setEnabled(Boolean(data.enabled));
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
