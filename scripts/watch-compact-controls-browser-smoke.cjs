@@ -63,26 +63,25 @@ const read = p => fs.readFileSync(p, 'utf8');
           window.originalFrame=document.querySelector('#video');window.originalWindow=originalFrame.contentWindow;window.frameLoads=0;
           originalFrame.addEventListener('load',()=>window.frameLoads++);
         });
-        const menu = page.getByLabel('Ещё настройки просмотра');
+        const menu = page.getByRole('button',{name:'Источник и качество'});
         const episodes = page.locator('.episode-quick-compact__trigger');
         const layout = await page.evaluate(() => {
-          const nodes=[document.querySelector('.episode-quick-compact__trigger'), document.querySelector('[aria-label="Ещё настройки просмотра"]')];
+          const nodes=[document.querySelector('.episode-quick-compact__trigger'), document.querySelector('[data-watch-settings-trigger]')];
           const rect=node=>{const r=node.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}};
           const toolbar=nodes[0].closest('nav').parentElement;
           const slots=[...toolbar.children].slice(0,3).map(rect);
-          const select=document.querySelector('select[aria-label="Озвучка"]');
-          const label=select?.closest('label');
+          const voice=document.querySelector('[data-choice-trigger="translation"]');
           const arrow=document.querySelector('.episode-quick-compact__chevron');
           return {
             overflow:document.documentElement.scrollWidth>innerWidth,
             rects:nodes.map(rect),slots,episodeArrow:rect(arrow),
-            nativeAppearance:select?getComputedStyle(select).appearance:null,
-            selectPadding:select?parseFloat(getComputedStyle(select).paddingRight):null,
-            customArrow:label?getComputedStyle(label,'::after').borderBottomWidth:null,
-            settingsVisible:document.querySelector('select[aria-label="Источник видео"]').checkVisibility()
+            voiceRect:voice?rect(voice):null,
+            nativeSelectCount:document.querySelectorAll('select').length,
+            settingsVisible:Boolean(document.querySelector('[data-watch-settings-panel]')?.checkVisibility())
           };
         });
         assert(!layout.overflow);assert(!layout.settingsVisible);assert.equal(layout.rects[0].y,layout.rects[1].y);
+        assert.equal(layout.nativeSelectCount,0,'compact watch controls must not render native select dropdowns');
         for (const [i,slot] of layout.slots.entries()) {
           assert(slot.w>=44&&slot.h>=48, 'touch target too small '+width+'/'+sparse+'/'+i);
           if (i>0) assert(slot.x-layout.slots[i-1].right>=5, 'watch toolbar controls touch '+width+'/'+sparse+'/'+i);
@@ -91,21 +90,25 @@ const read = p => fs.readFileSync(p, 'utf8');
         assert(layout.episodeArrow.x>layout.rects[0].x+14&&layout.episodeArrow.right<layout.rects[0].right,
           'episode chevron must remain inside its button '+width+'/'+sparse);
         if (!sparse) {
-          assert.equal(layout.nativeAppearance,'none','native select arrow must be disabled on mobile '+width);
-          assert(layout.selectPadding>=30,'translation text needs a reserved chevron area '+width);
-          assert(parseFloat(layout.customArrow)>0,'translation must have a custom chevron '+width);
+          assert(layout.voiceRect && layout.voiceRect.w>=44 && layout.voiceRect.h>=48,
+            'custom voice picker must remain a full-size button '+width);
         }
         const identitySpacing=await page.locator('[data-watch-controls] .episode-page__identity-compact').evaluate(node=>({marginTop:getComputedStyle(node).marginTop,paddingTop:getComputedStyle(node).paddingTop}));
         assert.deepEqual(identitySpacing,{marginTop:'0px',paddingTop:'0px'},'compact identity must not inherit legacy page spacing');
         assert(layout.rects.every(r=>r.w>=44&&r.h>=44));
         await menu.click();
-        await page.getByLabel('Источник видео').selectOption('0');
-        await page.getByLabel('Источник видео').selectOption('auto');
+        await page.getByRole('button',{name:'Источник видео',exact:true}).click();
+        await page.getByRole('option',{name:'Kodik',exact:true}).click();
+        await page.getByRole('button',{name:'Источник видео',exact:true}).click();
+        await page.getByRole('option',{name:'Авто',exact:true}).click();
         await page.keyboard.press('Escape');
         await menu.focus();await page.keyboard.press('Enter');
         await page.getByRole('button',{name:'Библиотека',exact:true}).waitFor({state:'visible'});
-        await menu.click();
-        if (!sparse) await page.getByLabel('Озвучка',{exact:true}).selectOption('1');
+        await page.getByRole('button',{name:'Закрыть настройки просмотра',exact:true}).click();
+        if (!sparse) {
+          await page.getByRole('button',{name:'Озвучка',exact:true}).click();
+          await page.getByRole('option',{name:'Очень длинное название озвучки Crunchyroll.Subtitles',exact:true}).click();
+        }
         const before = await page.evaluate(()=>scrollY);
         await episodes.click();
         const dialog=page.getByRole('dialog',{name:'Выбор серии'});

@@ -105,6 +105,7 @@ export default function AnimeNotificationControl({
   const [message, setMessage] = useState('');
   const terminalFinished = finished && !enabled;
 
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -133,7 +134,7 @@ export default function AnimeNotificationControl({
         setAuthenticated(true);
         setTelegramLinked(Boolean(data.telegramLinked));
         setTelegramReady(Boolean(data.telegramReady));
-        setFinished(Boolean(data.animeFinished ?? isFinished));
+        setFinished(Boolean(data.animeFinished ?? isFinished) || isFinished);
         setEnabled(Boolean(data.enabled));
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
@@ -226,6 +227,9 @@ export default function AnimeNotificationControl({
       setBusy(false);
     }
   }
+
+  // Finished titles have no future episode notifications; hide the disabled inline action.
+  if (inline && finished) return null;
 
   if (compact) {
     const compactLabel = terminalFinished

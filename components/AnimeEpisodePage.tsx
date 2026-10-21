@@ -140,6 +140,10 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
     anime?.episodes && anime.episodes > 0,
   );
 
+  const isFinishedAnime =
+    anime.status?.trim().toUpperCase() === 'FINISHED' ||
+    Boolean(anime.episodes && anime.episodesAired && anime.episodesAired >= anime.episodes);
+
   const episodeNumber = useMemo(() => {
     if (!Number.isSafeInteger(requestedEpisode) || requestedEpisode < 1) {
       return 1;
@@ -1670,6 +1674,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
                   animeSlug={anime.slug || String(anime.id)}
                   animeTitle={title}
                   episodesAired={anime.episodesAired || 0}
+                  isFinished={isFinishedAnime}
                   variant="inline"
                 />
               </section>
@@ -1707,16 +1712,15 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
         className="detail__section detail__episodes"
         id="episode-browser"
       >
-        <div className="detail__section-header">
-          <h2>Эпизоды</h2>
-
-          {availableEpisodes && (
-            <span>
-              {totalEpisodesKnown
-                ? `${availableEpisodes} эпизодов`
-                : `Вышло ${availableEpisodes} эпизодов`}
-            </span>
-          )}
+        <div className="detail__section-header episode-page__episodes-header">
+          <h2 className="episode-page__episodes-title">
+            Эпизоды
+            {availableEpisodes != null && availableEpisodes > 0 && (
+              <span className="episode-page__episodes-count">
+                · {totalEpisodesKnown ? availableEpisodes : `вышло ${availableEpisodes}`}
+              </span>
+            )}
+          </h2>
         </div>
 
         <EpisodeList
@@ -1725,6 +1729,7 @@ export default function AnimeEpisodePage({ anime, requestedEpisode, theaterMode 
           episodes={availableEpisodes}
           episodesAired={anime.episodesAired}
           totalEpisodesKnown={totalEpisodesKnown}
+          hideSelectedCount
           currentEpisode={episodeNumber}
           watchedUpTo={watchedUpTo}
         />
