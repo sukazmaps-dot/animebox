@@ -40,6 +40,7 @@ interface EpisodeListProps {
   episodes?: number | null;
   episodesAired?: number | null;
   totalEpisodesKnown?: boolean;
+  hideSelectedCount?: boolean;
   currentEpisode?: number;
   watchedUpTo?: number;
   variant?: 'default' | 'cinematic';
@@ -68,6 +69,7 @@ export default function EpisodeList({
   episodes,
   episodesAired,
   totalEpisodesKnown = true,
+  hideSelectedCount = false,
   currentEpisode,
   watchedUpTo = 0,
   variant = 'default',
@@ -552,7 +554,7 @@ export default function EpisodeList({
             </span>
 
             {seasonData.partial && (
-              <span className="text-[10px] text-amber-200/55">
+              <span className="text-xs text-amber-200/65">
                 часть связей загружается
               </span>
             )}
@@ -730,9 +732,9 @@ export default function EpisodeList({
         <>
           <div className="episode-list__toolbar">
             <div className="episode-list__meta">
-              {selectedIsCurrent && !totalEpisodesKnown
+              {!hideSelectedCount && (selectedIsCurrent && !totalEpisodesKnown
                 ? `Вышло ${selectedCount} эпизодов`
-                : `${selectedCount} эпизодов`}
+                : `${selectedCount} эпизодов`)}
 
               {activeSeason && (
                 <span className="ml-2 text-white/35">
