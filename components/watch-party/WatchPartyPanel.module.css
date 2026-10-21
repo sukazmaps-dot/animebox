@@ -2177,12 +2177,13 @@
   .inlineCompactCopy { gap: 7px; }
   .inlineCompactCopy strong { font-size: 13px; }
   .inlineCompactIcon { width: 28px; height: 28px; flex-basis: 28px; }
-  .inlineCompact .primary { width: auto; min-height: 44px; padding-inline: 10px; font-size: 12px; }
+  .inlineCompact .primary { width: auto; min-height: 44px; padding-inline: 10px; font-size: 14px; }
 }
 @media (max-width: 360px) {
   .inlineCompactCopy { gap: 5px; }
   .inlineCompactCopy strong { font-size: 12px; }
-  .inlineCompact .primary { padding-inline: 8px; font-size: 11px; }
+  .inlineCompactIcon { display: none !important; }
+  .inlineCompact .primary { padding-inline: 8px; font-size: 14px; }
 }
 
 
