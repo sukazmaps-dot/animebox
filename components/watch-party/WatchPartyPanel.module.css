@@ -2115,31 +2115,74 @@
   }
 }
 
-/* Patch 18.6.6 — compact inline launcher */
+/* Patch E1–E6 — clear, single-line inline room launcher */
 .inlineCompact {
-  margin-top: 10px;
+  margin-top: 8px;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--ab-ui-surface) 82%, transparent);
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 14%, var(--ab-ui-border));
+  background: color-mix(in srgb, var(--ab-ui-surface) 88%, transparent);
   box-shadow: none;
 }
 .inlineCompact::before { display: none; }
 .inlineCompactInner {
   display: flex;
-  min-height: 58px;
+  min-width: 0;
+  min-height: 60px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
 }
-.inlineCompactCopy { min-width: 0; }
-.inlineCompactCopy strong,
-.inlineCompactCopy span { display: block; }
-.inlineCompactCopy strong { color: var(--ab-ui-text); font-size: 12px; font-weight: 820; }
-.inlineCompactCopy span { margin-top: 2px; color: var(--ab-ui-text); font-size: 9px; }
-.inlineCompact .primary { min-height: 38px; flex: 0 0 auto; box-shadow: none; }
+.inlineCompactCopy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+.inlineCompactCopy strong {
+  display: block;
+  min-width: 0;
+  color: var(--ab-ui-text);
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 780;
+  white-space: nowrap;
+}
+.inlineCompactIcon {
+  display: grid !important;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 22%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ab-ui-accent) 9%, transparent);
+  color: var(--ab-ui-accent);
+}
+.inlineCompactIcon svg { width: 16px; height: 16px; }
+.inlineCompact .primary {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: none;
+}
 @media (max-width: 620px) {
-  .inlineCompactInner { align-items: stretch; flex-direction: column; }
-  .inlineCompact .primary { width: 100%; }
+  .inlineCompactInner { flex-direction: row; align-items: center; gap: 8px; padding: 8px; }
+  .inlineCompactCopy { gap: 7px; }
+  .inlineCompactCopy strong { font-size: 13px; }
+  .inlineCompactIcon { width: 28px; height: 28px; flex-basis: 28px; }
+  .inlineCompact .primary { width: auto; min-height: 44px; padding-inline: 10px; font-size: 12px; }
+}
+@media (max-width: 360px) {
+  .inlineCompactCopy { gap: 5px; }
+  .inlineCompactCopy strong { font-size: 12px; }
+  .inlineCompact .primary { padding-inline: 8px; font-size: 11px; }
 }
 
 
