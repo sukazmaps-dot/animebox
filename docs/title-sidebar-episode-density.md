@@ -1,17 +1,21 @@
-# Title sidebar and episode controls density
+# Компактная боковая панель тайтла и элементы выбора эпизода
 
-## User-facing result
+## Результат для пользователя
 
-The title page no longer requires a tab click to reveal episodes. At desktop widths its 260px sidebar contains the poster, metadata, watch/resume, favorites/tracker, personal controls and Watch Together link. The main column contains the title, normalized genre links, readable synopsis, episodes, collapsible franchise, discussion and related titles. On phones the small poster remains beside the title and subsequent sections form one continuous page.
+На странице тайтла больше не нужно нажимать вкладку, чтобы открыть список эпизодов. На десктопе боковая панель шириной 260px содержит постер, метаданные, кнопки просмотра/продолжения, избранное и трекер, персональные действия и ссылку Watch Together. В основной колонке находятся название, нормализованные ссылки жанров, читаемое описание, эпизоды, сворачиваемая информация о франшизе, обсуждение и связанные тайтлы. На телефонах небольшой постер остаётся рядом с названием, а следующие разделы образуют единую непрерывную страницу.
 
-Synopsis is 16px/1.6. Only text longer than 1100 characters or more than three paragraphs collapses; ordinary descriptions render fully. Russian/English genre duplicates are normalized. Guest personal state is one login link; authenticated library/rating controls retain their existing save, clear, error and loading flows. Desktop topbar is 56px on the title route.
+Описание отображается шрифтом 16px с межстрочным интервалом 1.6. Сворачивается только текст длиннее 1100 символов или более чем из трёх абзацев; обычные описания полностью видны. Дубликаты жанров на русском и английском объединяются. Для гостя персональные действия представлены одной ссылкой на вход; у вошедшего пользователя сохраняются существующие сценарии сохранения, очистки, ошибки и загрузки для библиотеки/оценки. Верхняя панель десктопа на маршруте тайтла имеет высоту 56px.
 
-The episode page uses 44px source/mode buttons and 48px episode/translation selects with readable graphite surfaces and a purple active source. New inline library/notification variants preserve existing actions, menus, settings, messages and authentication. Progress percentage calculation/events remain unchanged; display is a 4px bar with a native details help control. Progress is directly below the player, personal actions precede Watch Together. Mobile season cards use short visible labels plus metadata and retain full title in accessible labels/tooltips, with a visible neighboring card and no swipe instruction.
+На странице эпизода используются кнопки источника/режима высотой 44px и списки выбора эпизода/перевода высотой 48px, с читаемыми графитовыми поверхностями и фиолетовым выделением активного источника. Новые встроенные варианты библиотеки/уведомлений сохраняют существующие действия, меню, настройки, сообщения и авторизацию. Расчёт процента прогресса и события не меняются; визуально это полоса высотой 4px с нативным управлением подробностями. Прогресс расположен сразу под плеером, персональные действия — перед Watch Together. На мобильных карточки сезонов используют короткие видимые подписи с метаданными, но полное название остаётся в доступных подписях и подсказках; рядом видна соседняя карточка и не требуется инструкция о свайпе.
 
-## Verification
+## Проверка
 
-Local browser fixtures use actual React components and route CSS, replacing only server title data and external API responses. No fixture/config changes are part of the patch. Title checks passed at 360/390/768/1440/1920px: no horizontal page overflow, no content tabs, episodes visible, 16px synopsis, ordinary description fully displayed, poster dimensions preserved. Episode checks at 390px passed: sources and mode buttons >=44px, selects 48px, 44x44 mode controls, inline library/notification labels, 4px progress and no page errors. Screenshots inspected.
+Локальные браузерные фикстуры используют реальные React-компоненты и CSS маршрута; заменяются только серверные данные тайтла и ответы внешнего API. Изменения фикстур/конфигурации не входят в патч.
 
-Turbopack's local development cache failed during QA; Webpack also encountered pre-existing non-pure CSS module selectors. A fresh temporary Turbopack output directory completed the checks. Production config and tsconfig are restored. Real provider playback, logged-in mutations and Telegram WebView are not exercised by these fixtures.
+Проверки страницы тайтла прошли на ширинах 360/390/768/1440/1920px: нет горизонтальной прокрутки страницы, вкладок контента, эпизоды видны, описание 16px, обычный текст не обрезается, размеры постера сохранены. Проверки страницы эпизода на 390px прошли: кнопки источника и режима не меньше 44px, списки выбора — 48px, кнопки режима — 44×44, подписи встроенной библиотеки/уведомлений видны, прогресс — 4px, ошибок страницы нет. Скриншоты проверены.
 
-Release: require TypeScript, targeted lint, full prebuild/production build and GitHub Quality Gate; verify published title and episode pages after Railway SUCCESS. No database migration or new production dependency.
+Локальный кеш разработки Turbopack дал сбой во время QA; Webpack также столкнулся с существовавшими ранее непустыми селекторами CSS Modules. Проверки завершились на свежем временном каталоге вывода Turbopack. Production-конфигурация и tsconfig восстановлены. Реальное воспроизведение у провайдера, действия авторизованного пользователя и Telegram WebView этими фикстурами не проверялись.
+
+## Выпуск
+
+Перед выпуском требуются TypeScript, целевой lint, полный prebuild/production build и GitHub Quality Gate. После успешного деплоя Railway проверьте опубликованные страницы тайтла и эпизода. Миграция БД и новые production-зависимости не нужны.
