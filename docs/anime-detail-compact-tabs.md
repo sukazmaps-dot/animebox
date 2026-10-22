@@ -1,34 +1,34 @@
-# Compact anime detail page
+# Компактная страница аниме
 
-The mobile detail page previously used a full-height poster hero, a separate metadata passport, tall rating panels and a continuous list of episodes/franchise links. A title such as Gurren Lagann required several screens before reaching useful controls.
+Раньше мобильная страница тайтла использовала полноразмерный постер в Hero, отдельный блок метаданных, высокие панели оценки и непрерывный список эпизодов/ссылок франшизы. До полезных элементов управления у тайтла вроде Gurren Lagann приходилось прокручивать несколько экранов.
 
-## Result
+## Результат
 
-- Mobile poster is 112×168 with its own rounded frame; title sits beside it. Desktop keeps the existing two-column hero.
-- Valid AniList cover color supplies a restrained background tint; the existing banner is blurred at low opacity. No canvas extraction or new image request pipeline.
-- Release, format, episode count, status and AniList rating appear once as wrapping chips. Watch/resume keeps the existing availability and progress logic and is above the tabs on the first screen for typical titles.
-- Info, Episodes and Parts, Discussion, and Related tabs use arrow/Home/End navigation, associated panels and roving focus. Server content remains in the DOM; switching preserves client state.
-- Full synopsis remains rendered; the default view clamps to four lines with an accessible expand button. Alternate titles use native details.
-- Library and community rating share a compact panel. All ten score buttons and save/error/login states remain available.
-- Mobile episode links form a five-column grid with watched/current/progress states and accessible episode labels. Franchise cards use smaller thumbnails.
-- Styles stay in CSS modules, with dark/light variants. No schema or API changes.
+- Мобильный постер имеет размер 112×168 и собственную скруглённую рамку; рядом располагается название. На десктопе сохраняется прежний двухколоночный Hero.
+- Валидный цвет обложки AniList задаёт сдержанный оттенок фона; существующий баннер размыт с низкой непрозрачностью. Извлечение цвета через canvas и новый конвейер запросов изображений не добавляются.
+- Дата выхода, формат, число эпизодов, статус и оценка AniList показаны один раз в переносимых чипах. Просмотр/продолжение сохраняет существующую логику доступности и прогресса и располагается выше вкладок на первом экране у типичных тайтлов.
+- Вкладки «Информация», «Эпизоды и части», «Обсуждение» и «Похожие» поддерживают клавиши стрелок/Home/End, связанные панели и перемещаемый клавиатурный фокус. Серверный контент остаётся в DOM; переключение сохраняет состояние клиента.
+- Полное описание остаётся в DOM; по умолчанию оно ограничено четырьмя строками с доступной кнопкой раскрытия. Альтернативные названия используют нативный details.
+- Библиотека и оценка сообщества объединены в компактную панель. Все десять кнопок оценки и состояния сохранения/ошибки/входа остаются доступны.
+- На мобильном ссылки эпизодов расположены в сетке из пяти колонок с состояниями просмотрено/текущий/прогресс и доступными подписями. Карточки франшизы используют меньшие миниатюры.
+- Стили остаются в CSS Modules с вариантами светлой/тёмной темы. Схема БД и API не меняются.
 
-## Validation
+## Проверка
 
-Local full `npm run build` (all existing prebuild gates), `tsc --noEmit`, targeted ESLint and `git diff --check` passed. The pre-existing raw-banner img lint warning remains.
+Локальные полный `npm run build` (все существующие prebuild-проверки), `tsc --noEmit`, целевой ESLint и `git diff --check` прошли. Существующее предупреждение lint о raw-banner img осталось.
 
-DOM interaction checks passed: one visible panel, arrow and End focus, preserved input/description state, expand/collapse, full synopsis text, and no toggle for short descriptions.
+Проверки взаимодействий DOM прошли: видна одна панель, работают фокус стрелками/End, сохраняются состояние ввода и описание, раскрытие/сворачивание, полный текст описания и отсутствие переключателя у коротких описаний.
 
-Browser screenshots and real Android/Telegram testing are still required. Local provider requests received AniList 403; Chromium download was blocked/truncated in this environment. These are not reported as successful visual QA.
+Браузерные скриншоты и реальные тесты Android/Telegram ещё требуются. Локальные запросы к провайдеру получили AniList 403; загрузка Chromium была заблокирована/оборвана в этой среде. Эти этапы не заявляются как успешно пройденный визуальный QA.
 
-## Release check
+## Проверка перед выпуском
 
-At 360/390/430/768/1440/1920 px, verify no horizontal page overflow, title/poster balance, visible first-screen watch button, long RU names, all ten ratings, episode selection/progress, panel keyboard navigation, light theme and copyright-restricted titles. No migration needed.
+При 360/390/430/768/1440/1920px проверить отсутствие горизонтального переполнения, баланс названия/постера, видимую кнопку просмотра на первом экране, длинные русские названия, все десять оценок, выбор эпизода/прогресс, клавиатурную навигацию вкладок, светлую тему и тайтлы с ограничениями правообладателей. Миграция не нужна.
 
-## Episode tile cascade hotfix
+## Исправление каскада плиток эпизодов
 
-Mobile screenshots exposed the legacy `.episode-list .episode-list__copy { display: flex !important; }` replay winning over the new normal `display: none`. Legacy row sizing/positioning also remained on number/status children.
+На мобильных скриншотах старое правило `.episode-list .episode-list__copy { display: flex !important; }` переопределяло новое обычное `display: none`. Унаследованные размеры и позиционирование также сохранялись у элементов номера/статуса.
 
-The tile scope now explicitly owns all states: one centered number, hidden copy/marker, fixed 48px border-box cell, absolute progress/check indicators and consistent borders. The scroller fits six complete rows (326px including gaps/padding). Season titles have a two-line 1.4 line-height slot instead of a single truncated label; contrast is raised in both themes.
+Теперь область плиток явно задаёт все состояния: один центрированный номер, скрытые описание/маркер, фиксированная ячейка 48px с box-sizing border-box, абсолютно размещённые индикаторы прогресса/галочки и единообразные рамки. Список помещает шесть полных строк (326px вместе с промежутками/отступами). Названия сезонов получили место под две строки с line-height 1.4 вместо единственной обрезанной подписи; контраст повышен в обеих темах.
 
-Browser fixture QA with the real CSS cascade reproduced the original duplicate copy (`display:flex`). The corrected cascade passed at 360/390/430/767px, even with legacy CSS loaded after the module: no page overflow, equal cell heights, centered unclipped numbers, hidden duplicate labels and adequate season-title height. At 768/1440px desktop labels remain visible. Current, partial, watched and untouched states are covered; a 390px screenshot was inspected. This validates the CSS fixture rather than authenticated live playback.
+Браузерная QA-фикстура с реальным CSS-каскадом воспроизвела исходную проблему (display:flex у дублирующего описания). Исправленный каскад прошёл при 360/390/430/767px даже при загрузке legacy CSS после модуля: без переполнения страницы, с одинаковой высотой ячеек, центрированными необрезанными номерами, скрытыми дублями подписей и достаточной высотой названий сезонов. На 768/1440px десктопные подписи остаются видны. Проверены текущий, частичный, просмотренный и нетронутый статус; скриншот 390px просмотрен. Это подтверждает CSS-фикстуру, а не воспроизведение после авторизации на живом сайте.
