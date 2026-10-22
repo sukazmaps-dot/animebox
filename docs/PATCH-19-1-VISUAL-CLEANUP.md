@@ -1,15 +1,15 @@
-# Patch 19.1 — Podium repair & notification visual refresh
+# Патч 19.1 — исправление пьедестала и обновление уведомлений
 
-## Fixed
+## Исправлено
 
-- Supporter podium now adapts to one, two, or three public supporters.
-- A single rank #1 card is centered and presented as a hero card instead of being trapped in the middle column of a three-column grid.
-- Two-entry podiums use a balanced two-column layout.
-- Mobile podium behavior remains single-column and rank #1 stays first.
-- Notification empty states no longer use the legacy raster `empty-notifications.webp` artwork.
-- Empty states now use the AnimeBox vector notification mark with CSS-only atmosphere, so they remain sharp on high-DPI, 2K, and 4K displays.
-- No database changes are required.
+- Пьедестал поддержки адаптируется под одного, двух или трёх публичных сторонников.
+- Если участник один, карточка ранга №1 располагается по центру как главная карточка, а не застревает в средней колонке сетки из трёх колонок.
+- Для двух участников используется сбалансированная компоновка из двух колонок.
+- На мобильных пьедестал остаётся одноколоночным, участник ранга №1 показывается первым.
+- Пустые состояния уведомлений больше не используют устаревшую растровую иллюстрацию empty-notifications.webp.
+- Вместо неё используется векторный знак уведомлений AnimeBox с атмосферой, созданной только средствами CSS, поэтому он остаётся чётким на дисплеях с высокой плотностью пикселей, 2K и 4K.
+- Изменения базы данных не требуются.
 
-## Base
+## Основа
 
-Designed as an overlay on top of the current AnimeBox tree / Patch 19.0.
+Патч задуман как слой поверх текущего дерева AnimeBox / патча 19.0.
