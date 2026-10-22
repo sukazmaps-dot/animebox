@@ -1,20 +1,23 @@
-# Patch 31.1 — integration of unsquashed 30.1 + 30.8
+# Патч 31.1 — объединение изменений 30.1 и 30.8 без squash
 
-Target: `main` at 013ef7e (Patch 30.9). Isolated integration branch, no database migration.
+Цель: `main` на коммите `013ef7e` (патч 30.9). Изолированная интеграционная ветка; миграция БД не требуется.
 
-## Conflict decisions
-1. Carry Patch 30.8 curated mobileHeroImage and mobileHeroPosition, responsive <picture>, full-bleed artwork and lower scrim, desktop banner, Continue Watching CSS, regressions.
-2. Reapply Patch 30.1 home mood picker, keyboard roving tabindex, independent mood tiles, desktop cinematic content/summary and compact recommendation action footer.
-3. Scope Patch 30.1 hero geometry to desktop min-width 769px to avoid overriding 30.8 mobile height, image position and text contrast. Hide optional long synopsis/eyebrow on mobile to preserve space for title/actions.
-4. Preserve existing AnimeIntentLink prefetch on intent (30.7) in SmartRecommendationCard: do not replace whole component with stale PR #230 version.
-5. Preserve Patch 30.9 profile media and existing package/prebuild requirements. Merge Patch 30.8 tests into current package/CI rather than restoring its old package.json.
-6. Combined hydration fixture includes carousel, Continue Watching, mood radios and recommendation cards. Existing homepage browser script exercises mobile full bleed, focal point, theme contrast, carousel/pagination, keyboard navigation, recommendation dialog/actions, and post-failure image recovery.
+## Решения по конфликтам
 
-## Validation
+1. Сохранить из патча 30.8 поля `mobileHeroImage` и `mobileHeroPosition`, адаптивную подачу через `<picture>`, полноэкранный арт, нижний градиентный слой, десктопный баннер, CSS для «Продолжить просмотр» и регрессионные проверки.
+2. Повторно применить из патча 30.1 выбор настроения на главной, клавиатурную навигацию через roving tabindex, независимые плитки настроения, кинематографичные десктопные материалы/описание и компактный нижний блок действий рекомендаций.
+3. Ограничить геометрию Hero из патча 30.1 десктопом от 769px, чтобы не переопределить мобильную высоту, позицию изображения и контраст текста из 30.8. На мобильных скрывать необязательное длинное описание и надзаголовок, сохраняя место для названия и действий.
+4. Сохранить существующий prefetch `AnimeIntentLink` по намерению пользователя в `SmartRecommendationCard` (патч 30.7); не заменять весь компонент устаревшей версией из PR #230.
+5. Сохранить медиа профиля из патча 30.9 и существующие требования `package/prebuild`. Объединить тесты 30.8 с актуальными package/CI-настройками, а не восстанавливать старый `package.json`.
+6. Общая фикстура гидратации включает карусель, «Продолжить просмотр», переключатели настроения и карточки рекомендаций. Существующий браузерный скрипт главной проверяет мобильный полноэкранный арт, фокусную точку, контраст темы, карусель/пагинацию, клавиатурную навигацию, диалог/действия рекомендаций и восстановление изображения после ошибки.
+
+## Проверки
+
 - `npm run patch31-1:check`, `npm run patch30-8:check`, `npm run patch30-7:check`.
-- Full `npm run prebuild`, TypeScript, eslint, production build via Quality Gate.
-- Browser matrix: 320–3840px, light/dark, artwork fallback, keyboard/feedback, cards, Continue Watching.
-- No auth, payments, Watch Together API, Premium editor or Supabase migration touched.
+- Полные `npm run prebuild`, TypeScript, ESLint и production build через Quality Gate.
+- Браузерная матрица: 320–3840px, светлая/тёмная тема, резервное изображение, клавиатура/обратная связь, карточки и «Продолжить просмотр».
+- Не затрагиваются авторизация, платежи, API Watch Together, редактор Premium или миграции Supabase.
 
-## Reversal
-Revert PR after explicit release approval. Do not merge old PR #230/#239 afterward: this integration supersedes their overlapping changes, pending verified tests.
+## Откат
+
+Откатывать PR только после явного согласования выпуска. Не сливать после этого старые PR #230/#239: эта интеграция заменяет их пересекающиеся изменения, если проверки пройдены.
