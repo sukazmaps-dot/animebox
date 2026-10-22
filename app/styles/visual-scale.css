@@ -1,0 +1,332 @@
+/* =========================================================
+   AnimeBox Patch 12.4.2 — Visual Scale Normalization
+   Three sizes only: compact / standard / feature.
+   ========================================================= */
+
+:root {
+  --ab-ui-control-sm: 36px;
+  --ab-ui-control-md: 42px;
+  --ab-ui-control-lg: 48px;
+
+  --ab-ui-pad-sm: 10px;
+  --ab-ui-pad-md: 14px;
+  --ab-ui-pad-lg: 18px;
+
+  --ab-ui-radius-sm: 10px;
+  --ab-ui-radius-md: 14px;
+  --ab-ui-radius-lg: 18px;
+
+  --ab-ui-gap-sm: 8px;
+  --ab-ui-gap-md: 12px;
+  --ab-ui-gap-lg: 18px;
+
+  --ab-ui-section-mobile: 24px;
+  --ab-ui-section-desktop: 28px;
+
+  --ab-ui-meta-size: 9px;
+  --ab-ui-body-size: 11.5px;
+  --ab-ui-card-title: 13px;
+  --ab-ui-section-title: 18px;
+}
+
+/* -------------------------
+   Standard card geometry
+   ------------------------- */
+
+:where(
+  .panel,
+  .detail__section,
+  .detail__side-panel,
+  .episode-comments,
+  .home-retention,
+  .tracker-card,
+  .profile-v2__stat,
+  .profile-v2__library,
+  .profile-v2__achievements,
+  .profile-v2__bottom-card,
+  .profile-v3__progression,
+  .profile-v6__progression,
+  .profile-v5__challenges,
+  .profile-v3__showcase,
+  .anime-detail-v4__episode-list,
+  .anime-detail-v4__personal-grid > section,
+  .community-library-control,
+  .anime-notification-control,
+  .telegram-growth-card--community
+) {
+  border-radius: var(--ab-ui-radius-md) !important;
+}
+
+/* Feature surfaces deliberately remain one step larger. */
+:where(
+  .page-hero,
+  .tracker-hero,
+  .profile-v2__hero,
+  .anime-detail-v4__hero-shell,
+  .auth-card,
+  .profile-edit-modal__window
+) {
+  border-radius: var(--ab-ui-radius-lg);
+}
+
+/* -------------------------
+   Controls
+   ------------------------- */
+
+:where(
+  .btn,
+  .tracker-filter,
+  .community-library-status,
+  .anime-notification-control__button,
+  .episode-comments__controls button,
+  .anime-detail-actions .btn,
+  .profile-v2__edit,
+  .profile-v2__library-empty a
+) {
+  min-height: var(--ab-ui-control-md) !important;
+  border-radius: var(--ab-ui-radius-sm) !important;
+}
+
+:where(
+  .search-box,
+  .topbar__search,
+  .watch-party-search,
+  .anime-detail-v4__watch-together-inner > a
+) {
+  min-height: var(--ab-ui-control-lg);
+  border-radius: var(--ab-ui-radius-sm);
+}
+
+/* Compact badges/chips stay compact everywhere. */
+:where(
+  .pill,
+  .anime-card__rating,
+  .anime-card__state,
+  .tracker-badge,
+  .profile-v2__eyebrow,
+  .episode-comments__eyebrow
+) {
+  font-size: var(--ab-ui-meta-size);
+}
+
+/* -------------------------
+   Section titles
+   ------------------------- */
+
+:where(
+  .section-title,
+  .anime-detail-v4__section-head h2,
+  .profile-v2__section-head h2,
+  .profile-v2__bottom-card h2,
+  .episode-comments__header h2
+) {
+  font-size: var(--ab-ui-section-title) !important;
+  line-height: 1.2;
+}
+
+/* -------------------------
+   Tracker
+   ------------------------- */
+
+.tracker-page .tracker-hero {
+  padding: var(--ab-ui-pad-lg) !important;
+  border-radius: var(--ab-ui-radius-lg) !important;
+}
+
+.tracker-page .tracker-card {
+  padding: var(--ab-ui-pad-md) !important;
+  border-radius: var(--ab-ui-radius-md) !important;
+}
+
+.tracker-page .tracker-card__progress {
+  padding: var(--ab-ui-pad-sm) !important;
+  border-radius: var(--ab-ui-radius-sm) !important;
+}
+
+.tracker-page .tracker-filters,
+.tracker-page .tracker-card__controls {
+  gap: var(--ab-ui-gap-sm) !important;
+}
+
+/* -------------------------
+   Profile lower surfaces
+   ------------------------- */
+
+.profile-v2__stats {
+  gap: var(--ab-ui-gap-md) !important;
+}
+
+.profile-v2__stat {
+  padding: var(--ab-ui-pad-md) !important;
+}
+
+.profile-v2__stat strong {
+  font-size: 22px !important;
+}
+
+.profile-v2__stat span {
+  margin-top: 6px !important;
+  font-size: 9.5px !important;
+}
+
+.profile-v2__content {
+  gap: var(--ab-ui-gap-md) !important;
+  margin-top: var(--ab-ui-gap-md) !important;
+}
+
+.profile-v2__library,
+.profile-v2__achievements {
+  padding: 16px !important;
+}
+
+.profile-v2__bottom-card {
+  gap: var(--ab-ui-gap-md) !important;
+  margin-top: var(--ab-ui-gap-md) !important;
+  padding: var(--ab-ui-pad-md) 16px !important;
+}
+
+.profile-v2__achievement-list {
+  gap: var(--ab-ui-gap-sm) !important;
+  margin-top: var(--ab-ui-gap-md) !important;
+}
+
+.profile-v2__achievement {
+  gap: var(--ab-ui-gap-sm) !important;
+  padding: var(--ab-ui-pad-sm) !important;
+  border-radius: var(--ab-ui-radius-sm) !important;
+}
+
+.profile-v3__progression,
+.profile-v6__progression,
+.profile-v5__challenges,
+.profile-v3__showcase {
+  padding: 16px !important;
+}
+
+/* -------------------------
+   Comments / personal anime controls
+   ------------------------- */
+
+.episode-comments {
+  padding: var(--ab-ui-pad-md) !important;
+}
+
+.episode-comments__form {
+  padding: var(--ab-ui-pad-sm) !important;
+  border-radius: var(--ab-ui-radius-sm) !important;
+}
+
+.anime-detail-v4__episode-list {
+  padding: var(--ab-ui-pad-md) !important;
+}
+
+.anime-detail-v4__personal-grid {
+  gap: var(--ab-ui-gap-md) !important;
+}
+
+.anime-detail-v4__personal-grid > section {
+  padding: var(--ab-ui-pad-md) !important;
+}
+
+/* -------------------------
+   Promo / community cards
+   ------------------------- */
+
+.telegram-growth-card--community {
+  min-height: 0 !important;
+}
+
+.telegram-growth-card--community .telegram-growth-card__content {
+  padding: var(--ab-ui-pad-lg) !important;
+}
+
+/* -------------------------
+   Mobile contract
+   ------------------------- */
+
+@media (max-width: 720px) {
+  :root {
+    --ab-ui-section-title: 17px;
+  }
+
+  .section {
+    margin-top: var(--ab-ui-section-mobile) !important;
+  }
+
+  .section-head,
+  .anime-detail-v4__section-head {
+    gap: var(--ab-ui-gap-md) !important;
+    margin-bottom: var(--ab-ui-gap-md) !important;
+  }
+
+  :where(
+    .tracker-page .tracker-card,
+    .episode-comments,
+    .profile-v2__stat,
+    .profile-v2__library,
+    .profile-v2__achievements,
+    .profile-v2__bottom-card,
+    .profile-v3__progression,
+    .profile-v6__progression,
+    .profile-v5__challenges,
+    .profile-v3__showcase,
+    .anime-detail-v4__episode-list,
+    .anime-detail-v4__personal-grid > section,
+    .telegram-growth-card--community
+  ) {
+    padding: var(--ab-ui-pad-md) !important;
+    border-radius: var(--ab-ui-radius-md) !important;
+  }
+
+  .profile-v2__stats,
+  .profile-v2__content,
+  .anime-detail-v4__personal-grid {
+    gap: var(--ab-ui-gap-sm) !important;
+  }
+
+  .profile-v2__stat {
+    min-height: 82px;
+  }
+
+  .profile-v2__stat strong {
+    font-size: 20px !important;
+  }
+
+  .episode-comments__form textarea {
+    min-height: 64px !important;
+  }
+
+  .tracker-page .tracker-hero {
+    padding: 16px !important;
+  }
+
+  .tracker-page .tracker-filter,
+  .community-library-status,
+  .anime-notification-control__button,
+  .episode-comments__controls button {
+    min-height: 42px !important;
+  }
+
+  .telegram-growth-card--community .telegram-growth-card__content {
+    padding: var(--ab-ui-pad-md) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .tracker-page .tracker-card,
+  .episode-comments,
+  .profile-v2__library,
+  .profile-v2__achievements,
+  .profile-v3__progression,
+  .profile-v6__progression,
+  .profile-v5__challenges,
+  .profile-v3__showcase,
+  .anime-detail-v4__episode-list {
+    padding: 12px !important;
+  }
+
+  .profile-v2__stat {
+    min-height: 78px;
+    padding: 12px !important;
+  }
+}
