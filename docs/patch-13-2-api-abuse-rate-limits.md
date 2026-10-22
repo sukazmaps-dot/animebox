@@ -1,58 +1,58 @@
-# Patch 13.2 — API Abuse Guard v1
+# Патч 13.2 — защита API от злоупотреблений, версия 1
 
-## Goal
+## Цель
 
-Protect AnimeBox from request floods, bot loops, repeated state mutations and expensive upstream API abuse without adding friction for normal users.
+Защитить AnimeBox от лавин запросов, циклов ботов, повторных изменений состояния и чрезмерных затрат на внешние API, не создавая лишних препятствий для обычных пользователей.
 
-## Architecture
+## Архитектура
 
-- Shared atomic counters live in `api_rate_buckets` and are consumed through `consume_api_rate_bucket`.
-- Keys are HMAC-SHA256 hashes, so raw IP addresses and user IDs are never stored in the limiter table.
-- Anonymous/public surfaces use Vercel's canonical `x-forwarded-for` client address.
-- Authenticated mutations use both IP and user buckets.
-- The limiter fails closed: if the shared counter is unavailable, protected endpoints return HTTP 503 instead of silently bypassing protection.
-- HTTP 429 responses include `Retry-After` and `Cache-Control: private, no-store`.
-- Existing database anti-spam rules remain enabled as a second layer.
-- Buckets older than two hours are cleaned by the existing Premium Lifecycle cron.
+- Общие атомарные счётчики хранятся в `api_rate_buckets` и обновляются через `consume_api_rate_bucket`.
+- Ключи — HMAC-SHA256-хеши, поэтому исходные IP-адреса и идентификаторы пользователей не сохраняются в таблице лимитера.
+- Для анонимных/публичных поверхностей используется канонический клиентский адрес Vercel из `x-forwarded-for`.
+- Для авторизованных изменений применяются лимиты и по IP, и по пользователю.
+- При отказе лимитера защита не обходится: защищённые эндпоинты возвращают HTTP 503, если общий счётчик недоступен.
+- Ответы HTTP 429 включают `Retry-After` и `Cache-Control: private, no-store`.
+- Существующие антиспам-правила БД остаются включёнными как дополнительный уровень защиты.
+- Корзины лимитера старше двух часов очищаются существующей задачей Premium Lifecycle cron.
 
-## Protected surfaces
+## Защищённые области
 
-| Surface | Policy |
+| Область | Ограничение |
 | --- | --- |
-| Anime catalog | 90/min/IP |
-| Episode comments | read 120/min/IP; write 30/min/IP + 10/min/user |
-| Profile editor | read 60/min/user; write 30/min/IP + 12/min/user |
-| Profile media signed uploads | write 40/min/IP + 24/min/user |
-| Profile media cleanup | 60/min/IP + 40/min/user |
-| Smart recommendations | 120/min/IP |
-| Taste Graph | 30/min/IP + 12/min/user |
-| Community chat | read 180/min/IP; write 90/min/IP + 45/min/user |
-| Chat delete | 60/min/IP + 30/min/user |
-| Chat reactions | 240/min/IP + 120/min/user |
-| Chat reports | 30/hour/IP + 10/hour/user |
-| Watch Together room list/create | existing guard retained |
-| Watch Together heartbeat | 600/min/IP |
-| Watch Together reports | 20/hour/IP |
-| Product analytics intake | 180 requests/min/IP plus existing payload/event caps |
-| Telegram web auth nonce | 30/min/IP |
-| Telegram web auth login | 20/min/IP |
-| Telegram Mini App nonce | 30/min/IP |
-| Telegram initData validation | 60/min/IP |
-| Telegram registration | 12/min/IP |
-| Telegram session | 30/min/IP |
-| Telegram account linking | 20/min/IP |
-| Telegram subscription check | 60/min/IP |
-| Image proxy | 600/min/IP |
-| Kodik lookup | 180/min/IP |
-| AniLibria source lookup | 120/min/IP |
-| Alloha lookup | 120/min/IP |
+| Каталог аниме | 90 запросов/мин на IP |
+| Комментарии к эпизодам | чтение: 120/мин на IP; запись: 30/мин на IP + 10/мин на пользователя |
+| Редактор профиля | чтение: 60/мин на пользователя; запись: 30/мин на IP + 12/мин на пользователя |
+| Подписанные загрузки медиа профиля | 40/мин на IP + 24/мин на пользователя |
+| Очистка медиа профиля | 60/мин на IP + 40/мин на пользователя |
+| Умные рекомендации | 120/мин на IP |
+| Граф вкусов | 30/мин на IP + 12/мин на пользователя |
+| Чат сообщества | чтение: 180/мин на IP; запись: 90/мин на IP + 45/мин на пользователя |
+| Удаление сообщений | 60/мин на IP + 30/мин на пользователя |
+| Реакции в чате | 240/мин на IP + 120/мин на пользователя |
+| Жалобы на чат | 30/час на IP + 10/час на пользователя |
+| Список/создание комнат Watch Together | сохраняется существующая защита |
+| Сигнал активности комнаты Watch Together | 600/мин на IP |
+| Жалобы Watch Together | 20/час на IP |
+| Приём продуктовой аналитики | 180 запросов/мин на IP плюс существующие лимиты полезной нагрузки и событий |
+| Nonce веб-авторизации Telegram | 30/мин на IP |
+| Вход через веб Telegram | 20/мин на IP |
+| Nonce Telegram Mini App | 30/мин на IP |
+| Проверка initData Telegram | 60/мин на IP |
+| Регистрация через Telegram | 12/мин на IP |
+| Сессия Telegram | 30/мин на IP |
+| Привязка аккаунта Telegram | 20/мин на IP |
+| Проверка подписки Telegram | 60/мин на IP |
+| Прокси изображений | 600/мин на IP |
+| Поиск в Kodik | 180/мин на IP |
+| Поиск источника AniLibria | 120/мин на IP |
+| Поиск Alloha | 120/мин на IP |
 
-## Acceptance criteria
+## Критерии приёмки
 
-1. Normal browsing, profile editing, uploads, chat, recommendations, Telegram login and Watch Together remain usable.
-2. Repeated abusive calls return HTTP 429 with a useful `Retry-After` header.
-3. A limiter infrastructure failure returns HTTP 503 on guarded endpoints.
-4. Raw IP addresses are not persisted.
-5. Existing application- and database-level anti-spam remains active as defense in depth.
-6. Upstream-heavy endpoints are protected before they make provider requests.
-7. Old limiter buckets are removed automatically.
+1. Обычный просмотр, редактирование профиля, загрузка файлов, чат, рекомендации, вход через Telegram и Watch Together остаются работоспособными.
+2. Повторяющиеся злоупотребляющие запросы получают HTTP 429 с полезным заголовком `Retry-After`.
+3. При отказе инфраструктуры лимитера защищённые эндпоинты отвечают HTTP 503.
+4. Исходные IP-адреса не сохраняются.
+5. Антиспам на уровне приложения и базы данных продолжает работать как эшелонированная защита.
+6. Эндпоинты, активно обращающиеся к внешним провайдерам, защищены до выполнения внешнего запроса.
+7. Старые корзины лимитера удаляются автоматически.
