@@ -1,36 +1,56 @@
-# Patch 31.6 — Responsive Profile Editor and Premium workflow
+# Патч 31.6 — адаптивный редактор профиля и сценарии Premium
 
-## Confirmed causes
+## Подтверждённые причины
 
-The 31.3 shell still inherited the 18.8 desktop two-column grid and explicit row placement, while the new live preview had no assigned grid area. It was auto-placed below the form. The old menu retained a viewport-sized minimum height and its new flex buttons grew into that height. The shell was capped at 960px; embedded Premium split its already narrow settings area into two columns again. An old style-tab-only `overflow:clip` disabled the main editor scroll, while its inner preview used `overflow:auto` and `overscroll-behavior:contain`. The fixed editor also retained the original document min-height, which could override visualViewport height during keyboard display.
+Оболочка из патча 31.3 всё ещё наследовала десктопную двухколоночную сетку 18.8 и явное размещение строк, а у нового живого предпросмотра не была назначена область сетки. Поэтому он автоматически располагался под формой. Старое меню сохраняло минимальную высоту во весь экран, и новые flex-кнопки растягивались на эту высоту. Ширина оболочки была ограничена 960px; встроенная секция Premium повторно делила уже узкую область настроек на две колонки. Старое свойство `overflow: clip`, применявшееся только на вкладке стилей, отключало прокрутку основного редактора, а вложенный предпросмотр использовал `overflow: auto` и `overscroll-behavior: contain`. Фиксированный редактор также сохранял исходную минимальную высоту документа, способную переопределить высоту visualViewport при открытии клавиатуры.
 
-## Layout specification and result
+## Спецификация и результат компоновки
 
-- One component tree. Explicit header/navigation/settings/preview grid areas in the existing owning stylesheet, no extra global patch stylesheet.
-- Below 900px: 176px profile card in a 192px sticky preview area; four main sections plus More in fixed five-cell bottom navigation. Frame, Showcase and Rewards are accessible in More. No horizontal section list. Save dock sits above navigation and safe area; content reserves measured dock height plus navigation. Short landscape uses the existing smaller preview; keyboard display temporarily removes the preview so the focused field remains usable.
-- 900–1179px: horizontal navigation above form and 300–360px sticky right preview.
-- From 1180px: compact 180px menu, flexible form, 320–380px sticky right preview. Shell uses available width up to 1600px instead of 960px. Buttons remain 44–56px, not stretched to viewport height.
-- Premium replaces the base preview with its own context-aware preview and uses the full content area. Only the editor owns vertical scrolling; the desktop preview has no independent wheel trap. On mobile/tablet, the existing preview action opens a native top-layer dialog with Profile/Mini/Comment/Room contexts, focus containment and Escape support.
-- Premium section navigation precedes the palette. The palette is only shown in Appearance, so Atmosphere/Effects/Media open directly on their own controls instead of forcing a scroll past unrelated colors.
-- Switching editor sections returns the editor scroll to the top without remounting Premium or discarding its draft.
+- Единое дерево компонентов. Области сетки для шапки, навигации, настроек и предпросмотра задаются в существующей таблице стилей-владельце; дополнительные глобальные патч-файлы не нужны.
+- Ниже 900px: карточка профиля 176px внутри закреплённой области предпросмотра 192px; четыре основных раздела и «Ещё» в нижней навигации из пяти ячеек. Рамка, Showcase и Rewards доступны из «Ещё». Горизонтального списка разделов нет. Панель сохранения находится над навигацией и safe area; область содержимого резервирует измеренную высоту панели плюс навигацию. В коротком альбомном режиме используется существующий уменьшенный предпросмотр; при появлении клавиатуры он временно скрывается, чтобы сфокусированное поле оставалось доступным.
+- 900–1179px: горизонтальная навигация над формой и закреплённый предпросмотр справа шириной 300–360px.
+- От 1180px: компактное меню 180px, гибкая форма и закреплённый предпросмотр справа шириной 320–380px. Оболочка использует доступную ширину до 1600px вместо ограничения 960px. Кнопки остаются высотой 44–56px и не растягиваются на высоту экрана.
+- Premium заменяет базовый предпросмотр собственным контекстным предпросмотром и использует всю ширину содержимого. Только редактор управляет вертикальной прокруткой; десктопный предпросмотр не перехватывает колёсико отдельной прокруткой. На мобильных и планшетах действие предпросмотра открывает нативный диалог верхнего слоя с контекстами Profile/Mini/Comment/Room, удержанием фокуса и поддержкой Escape.
+- Навигация по секциям Premium расположена перед палитрой. Палитра показывается только в разделе оформления: Atmosphere/Effects/Media сразу открывают свои элементы управления, не заставляя прокручивать несвязанные цвета.
+- Переключение разделов возвращает прокрутку редактора наверх, не размонтируя Premium и не теряя черновик.
 
-## Editing actions
+## Действия редактирования
 
-- Container-query color fields: label above, native color input, flexible HEX field accepting 3/6 digits with or without #, desktop EyeDropper and six 44px preset swatches. Invalid HEX does not update the draft. Text color shows a contrast badge; existing readable-text protection remains authoritative.
-- Adaptive palette action precedes manual colors, uses existing avatar/banner including base fallback, offers four choices rather than immediately replacing colors, and can reshuffle choices. Existing theme presets, random scene and shareable appearance link are available. Shared links contain only validated appearance settings, excluding image paths, positions, zoom, username and bio; opening never saves to server.
-- One save status in the header; section dirty markers and a five-section completion count. Bottom dock contains actions and errors rather than a second dirty/saved announcement.
-- Undo/redo for staged base fields, confirmed crop files, frame draft and Premium settings. Bounded 40-entry history; editing after undo drops the redo branch. Ctrl/Cmd+Z and Shift+Z/Y work outside text fields; text fields keep native undo. Ctrl/Cmd+S uses the existing guarded save path. Reset can be undone, with a visible restore action for eight seconds. Holding Compare shows saved base/Premium appearance.
-- Versioned IndexedDB browser draft includes structured-cloneable staged base File objects and appearance fields, keyed by account with seven-day expiry. Recovery is offered instead of silently applying or overwriting a server-loaded profile. A pending recovery cannot be deleted by the initial clean render. Save/reset remove the stored draft; storage failures are surfaced without blocking normal save. No new network calls on typing.
-- Existing crop editor gains two-pointer pinch, bounded wheel zoom, keyboard +/- and switchable banner/avatar overlap guides. Existing visible Replace/Remove actions and crop rendering/export algorithm are retained.
+- Адаптивные к контейнеру поля цвета: подпись сверху, нативный ввод цвета, гибкое HEX-поле для 3/6 цифр с # или без него, EyeDropper на десктопе и шесть образцов по 44px. Некорректный HEX не меняет черновик. Для цвета текста показывается индикатор контраста; существующая защита читаемости остаётся главным ограничением.
+- Действие адаптивной палитры находится перед ручным выбором цветов, использует текущий аватар/баннер с резервным базовым вариантом, предлагает четыре варианта, а не заменяет палитру мгновенно, и позволяет перемешать варианты. Сохраняются существующие пресеты темы, случайная сцена и ссылка для обмена оформлением. Общая ссылка включает только проверенные настройки внешнего вида и исключает пути изображений, позиции, масштаб, имя пользователя и биографию; открытие ссылки не сохраняет изменения на сервер.
+- В шапке показывается один статус сохранения; есть маркеры изменённых секций и счётчик завершения пяти секций. Нижняя панель содержит действия и ошибки, а не дублирует сообщение об изменениях/сохранении.
+- Отмена/повтор для черновых базовых полей, подтверждённых файлов кадрирования, черновика рамки и настроек Premium. История ограничена 40 записями; редактирование после отмены удаляет ветку повтора. Ctrl/Cmd+Z и Shift+Z/Y работают вне текстовых полей; поля текста сохраняют нативную отмену. Ctrl/Cmd+S использует существующий защищённый путь сохранения. Сброс можно отменить: действие восстановления видно восемь секунд. Удержание Compare показывает сохранённый базовый вид/Premium.
+- Версионированный черновик браузера в IndexedDB содержит структурно клонируемые объекты File для подготовленных базовых медиа и поля внешнего вида; ключ привязан к аккаунту, срок хранения — семь дней. Восстановление предлагается пользователю вместо тихого применения или перезаписи профиля, загруженного с сервера. Ожидающее восстановление нельзя удалить при первой чистой отрисовке. Сохранение/сброс удаляют сохранённый черновик; ошибки хранилища показываются пользователю, но не блокируют обычное сохранение. При вводе не добавляются сетевые запросы.
+- В существующий редактор кадрирования добавлены масштабирование щипком двумя пальцами, ограниченное масштабирование колёсиком, клавиши +/- и переключаемые направляющие наложения баннера/аватара. Существующие действия Replace/Remove и алгоритм кадрирования/экспорта сохраняются.
 
-## Boundaries
+## Границы
 
-No DB migration, RLS, Supabase bucket, media Worker or environment change. Existing server validation, entitlement rules and shared base/frame/Premium save guards remain in use. Existing Premium media uploads that commit immediately continue to establish a new saved baseline; history must not resurrect deleted private media. An unconfirmed source still open in the crop modal is not a staged File draft. Guides are visual composition aids; actual Premium contexts remain available in the preview. Showcase and rewards keep their existing independent save semantics.
+Нет миграции БД, изменений RLS, бакета Supabase, медиа Worker или переменных окружения. Существующая серверная валидация, права подписки и общие проверки сохранения базового оформления/рамки/Premium остаются в силе. Загрузки медиа Premium, которые сохраняются немедленно, продолжают формировать новую сохранённую базу; история не должна восстанавливать удалённые приватные медиа. Неподтверждённый исходник, всё ещё открытый в модальном окне кадрирования, не считается подготовленным File-черновиком. Направляющие помогают композиции; реальные контексты Premium доступны в предпросмотре. Showcase и награды сохраняют независимую семантику сохранения.
 
-## Verification
+## Проверка
 
-- TypeScript and targeted ESLint; full existing prebuild regression suite plus editor-workspace checks.
-- 60 Chromium CSS/DOM layout cases with real profile preview/color-field markup and all route styles: dark/light, 320/360/390/412/466/768/899/900/1040/1180/1440/1920/2560/3840px and 844×390 landscape. Assert right-column geometry, compact 44px menu targets, contained HEX controls, sticky preview, one scroll owner and last control above dock.
-- Simulated visualViewport shrink checks root height and keyboard-specific preview collapse. Real browser IndexedDB verifies File bytes/name, account isolation, expiry and deletion.
-- Interaction tests exercise real color-field handlers, crop pinch/wheel handlers, draft hook recovery, undo/redo branching and shared-theme filtering. Existing 48-case dock matrix remains passing.
-- Browser fixture is controlled, not a signed-in Opera GX or physical Telegram device session. Final PR CI/build results recorded in PR.
+- TypeScript и целевой ESLint; полный существующий набор регрессий prebuild плюс проверки рабочего пространства редактора.
+- 60 CSS/DOM-сценариев Chromium с реальной разметкой предпросмотра профиля и полей цвета, а также всеми стилями маршрута: светлая/тёмная темы, ширины 320/360/390/412/466/768/899/900/1040/1180/1440/1920/2560/3840px и альбомный экран 844×390. Проверяются геометрия правой колонки, компактные цели меню по 44px, корректность HEX-полей, закреплённый предпросмотр, единственный владелец прокрутки и доступность последнего элемента над панелью.
+- Симуляции уменьшения visualViewport проверяют высоту корневого элемента и скрытие предпросмотра при клавиатуре. Реальный браузер IndexedDB проверяет байты/имя File, изоляцию аккаунтов, истечение срока и удаление.
+- Проверки взаимодействий выполняют настоящие обработчики полей цвета, обработчики pinch/wheel кадрирования, восстановление через хук черновика, ветвление отмены/повтора и фильтрацию общих тем. Существующая матрица панели из 48 сценариев продолжает проходить.
+- Браузерная фикстура контролируемая; это не авторизованная сессия Opera GX или физическое устройство Telegram. Итог CI/build для PR должен фиксироваться в самом PR.
+
+## Ручная проверка на устройстве и доступность
+
+| Сценарий | Ожидаемый результат |
+| --- | --- |
+| 320–412px, портрет | карточка 176px в закреплённой области 192px; нет горизонтальной навигации разделов; действия сохранения доступны |
+| 844×390, альбомный телефон | используется уменьшенный предпросмотр; прокрутка и клавиатура не перекрывают поле |
+| 900–1179px | навигация над формой, предпросмотр справа |
+| от 1180px | меню 180px, форма и предпросмотр помещаются без ограничения оболочки 960px |
+| Светлая и тёмная тема | читаемый текст и заметный клавиатурный фокус |
+| Масштабирование текста браузером | редактор растёт по высоте, не обрезая интерактивные элементы |
+| Восстановление черновика | черновик не применяется и не удаляется без явного выбора пользователя |
+| Отмена/повтор и сброс | восстанавливаются правильные промежуточные значения |
+| Физическое устройство | проверить Telegram WebView, клавиатуру, safe area, сохранение, кадрирование и Premium |
+
+## Риски и выпуск
+
+Основные риски — конфликтующие CSS-правила и неверная высота при открытой клавиатуре. Поэтому проверка должна измерять итоговую геометрию в браузере, а не просто искать наличие селектора.
+
+Не добавлять миграции, ключи, конфигурацию инфраструктуры или изменения платежей. Выпускать только после успешного Quality Gate, ревью PR и подтверждённого деплоя; не выдавать браузерные фикстуры за тест на физическом устройстве.
