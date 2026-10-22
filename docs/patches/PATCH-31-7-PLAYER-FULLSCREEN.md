@@ -1,46 +1,46 @@
-# Patch 31.7 — player fullscreen and episode controls
+# Патч 31.7 — полноэкранный плеер и элементы управления эпизодом
 
-## Trigger and diagnosis
+## Причина и диагностика
 
-In Android Telegram, the custom fullscreen control produced a black viewport with the Cinema header, selectors, episode navigation and tracking actions over the provider controls. The existing code already targeted `playerViewportRef`, not the entire card. Its fixed descendant still lived inside route/theater stacking and containing contexts; its CSS only hid global chrome, leaving local surfaces visible. The toolbar also retained a fullscreen button outside the media. A `flex: 1 1 340px` title block could grow vertically inside a column header. Legacy navigation CSS placed the all-episodes link inside the center selector with numerous breakpoint overrides. Page flex gap and component margins accumulated.
+В Telegram на Android собственная кнопка полноэкранного режима приводила к чёрной области просмотра, поверх которой оставались шапка Cinema, селекторы, навигация по эпизодам и действия трекера рядом с элементами управления провайдера. Существующий код уже нацеливался на playerViewportRef, а не на всю карточку. Но фиксированный потомок оставался внутри контекстов наложения и позиционирования маршрута/кинотеатрального режима; CSS скрывал только глобальную оболочку, оставляя локальные поверхности видимыми. Панель инструментов также сохраняла кнопку полноэкранного режима вне медиа. Блок заголовка с flex: 1 1 340px мог вертикально растягиваться внутри колоночной шапки. Старый CSS навигации помещал ссылку «Все эпизоды» внутрь центрального селектора и переопределял её на множестве контрольных ширин. Промежутки flex-контейнера страницы складывались с внешними отступами компонентов.
 
-Kodik is an iframe. Direct playback uses the existing DirectVideoPlayer/video pipeline. Fullscreen does not change their keys, source URLs or mount location. This patch corrects geometry and fullscreen lifecycle; it does not claim to repair a provider/network outage that independently stalls playback.
+Kodik — iframe. Прямое воспроизведение использует существующий конвейер DirectVideoPlayer/video. Полноэкранный режим не меняет их ключи, URL источников или место монтирования. Этот патч исправляет геометрию и жизненный цикл полноэкранного режима; он не утверждает, что исправляет независимый сбой провайдера или сети, из-за которого воспроизведение может зависать.
 
-## Implementation and ownership
+## Реализация и ответственность компонентов
 
-- `hooks/usePlayerFullscreen.ts`: one lifecycle for native browser fullscreen plus CSS fallback; Telegram always uses CSS as the reliable player surface. The same element optionally enters the Popover top layer without a portal, reparenting or replacing the media. Older engines neutralize containing contexts on marked ancestors only while fullscreen is active.
-- `app/tma-mobile-ux-v21.css`: owns fullscreen dimensions, sibling-surface isolation, backdrop and safe exit control. Sibling surfaces are hidden along the player ancestor path; hidden menus inside the player stay hidden. Body/root scrolling is locked and previous inline values/scroll restored.
-- Telegram methods are gated with `isVersionAtLeast`: fullscreen/orientation 8.0, vertical swipes 7.7, BackButton 6.1. Exceptions and rejected host fullscreen leave CSS mode usable. Pre-existing host fullscreen, swipe disabling and orientation lock are retained on exit. An actual host exit closes the owned CSS session; failed entry does not.
-- A temporary history entry preserves the URL and Next router state. The exit control, Escape, popstate and Telegram BackButton close the session. Listeners are removed on exit/unmount.
-- `screen.orientation.lock('landscape')` is attempted where supported; Telegram locks only after the viewport becomes landscape, because its method locks the CURRENT orientation. On exit, owned locks are released and the entry screen orientation is restored on a best-effort basis. iOS and Android WebViews may reject forced rotation; manual rotation remains available.
-- `components/AnimePlayer.tsx`: real DOM order is media, title/episode, source chips, two selectors. One primary fullscreen control is inside the media, away from the provider's bottom transport controls; in fullscreen it moves to the safe top corner. Current-provider status is separate from the selected Auto/Manual chip, preventing two selected chips.
-- `components/EpisodePageDensity.module.css`: owns normal episode layout. Full-width media, title flex-basis reset, two equal selector columns, three equal-height navigation cells, separate full-width all-episodes row, two equal tracking action columns, 12px page gap. Existing provider selection, resume, analytics and episode callbacks are retained.
-- `components/AnimeEpisodePage.tsx`: navigation and tracking actions precede supplemental progress/title information.
-- `components/EpisodeQuickSelector.tsx`: all-episodes link is a sibling after the three navigation controls, not nested in the central selector.
+- hooks/usePlayerFullscreen.ts: единый жизненный цикл для нативного полноэкранного режима браузера и CSS-резерва; в Telegram всегда используется CSS как надёжная поверхность плеера. Тот же элемент при необходимости помещается в верхний слой Popover — без портала, переподчинения DOM или замены медиа. В старых движках контексты позиционирования отмеченных предков нейтрализуются только на время активного полноэкранного сеанса.
+- app/tma-mobile-ux-v21.css: отвечает за полноэкранные размеры, изоляцию соседних поверхностей, затемнение фона и безопасную кнопку выхода. Соседние поверхности скрываются по пути предков плеера; скрытые меню внутри плеера остаются скрытыми. Прокрутка body/root блокируется, исходные встроенные значения и положение прокрутки восстанавливаются.
+- Методы Telegram проверяются через isVersionAtLeast: полноэкранный режим/ориентация — 8.0, вертикальные свайпы — 7.7, BackButton — 6.1. Исключения и отклонённый запрос полноэкранного режима оставляют CSS-режим работоспособным. При выходе сохраняются ранее включённые полноэкранный режим хоста, блокировка свайпов и блокировка ориентации. Настоящий выход из полноэкранного режима хоста закрывает принадлежащий плееру CSS-сеанс; неудачный вход не закрывает его.
+- Временная запись истории сохраняет URL и состояние маршрутизатора Next.js. Кнопка выхода, Escape, popstate и Telegram BackButton закрывают сеанс. При выходе/размонтировании обработчики удаляются.
+- screen.orientation.lock('landscape') вызывается там, где поддерживается. В Telegram блокировка запрашивается только после перехода viewport в альбомную ориентацию, поскольку метод блокирует текущую ориентацию. При выходе принадлежащие плееру блокировки снимаются, а исходная ориентация по возможности восстанавливается. iOS и Android WebView могут отклонить принудительный поворот; ручной поворот должен оставаться доступным.
+- components/AnimePlayer.tsx: реальный порядок DOM — медиа, название/эпизод, чипы источников, два селектора. Единственная основная кнопка полноэкранного режима расположена внутри медиа, подальше от нижней панели управления провайдера; в полноэкранном режиме она переносится в безопасный верхний угол. Статус текущего провайдера отделён от выбранного режима Auto/Manual, чтобы не показывать два выбранных чипа.
+- components/EpisodePageDensity.module.css: отвечает за обычную компоновку эпизода. Полноширинное медиа, сброс flex-basis заголовка, два одинаковых столбца селекторов, три одинаковые по высоте ячейки навигации, отдельная полноширинная строка «Все эпизоды», два равных столбца действий трекера и промежуток страницы 12px. Выбор провайдера, продолжение просмотра, аналитика и обработчики эпизодов сохраняются.
+- components/AnimeEpisodePage.tsx: навигация и действия трекера располагаются до дополнительной информации о прогрессе/тайтле.
+- components/EpisodeQuickSelector.tsx: ссылка «Все эпизоды» — отдельный соседний элемент после трёх навигационных контролов, а не вложенная часть центрального селектора.
 
-No schema migration, Cloudflare Worker deployment or environment variable change is required.
+Миграция БД, деплой Cloudflare Worker или изменение переменных окружения не требуются.
 
-## Automated verification
+## Автоматическая проверка
 
-- TypeScript and targeted ESLint.
-- Full existing `prebuild` contracts, with two legacy fullscreen checks updated to the new hook owner.
-- Next production build.
-- `scripts/player-fullscreen-browser-smoke.cjs`: real React fullscreen hook and EpisodeQuickSelector, compiled route CSS Modules and global route styles. 20 cases across 320, 360, 390, 412, 430, 844 and 1920px. Includes top layer/old-WebView fallback, transformed/paint-contained ancestors, iframe node and contentWindow identity, zero reloads, safe exit access, hidden internal control preservation, body lock/cleanup, browser Back, Telegram Back, Escape, rotation, API 6.0/7.6/7.7/8.0 gating, SDK failure and previously-owned host settings.
-- `scripts/player-mobile-overlay-browser-smoke.cjs`: 14 existing compiled module layout cases, 320–1024px, cinema active/inactive. Fixture now models the actual icon-label structure and no longer invents a toolbar fullscreen control.
+- TypeScript и целевой ESLint.
+- Полный существующий набор prebuild-контрактов; две старые проверки полноэкранного режима обновлены под новый владеющий хук.
+- Production build Next.js.
+- scripts/player-fullscreen-browser-smoke.cjs: реальный React-хук полноэкранного режима и EpisodeQuickSelector, скомпилированные CSS Modules маршрута и глобальные стили. 20 сценариев на ширинах 320, 360, 390, 412, 430, 844 и 1920px. Проверяются верхний слой и резерв для старого WebView, предки с transform/paint containment, идентичность iframe и contentWindow, отсутствие перезагрузок, доступность безопасного выхода, сохранение скрытых внутренних контролов, блокировка body/очистка, кнопка «Назад» браузера, Telegram Back, Escape, поворот, ограничения API версий 6.0/7.6/7.7/8.0, ошибка SDK и ранее установленные настройки хоста.
+- scripts/player-mobile-overlay-browser-smoke.cjs: 14 существующих сценариев компоновки с реальными скомпилированными модулями, ширины 320–1024px, активный и неактивный Cinema. Фикстура моделирует настоящую структуру «иконка + подпись» и не добавляет несуществующую кнопку полноэкранного режима панели инструментов.
 
-Browser harness dependencies are tooling only; app dependencies are unchanged. Supply `PLAYWRIGHT_MODULE_PATH`, `CHROMIUM_PATH`, and `ESBUILD_MODULE_PATH` when these tools are outside the project. Run `npm run player-fullscreen:browser`.
+Зависимости браузерного тестирования нужны только для инструментов; зависимости приложения не изменены. Если инструменты находятся вне проекта, укажите PLAYWRIGHT_MODULE_PATH, CHROMIUM_PATH и ESBUILD_MODULE_PATH. Команда запуска: npm run player-fullscreen:browser.
 
-## Real-device acceptance checklist
+## Проверка на реальных устройствах
 
-These are follow-up manual checks, not claims of physical-device verification:
+Это последующие ручные проверки, а не заявления о тестировании на физическом устройстве:
 
-- Android Telegram current and an older client: Kodik iframe and AniLiberty direct playback, before playback and after seeking. Main fullscreen control opens only video; source/header/episode/status rows do not overlay it.
-- Exit with own control, Android Back and Telegram BackButton; first Back exits video without leaving the episode. Repeat entry/exit and confirm playback position continues.
-- Host fullscreen unsupported/rejected: CSS surface and exit remain usable. Already-fullscreen Mini App does not lose its prior host state on player exit.
-- Rotate both ways, including portrait entry, landscape entry and denied orientation API. Ensure safe exit control clears the camera cutout and Telegram's floating chrome.
-- iOS Telegram: CSS fallback, manual rotation, no accidental inline-video remount; check both notch orientations.
-- Telegram Desktop and ordinary desktop browser: CSS host flow versus native DOM fullscreen, Escape, keyboard controls, window resize.
-- Minimize/restore Telegram; compact/expanded Mini App and changed safe area/viewport height. Restore normal page scrolling and swipes after exit.
-- 360–430px: source chips scroll if needed, selectors share a row, navigation stays 44px+, all-episodes button is separate, tracking actions cannot overlap video controls. Open each selector and all-episodes sheet.
+- Telegram Android — текущий и старый клиент: iframe Kodik и прямое воспроизведение AniLiberty, до начала воспроизведения и после перемотки. Основная кнопка открывает только видео; источник, шапка, эпизод и статус не перекрывают его.
+- Выход собственной кнопкой, Android Back и Telegram BackButton: первый Back закрывает видео, не покидая эпизод. Повторить вход/выход и убедиться, что позиция воспроизведения сохраняется.
+- Неподдерживаемый/отклонённый полноэкранный режим хоста: CSS-поверхность и выход доступны. Если Mini App уже был развёрнут в полноэкранный режим, выход плеера не должен сбрасывать исходное состояние хоста.
+- Поворот в обе стороны, в том числе вход из портретной/альбомной ориентации и запрет API ориентации. Безопасная кнопка выхода не должна попадать под вырез камеры или плавающие элементы Telegram.
+- iOS Telegram: CSS-резерв, ручной поворот, отсутствие случайного перемонтирования inline-видео; проверка обеих ориентаций выреза.
+- Telegram Desktop и обычный десктопный браузер: CSS-сценарий хоста и нативный полноэкранный режим DOM, Escape, клавиатурные контролы, изменение размера окна.
+- Сворачивание/восстановление Telegram, компактный/расширенный Mini App, изменение safe area и высоты viewport. После выхода должны восстанавливаться обычная прокрутка и свайпы страницы.
+- 360–430px: при необходимости чипы источников прокручиваются; селекторы находятся в одной строке; навигация не меньше 44px; кнопка «Все эпизоды» отдельная; действия трекера не перекрывают кнопки плеера. Проверить каждый селектор и панель всех эпизодов.
 
-Official API reference: https://core.telegram.org/bots/webapps
+Справочник API Telegram: https://core.telegram.org/bots/webapps
