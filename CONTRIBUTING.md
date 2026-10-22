@@ -1,69 +1,55 @@
-# Contributing to AnimeBox
+Участие в разработке AnimeBox
 
-Thanks for helping improve AnimeBox. Changes are reviewed before they are merged; opening a PR does not imply automatic acceptance or production deployment.
+Спасибо за помощь в улучшении AnimeBox. Все изменения проверяются перед слиянием; создание пулл-реквеста (PR) не означает его автоматическое одобрение или развертывание на продакшене.
 
-## Development setup
+Настройка окружения для разработки
 
-Requirements: Node.js 22 and npm.
+Требования: Node.js 22 и npm.
+1. Клонируйте репозиторий и установите зависимости из lock-файла:bash
+git clone https://github.com/sukazmaps-dot/animebox.git
+cd animebox
+npm ci
+Используйте код с осторожностью.
+2. Создайте локальный файл конфигурации окружения (env-файл):
+	• Windows CMD: copy .env.example .env.local
+	• PowerShell: Copy-Item .env.example .env.local
+	• macOS/Linux: cp .env.example .env.local
+3. Настройте локальный инстанс Supabase или отдельный тестовый проект перед тестированием функций, связанных с базой данных. В шаблоне намеренно указан localhost, чтобы локальная разработка случайно не использовала встроенный резервный проект. Замените пример публичного ключа (publishable key) на ваш локальный или тестовый ключ.
+4. Запустите Next.js:bash
+npm run dev
+Используйте код с осторожностью.
+Откройте http://localhost:3000. Без настройки тестовых сервисов авторизация, функции конкретного пользователя и некоторые интеграции на сервере могут не работать. Не используйте учетные данные или пользовательские данные из продакшена для локальной разработки.
 
-1. Clone the repository and install the lockfile dependencies:
+Правила безопасности
 
-   ```bash
-   git clone https://github.com/sukazmaps-dot/animebox.git
-   cd animebox
-   npm ci
-   ```
+• Никогда не отправляйте в коммиты файлы .env.local, .env, токены провайдеров, ключи service-role, приватные ключи, дампы баз данных, данные пользователей или логи, содержащие конфиденциальную информацию.
+• Секретные ключи сервера должны оставаться на стороне сервера. Никогда не переименовывайте секреты в переменные с префиксом NEXT_PUBLIC_*; Next.js может раскрыть эти значения в клиентских бандлах (сборках).
+• Не настраивайте учетные данные продакшена для Supabase, Telegram, платежных систем, кронов (cron) или хостинга в локальном окружении разработчика.
+• Не запускайте SQL-миграции или скрипты на продакшене без предварительного рассмотрения и одобрения владельца проекта.
+• Если вы считаете, что учетные данные были скомпрометированы (утекли), сообщите об этом владельцу проекта в личные сообщения и обновите (ротируйте) их. Не публикуйте скомпрометированные данные в issues (задачах) или PR.
 
-2. Create a local environment file:
+Ветки и пулл-реквесты (PR)
 
-   - Windows CMD: `copy .env.example .env.local`
-   - PowerShell: `Copy-Item .env.example .env.local`
-   - macOS/Linux: `cp .env.example .env.local`
+1. Начинайте работу от актуальной ветки main и создавайте изолированную ветку под конкретную задачу. Рекомендуемые названия: fix/poster-fallback, feat/catalog-filter, refactor/css-file-name или docs/local-setup.
+2. Каждый PR должен быть сфокусирован на одной проблеме. Избегайте смешивания не связанных с задачей изменений форматирования, массовых переименований, сгенерированных файлов или обновлений зависимостей в рамках одного исправления.
+3. Перед редактированием существующего кода найдите места, где он вызывается, импортируется, а также связанные тесты и другие открытые PR. Не дублируйте работу, которая уже выполняется кем-то другим.
+4. Опишите обнаруженную проблему, её причину, внесенные изменения и любые известные ограничения. По возможности добавляйте регрессионные тесты.
+5. Для изменений в интерфейсе (UI) прикрепляйте скриншоты «до / после» и указывайте размеры экранов, на которых проводилось тестирование. Для изменений в API или данных описывайте обработку ошибок и последствия для миграции.
+6. Запускайте только те проверки, которые непосредственно относятся к вашим изменениям. Полезные команды для начала:bash
+npm run lint
+npm run security:check
+npm run css:inventory:check
+Используйте код с осторожностью.
+Полная команда npm run build запускает масштабную проверку качества перед сборкой и может занять гораздо больше времени. Проверки репозитория (Quality Gate) для PR также автоматически запускаются через GitHub Actions. Указывайте только те проверки, которые вы действительно запускали; не утверждайте, что проверка пройдена, если она не выполнялась.
+7. Держите PR в статусе черновика (draft), пока работа над ним не завершена. Мейнтейнер (владелец проекта) проверяет и объединяет изменения; контрибьюторы (разработчики) не занимаются деплоем на продакшен.
 
-3. Configure a local Supabase instance or a dedicated test project before testing database-backed features. The template deliberately points to localhost so local development does not silently use the built-in project fallback. Replace the example publishable key with a local/test key.
-4. Start Next.js:
+Специфика работы с CSS
 
-   ```bash
-   npm run dev
-   ```
+На данный момент в AnimeBox используется большой объем глобальных каскадных стилей (CSS) и стилей, привязанных к конкретным маршрутам (роутам). Сохраняйте текущее поведение стилей в процессе постепенного улучшения архитектуры.
+• Не удаляйте таблицу стилей только потому, что она не импортируется напрямую в app/layout.tsx; её могут импортировать макеты других маршрутов или отдельные компоненты.
+• При механическом переименовании изменяйте только путь к файлу и его импорты. Сохраняйте точное содержимое CSS и порядок импорта; не совмещайте переименование с очисткой селекторов или значений.
+• Перед изменением имени файла или удалением стиля выполните поиск по всем маршрутам, компонентам, скриптам и тестам.
+• Отдавайте предпочтение небольшим изменениям, которые легко проверить, с точечными регрессионными проверками, вместо массовой переработки файлов с названиями патчей.
 
-   Open http://localhost:3000. Without test-service configuration, sign-in, user-specific features, and some server integrations may not work. Do not use production credentials or production user data for local development.
-
-## Security rules
-
-- Never commit `.env.local`, `.env`, provider tokens, service-role keys, private keys, database dumps, user data, or logs containing sensitive values.
-- Server secrets must remain server-side. Never rename a secret to a `NEXT_PUBLIC_*` variable; Next.js can expose those values in client bundles.
-- Do not configure production Supabase, Telegram, payment, cron, or hosting credentials in a contributor's local environment.
-- Do not run SQL migrations or scripts against production unless the project owner has explicitly reviewed and approved that exact operation.
-- If you believe a credential was exposed, notify the project owner privately and rotate it. Do not paste the credential into an issue or PR.
-
-## Branches and pull requests
-
-1. Start from the latest `main` and create a focused branch. Suggested names: `fix/poster-fallback`, `feat/catalog-filter`, `refactor/css-file-name`, or `docs/local-setup`.
-2. Keep each PR focused on one problem. Avoid unrelated formatting, mass renames, generated files, and dependency upgrades mixed into a feature fix.
-3. Before editing existing code, search for callers, imports, tests, and related open PRs. Do not duplicate work already in progress.
-4. Explain the observed problem, its cause, the change made, and any known limitations. Add regression tests when practical.
-5. For UI changes, attach before/after screenshots and mention tested viewport sizes. For API or data changes, describe error handling and migration implications.
-6. Run the narrow checks relevant to your change. Useful starting points:
-
-   ```bash
-   npm run lint
-   npm run security:check
-   npm run css:inventory:check
-   ```
-
-   The full `npm run build` runs a large prebuild quality gate and can take substantially longer. GitHub Actions also runs the repository Quality Gate for PRs. Report checks you did not run; do not state that a check passed unless it actually did.
-7. Keep the PR as a draft while work is incomplete. The maintainer reviews and merges changes; contributors do not deploy to production.
-
-## CSS-specific guidance
-
-AnimeBox currently has a large global CSS cascade and route-specific styles. Preserve behavior while the architecture is gradually improved.
-
-- Do not delete a stylesheet just because it is not imported directly by `app/layout.tsx`; route layouts and components may import it.
-- For a mechanical rename, change the file path and its imports only. Preserve the exact CSS contents and import order; do not combine a rename with selector/value cleanup.
-- Search across routes, components, scripts, and tests before changing a filename or removing a style.
-- Prefer small, reviewable changes with targeted regression checks over mass rewrites of patch-named files.
-
-## Scope and access
-
-Use the smallest access needed for the assigned task. Repository access does not grant access to production services, deployment settings, secrets, or customer data.
+Область видимости и доступ
+Используйте минимальный уровень доступа, необходимый для выполнения поставленной задачи. Доступ к репозиторию не дает прав на управление сервисами продакшена, настройками деплоя, секретами или данными клиентов.
