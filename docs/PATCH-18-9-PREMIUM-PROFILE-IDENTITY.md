@@ -1,166 +1,171 @@
-# AnimeBox Patch 18.9 — Premium Profile Identity / Atmosphere
+# Патч AnimeBox 18.9 — идентичность профиля Premium и атмосфера
 
-## Product goal
+## Цель продукта
 
-Premium should feel like a personal identity layer, not a bundle of isolated toggles.
-The profile must look distinctive within seconds while preserving AnimeBox readability,
-performance and the rule that LVL/League frames are earned rather than purchased.
+Premium должен ощущаться персональным слоем идентичности, а не набором изолированных переключателей. Профиль должен становиться узнаваемым за несколько секунд, сохраняя читаемость AnimeBox и производительность. Рамки LVL/League должны зарабатываться, а не покупаться.
 
-## Identity model
+## Модель идентичности
 
-### Cinematic Hero
-- Premium banner, avatar, frame, nickname and palette compose one hero scene.
-- Hero styles: Cinematic, Spotlight, Clean.
-- Avatar receives an ambient aura behind the equipped frame.
-- Aura is light only and never creates a second cosmetic frame.
+### Кинематографичный Hero
 
-### Atmosphere Engine
-Exactly one ambient effect can be active:
-- None
-- Aurora
-- Embers
-- Sakura
-- Stardust
+- Баннер Premium, аватар, рамка, никнейм и палитра образуют одну сцену Hero.
+- Стили Hero: Cinematic, Spotlight, Clean.
+- Позади установленной рамки у аватара появляется мягкая окружающая аура.
+- Аура световая и не создаёт вторую косметическую рамку.
 
-The engine uses CSS/SVG layers. It does not run a continuous JavaScript animation loop.
+### Движок атмосферы
 
-### Motion Mode
-- Off — no premium motion.
-- Soft — calm long-duration movement.
-- Live — more visible motion.
+Одновременно активен ровно один фоновый эффект:
 
-Motion Off also selects static earned level-frame assets.
-prefers-reduced-motion disables animation independently of the selected mode.
+- None;
+- Aurora;
+- Embers;
+- Sakura;
+- Stardust.
 
-### Entrance
-- None
-- Fade
-- Bloom
-- Manga Cut
-- Glitch
+Движок использует слои CSS/SVG. Непрерывный цикл JavaScript-анимации не запускается.
 
-Entrance is short and can be replayed inside Premium Studio before saving.
+### Режим движения
 
-### Nickname identity
-- None
-- Gradient
-- Shimmer
-- Glow
+- Off — без движения Premium;
+- Soft — спокойное движение длительного цикла;
+- Live — более заметное движение.
 
-Only the username gets this effect. Body text remains readable and stable.
+В режиме Motion Off также используются статические материалы заработанных рамок уровней. prefers-reduced-motion независимо от выбранного режима отключает анимацию.
 
-### Surfaces
-- Glass — translucent blurred surfaces.
-- Deep — dense game-style cards.
-- Ink — strict dark surfaces without excessive glow.
+### Появление
+
+- None;
+- Fade;
+- Bloom;
+- Manga Cut;
+- Glitch.
+
+Анимация появления короткая; перед сохранением её можно повторно просмотреть в Premium Studio.
+
+### Идентичность никнейма
+
+- None;
+- Gradient;
+- Shimmer;
+- Glow.
+
+Эффект применяется только к имени пользователя. Основной текст остаётся читаемым и неподвижным.
+
+### Поверхности
+
+- Glass — полупрозрачные размытые поверхности;
+- Deep — плотные карточки в игровом стиле;
+- Ink — строгие тёмные поверхности без избыточного свечения.
 
 ## Premium Studio 2.0
 
-New Atmosphere tab:
-- atmosphere cards with visual thumbnails;
-- atmosphere intensity;
-- motion mode;
-- nickname effect;
-- entrance effect + replay;
-- hero style;
-- surface style.
+Новая вкладка Atmosphere:
 
-Existing palette/media controls remain available.
+- карточки атмосферы с визуальными миниатюрами;
+- интенсивность атмосферы;
+- режим движения;
+- эффект никнейма;
+- эффект появления и его повторный просмотр;
+- стиль Hero;
+- стиль поверхности.
 
-## Adaptive profile palette
+Существующие настройки палитры и медиа остаются доступны.
 
-The user can derive a palette from:
-- Premium avatar;
-- Premium banner.
+## Адаптивная палитра профиля
 
-The client:
-1. downsamples media to a tiny analysis bitmap;
-2. ignores transparent, near-black and near-white noise;
-3. groups nearby colors;
-4. finds a dominant color and a more saturated accent candidate;
-5. builds a dark AnimeBox Primary;
-6. builds a bright Accent;
-7. uses Smart Contrast for readable text.
+Пользователь может построить палитру на основе:
 
-The result stays editable manually before saving.
+- аватара Premium;
+- баннера Premium.
 
-## Animated media crop
+Клиент:
 
-The crop editor renders the real IMG source instead of drawing a single frame to canvas.
-GIF and Animated WebP therefore continue moving while the user drags and zooms.
+1. уменьшает медиа до небольшого растрового изображения для анализа;
+2. игнорирует прозрачный, почти чёрный и почти белый шум;
+3. объединяет близкие цвета;
+4. находит доминирующий цвет и более насыщенный кандидат на роль акцента;
+5. строит тёмный основной цвет AnimeBox;
+6. строит яркий акцент;
+7. применяет Smart Contrast для читаемого текста.
 
-## Milestone frame fit
+Перед сохранением результат можно вручную изменить.
 
-Avatar safe zones:
-- LVL 10 — 52%
-- LVL 25 — 54%
-- LVL 50 — 46%
-- LVL 75 — 52%
-- LVL 100 — 46%
+## Кадрирование анимированных медиа
 
-The avatar must stay entirely inside the visible inner opening of each milestone frame.
+Редактор кадрирования отображает настоящий источник IMG вместо отрисовки одного кадра на canvas. Поэтому GIF и Animated WebP продолжают двигаться во время перетаскивания и масштабирования.
 
-## Premium profile presets
+## Подгонка рамок достижений
 
-Existing presets remain, plus:
-- Crimson Oath
-- Ocean Glass
-- Golden Hour
+Безопасные области аватара:
 
-## Storage
+- LVL 10 — 52%;
+- LVL 25 — 54%;
+- LVL 50 — 46%;
+- LVL 75 — 52%;
+- LVL 100 — 46%.
 
-premium_profile_settings adds:
-- atmosphere_effect
-- atmosphere_intensity
-- motion_mode
-- entrance_effect
-- nickname_effect
-- hero_style
-- surface_style
+Аватар должен полностью помещаться во внутреннем видимом отверстии каждой рамки достижения.
 
-All enum-like values are protected by DB CHECK constraints and API whitelist validation.
+## Предустановки профиля Premium
 
-## Expired Premium
+Существующие варианты сохраняются; дополнительно добавлены:
 
-Stored settings remain.
-Premium-only palette, motion and atmosphere are not applied without active entitlement.
-Existing static media fallback behavior remains intact.
+- Crimson Oath;
+- Ocean Glass;
+- Golden Hour.
 
-## Performance requirements
+## Хранение
 
-- no requestAnimationFrame particle engine;
-- CSS/SVG motion only;
-- at most 14 atmosphere particles desktop;
-- reduced particle count on mobile;
-- reduced-motion disables animations;
-- Motion Off must have effectively zero ongoing animation cost;
-- public profile stays server-rendered.
+В premium_profile_settings добавлены поля:
 
-## Acceptance
+- atmosphere_effect;
+- atmosphere_intensity;
+- motion_mode;
+- entrance_effect;
+- nickname_effect;
+- hero_style;
+- surface_style.
 
-- TypeScript passes.
-- Targeted lint has zero errors.
-- Retention regression checks pass.
-- Production build passes.
-- Profile editor API accepts old cached clients without new fields.
-- New settings persist and render on public profiles.
-- Animated crop preview stays animated.
-- LVL/League one-frame rule remains unchanged.
+Все значения, похожие на перечисления, защищены ограничениями CHECK в БД и проверкой по белому списку в API.
 
+## Истёкшая подписка Premium
 
-## 18.9.1 — Persistent Studio Preview
+Сохранённые настройки остаются в базе. Палитра, движение и атмосфера, доступные только Premium, не применяются без активных прав подписки. Существующее резервное поведение для статических медиа сохраняется.
 
-Desktop Premium Studio keeps the live preview visible while editing Palette,
-Atmosphere, Effects and Media.
+## Требования к производительности
 
-Implementation:
-- the old Palette-only hero wrapper becomes `display: contents` on desktop;
-- preview occupies the right grid column across Palette + section tabs + editor body;
-- the preview wrapper spans three grid rows;
-- the live preview uses one sticky instance instead of duplicate/fixed copies;
-- sticky preview gets a viewport-aware maximum height;
-- laptop preview height is reduced so the card stays usable without a nested long scroll;
-- below the desktop breakpoint the existing single-column flow remains available.
+- нет движка частиц на requestAnimationFrame;
+- движение реализуется CSS/SVG;
+- на десктопе не более 14 частиц атмосферы;
+- на мобильных число частиц сокращено;
+- reduced-motion отключает анимацию;
+- Motion Off должен практически не создавать постоянной нагрузки анимации;
+- публичный профиль остаётся серверно-отрисованным.
 
-This fixes the UX regression where users had to scroll back to the top after every
-Atmosphere/Effect change just to see the live result.
+## Критерии приёмки
+
+- TypeScript проходит;
+- целевой lint не имеет ошибок;
+- регрессионные проверки удержания пользователей проходят;
+- production build проходит;
+- API редактора профиля принимает старые кешированные клиенты без новых полей;
+- новые настройки сохраняются и отображаются в публичных профилях;
+- предпросмотр кадрирования анимированных файлов остаётся анимированным;
+- правило статичного кадра LVL/League остаётся неизменным.
+
+## 18.9.1 — постоянный предпросмотр Studio
+
+В десктопной Premium Studio живой предпросмотр остаётся видимым при редактировании палитры, атмосферы, эффектов и медиа.
+
+Реализация:
+
+- старая обёртка Hero, предназначенная только для вкладки Palette, получает display: contents на десктопе;
+- предпросмотр занимает правую колонку сетки напротив палитры, вкладок и области редактора;
+- обёртка предпросмотра занимает три строки сетки;
+- используется один закреплённый экземпляр предпросмотра вместо дубликатов/фиксированных копий;
+- максимальная высота закреплённого предпросмотра зависит от высоты viewport;
+- на ноутбуках высота предпросмотра уменьшена, чтобы карточкой можно было пользоваться без вложенной длинной прокрутки;
+- ниже десктопной контрольной ширины сохраняется существующая одноколоночная компоновка.
+
+Это исправляет регрессию интерфейса, при которой после каждого изменения Atmosphere/Effect пользователю приходилось прокручивать обратно наверх, чтобы увидеть результат.
