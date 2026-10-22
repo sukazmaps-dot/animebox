@@ -1,75 +1,75 @@
-# AnimeBox RU Access Gateway v1
+# Шлюз доступа AnimeBox для РФ (Версия 1)
 
-Purpose: keep AnimeBox deployed on Vercel while giving users in Russia a direct entry point that does not depend on Cloudflare proxy delivery.
+**Назначение:** Сохранить деплой AnimeBox на платформе Vercel, предоставив пользователям из России прямую точку входа, независимую от доставки через прокси-серверы Cloudflare.
 
-## Architecture
+## Архитектура
 
 ```text
-Browser
+Браузер пользователя
   -> youranimebox.com
-  -> RU VPS / nginx
+  -> VPS в РФ / nginx
   -> cname.vercel-dns.com
      Host: youranimebox.com
-     X-AnimeBox-Edge-Verify: <secret>
+     X-AnimeBox-Edge-Verify: <секретный_ключ>
   -> Vercel / Next.js
 ```
 
-Cloudflare may continue to host DNS, but the public `@` and `www` records must be **DNS only** when the gateway is enabled.
+Cloudflare может продолжать обслуживать DNS, но публичные записи `@` и `www` должны быть переключены в режим **DNS only** (без проксирования) при включении шлюза.
 
-The application already supports `ANIMEBOX_EDGE_ORIGIN_SECRET` in `proxy.ts`. Do not commit the real secret. The bootstrap script generates it only on the VPS.
+Приложение уже поддерживает переменную `ANIMEBOX_EDGE_ORIGIN_SECRET` в файле `proxy.ts`. Не добавляйте реальный секрет в коммиты. Скрипт инициализации (bootstrap) генерирует его локально на самом VPS.
 
-## VPS baseline
+## Базовые требования к VPS
 
-Recommended starting point:
+Рекомендуемые параметры для старта:
 
-- Ubuntu 22.04 or 24.04 LTS
-- static IPv4
-- 1 vCPU / 1 GB RAM is enough for the first users
-- 10+ GB disk
-- nginx ports 80/443 reachable
-- SSH restricted to your admin access
+- Ubuntu 22.04 или 24.04 LTS
+- Статический IPv4-адрес
+- 1 vCPU / 1 GB RAM (достаточно для первых пользователей)
+- 10+ GB места на диске
+- Открытые порты nginx 80/443 для внешнего трафика
+- Доступ по SSH ограничен только для вашего администратора
 
-The gateway is not an application server. Vercel still builds and runs Next.js.
+Шлюз не является сервером приложений. Vercel по-прежнему собирает и запускает Next.js.
 
-## 1. Bootstrap the VPS
+## 1. Инициализация VPS
 
-Clone the repository on the VPS and run:
+Клонируйте репозиторий на VPS и выполните команду:
 
 ```bash
 sudo bash infra/ru-gateway/bootstrap-ubuntu.sh
 ```
 
-This installs nginx, Certbot and the Cloudflare DNS Certbot plugin, writes nginx templates and generates a 64-character origin secret at:
+Этот скрипт установит nginx, Certbot и плагин Certbot для Cloudflare DNS, запишет шаблоны конфигурации nginx и сгенерирует 64-значный секретный ключ по пути:
 
 ```text
 /root/.animebox-origin-secret
 ```
 
-The production nginx site is intentionally **not enabled** yet.
+Рабочий сайт в nginx намеренно **пока не активируется**.
 
-## 2. Issue TLS before DNS cutover
+## 2. Выпуск TLS-сертификата до переключения DNS
 
-DNS-01 is preferred because it lets you obtain the certificate before moving public traffic.
+Использование проверки типа DNS-01 является приоритетным, так как позволяет получить SSL/TLS сертификат еще до того, как на VPS будет направлен реальный публичный трафик.
 
-Create a scoped Cloudflare API token with only:
+Создайте ограниченный API-токен в Cloudflare со следующими правами:
 
 - Zone -> DNS -> Edit
-- only the `youranimebox.com` zone
+- Доступ только к зоне `youranimebox.com`
 
-On the VPS:
+Настройте параметры на VPS:
 
 ```bash
 sudo mkdir -p /root/.secrets/certbot
 sudo nano /root/.secrets/certbot/cloudflare.ini
 ```
 
-Contents:
+Содержимое файла:
 
 ```ini
-dns_cloudflare_api_token = YOUR_SCOPED_CLOUDFLARE_TOKEN
+dns_cloudflare_api_token = ВАШ_ОГРАНИЧЕННЫЙ_ТОКЕН_CLOUDFLARE
 ```
 
-Then:
+Затем выполните выпуск сертификата:
 
 ```bash
 sudo chmod 600 /root/.secrets/certbot/cloudflare.ini
@@ -81,11 +81,11 @@ sudo certbot certonly \
   -d www.youranimebox.com
 ```
 
-Do not commit the Cloudflare token.
+Никогда не отправляйте токен Cloudflare в Git.
 
-## 3. Enable nginx
+## 3. Активация nginx
 
-After the certificate exists:
+После успешного создания сертификата выполните:
 
 ```bash
 sudo ln -sfn /etc/nginx/sites-available/animebox /etc/nginx/sites-enabled/animebox
@@ -94,7 +94,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Firewall example:
+Пример настройки брандмауэра (файрвола):
 
 ```bash
 sudo ufw allow OpenSSH
@@ -102,121 +102,120 @@ sudo ufw allow 'Nginx Full'
 sudo ufw enable
 ```
 
-Only enable UFW after confirming the OpenSSH rule exists.
+Включайте UFW только после того, как лично убедитесь, что правило для OpenSSH добавлено и активно.
 
-## 4. Test before changing DNS
+## 4. Тестирование до изменения DNS-записей
 
-Because the certificate already exists, you can force curl to the VPS IP without changing public DNS:
+Поскольку сертификат уже готов, вы можете принудительно направить curl-запрос на IP-адрес вашего VPS, не меняя глобальные публичные DNS-записи:
 
 ```bash
-bash infra/ru-gateway/smoke-test.sh youranimebox.com VPS_IPV4
+bash infra/ru-gateway/smoke-test.sh youranimebox.com IP_АДРЕС_ВАШЕГО_VPS
 ```
 
-Expected:
+Ожидаемый результат:
 
 ```text
 AnimeBox RU gateway smoke test passed.
 ```
 
-The health endpoint is:
+Эндпоинт для проверки работоспособности (healthcheck):
 
 ```text
 https://youranimebox.com/__gateway-health
 ```
 
-and successful gateway responses include:
+Успешные ответы от шлюза всегда содержат следующий заголовок:
 
 ```text
 X-AnimeBox-Gateway: ru-v1
 ```
 
-## 5. Cloudflare DNS cutover
+## 5. Переключение DNS в Cloudflare
 
-Before changing anything, save the current DNS values so rollback is easy.
+Перед внесением любых изменений обязательно сохраните текущие значения DNS-записей, чтобы при необходимости можно было быстро выполнить откат.
 
-For the public site:
+Для основного сайта задайте:
 
 ```text
-A     @       VPS_IPV4     DNS only
-A     www     VPS_IPV4     DNS only
+A     @       IP_АДРЕС_ВАШЕГО_VPS     DNS only
+A     www     IP_АДРЕС_ВАШЕГО_VPS     DNS only
 ```
 
-If the VPS has no configured IPv6, remove old `AAAA` records for `@` and `www`. Otherwise some clients may continue to use the old route over IPv6.
+Если на VPS не настроен IPv6, обязательно удалите старые записи `AAAA` для `@` и `www`. В противном часть клиентов продолжит ходить по старому маршруту через IPv6.
 
-Important: **do not enable the orange Cloudflare proxy** on these gateway records. Cloudflare can remain the authoritative DNS provider.
+Важно: **не включайте оранжевое облако (проксирование) Cloudflare** для этих записей шлюза. Cloudflare должен оставаться исключительно в качестве DNS-провайдера.
 
-## 6. Lock Vercel behind the gateway
+## 6. Защита Vercel за шлюзом
 
-Do this only after nginx is working and public traffic is already reaching the VPS.
+Выполняйте этот шаг только после того, как убедитесь, что nginx работает стабильно и публичный трафик уже пошел через ваш VPS.
 
-Reveal the gateway secret:
+Посмотрите сгенерированный секрет шлюза:
 
 ```bash
 sudo cat /root/.animebox-origin-secret
 ```
 
-Add the exact value in Vercel Production:
+Добавьте полученное значение в панели Vercel Production Environment Variables:
 
 ```text
-ANIMEBOX_EDGE_ORIGIN_SECRET=<same value>
+ANIMEBOX_EDGE_ORIGIN_SECRET=<значение_секрета>
 ```
 
-Redeploy production.
+Выполните редеплой проекта на Vercel.
 
-The nginx snippet already sends the same value as:
+Конфигурация nginx уже настроена на автоматическую передачу этого секретного значения в заголовке:
 
 ```text
 X-AnimeBox-Edge-Verify
 ```
 
-After the Vercel redeploy, requests that try to reach the canonical Vercel origin without the gateway header are rejected by AnimeBox.
+После редеплоя на Vercel любые запросы, пытающиеся обратиться напрямую к каноническому адресу Vercel без указанного заголовка проверки, будут отклоняться кодом AnimeBox.
 
-## 7. What the gateway caches
+## 7. Что кэширует шлюз
 
-Only:
+Шлюз кэширует только статические файлы сборки:
 
 ```text
 /_next/static/*
 ```
 
-Dynamic HTML, API responses, profiles, sessions and Watch Together state are not cached by nginx.
+Динамический HTML, ответы API, профили, сессии и состояния комнат совместного просмотра (Watch Together) сервером nginx **не кэшируются**.
 
-The nginx upload ceiling is 20 MiB so the existing 16 MiB avatar/banner client limit is not reduced by the gateway.
+Лимит на размер загружаемых файлов в nginx установлен на уровне 20 MiB, благодаря чему текущее ограничение клиентской части приложения на загрузку аватаров/баннеров в 16 MiB не будет занижаться шлюзом.
 
-## 8. Production smoke test
+## 8. Проверка на продакшене (Smoke test)
 
-After DNS propagation:
+После полного обновления DNS-записей в сети запустите:
 
 ```bash
 bash infra/ru-gateway/smoke-test.sh
 ```
 
-Also manually check:
+Также обязательно проверьте работу ключевых функций вручную:
+- Главная страница
+- Авторизация и корректность колбэка (auth callback)
+- Страница конкретного аниме
+- Плеер эпизодов
+- Загрузка аватара и баннера в профиле
+- Работа в качестве Telegram Mini App
+- Создание и подключение к комнатам совместного просмотра
+- Запуск процесса оплаты Premium-подписки
 
-- home page
-- login / auth callback
-- anime page
-- episode player
-- profile avatar/banner upload
-- Telegram Mini App
-- Watch Together room creation/join
-- Premium checkout start
+## Процедура отката (Rollback)
 
-## Rollback
+Если в работе шлюза возникнут критические проблемы:
 
-If the gateway has a problem:
+1. Удалите или выключите переменную `ANIMEBOX_EDGE_ORIGIN_SECRET` в панели Vercel, если старый маршрут не передает данный заголовок;
+2. Восстановите точные значения предыдущих DNS-записей для `@` и `www`, которые вы сохранили перед переключением;
+3. Дождитесь обновления DNS-кэша в сети;
+4. Оставляйте VPS включенным до тех пор, пока на него полностью не перестанет поступать остаточный трафик.
 
-1. remove or disable `ANIMEBOX_EDGE_ORIGIN_SECRET` in Vercel if the old path cannot supply the header;
-2. restore the exact previous `@` / `www` DNS records saved before cutover;
-3. wait for DNS propagation;
-4. keep the VPS online until traffic has drained.
+Не используйте откат через Git-коммиты при аварии на шлюзе доступа. Деплой Next.js на Vercel может оставаться прежним; вся процедура отката заключается в смене DNS и конфигурации origin-secret.
 
-Do not use a Git rollback for an access-gateway outage. The Next.js deployment can stay unchanged; rollback is primarily DNS/origin-secret configuration.
+## Дополнительные примечания
 
-## Notes
-
-- Vercel remains the deployment platform.
-- Git push -> Vercel deploy remains unchanged.
-- Supabase is not moved.
-- Cloudflare nameservers do not need to be changed.
-- No real API tokens or gateway secrets belong in this repository.
+- Vercel остается основной платформой для деплоя.
+- Процесс `Git push -> Vercel deploy` работает без изменений.
+- База данных Supabase не переносится.
+- Менять NS-сервера Cloudflare не требуется.
+- Настоящие API-токены и секреты шлюза не должны храниться в этом репозитории.
