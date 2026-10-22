@@ -1,54 +1,54 @@
-# Hotfix 25.1 — Mobile LCP & Image Delivery Recovery
+# Хотфикс 25.1 — восстановление мобильного LCP и доставки изображений
 
-## Trigger
+## Причина
 
-Mobile Lighthouse on the production Home route reported:
+Lighthouse на production-маршруте главной для мобильных устройств показал:
 
-- Performance: 73
-- FCP: 1.8 s
-- LCP: 6.5 s
-- TBT: 180 ms
-- CLS: 0
-- estimated image transfer saving: about 2.6 MiB
+- Performance: 73;
+- FCP: 1,8 с;
+- LCP: 6,5 с;
+- TBT: 180 мс;
+- CLS: 0;
+- расчётная экономия передачи изображений: около 2,6 MiB.
 
-The report showed two concrete network regressions:
+Отчёт указал на две конкретные сетевые регрессии:
 
-1. decorative mood artwork was fetched at source dimensions far above its ~27 px rendered slot;
-2. Home anime cards were observed using direct AniList source images instead of the responsive AnimeBox media edge.
+1. Декоративные иллюстрации настроения загружались в исходных размерах, намного превышающих примерно 27px отрисованной области.
+2. Карточки аниме на главной, по наблюдению, использовали прямые исходные изображения AniList вместо адаптивного медиа-узла AnimeBox.
 
-## Changes
+## Изменения
 
-### Production media origin fallback
+### Резервный источник медиа для production
 
-`getPrimaryMediaOrigin()` keeps the environment override, but production now falls back to the canonical `https://media.youranimebox.com` origin when `NEXT_PUBLIC_MEDIA_ORIGIN` is absent from the build.
+`getPrimaryMediaOrigin()` сохраняет переопределение из окружения, но в production теперь использует канонический адрес `https://media.youranimebox.com`, если `NEXT_PUBLIC_MEDIA_ORIGIN` отсутствовал при сборке.
 
-This prevents a missing public build variable from silently disabling the entire responsive poster `picture/srcset` path.
+Это предотвращает ситуацию, когда отсутствующая публичная переменная сборки незаметно отключает весь адаптивный конвейер poster `picture/srcset`.
 
-### Mobile poster warmup budget
+### Бюджет предварительной загрузки мобильных постеров
 
-The shared poster scheduler previously warmed up to 1600 px below the viewport on the default/4G path. On mobile this could turn several off-screen Home rows into eager image requests during the LCP window.
+Раньше общий планировщик постеров предварительно загружал изображения до 1600px ниже viewport на стандартном/4G-пути. На мобильных это могло превратить несколько невидимых рядов главной в ранние запросы изображений во время окна LCP.
 
-The scheduler is now viewport-aware:
+Теперь планировщик учитывает размер viewport:
 
-- mobile: 460 px bottom overscan;
-- tablet/small desktop: 720 px;
-- wide desktop: 1000 px;
-- Save-Data/2G/3G receive tighter budgets.
+- мобильные устройства: нижний overscan 460px;
+- планшет/небольшой десктоп: 720px;
+- широкий десктоп: 1000px;
+- для Save-Data/2G/3G используются более строгие бюджеты.
 
-Card quality is unchanged. Only request timing changes.
+Качество карточек не меняется. Меняется только время запросов.
 
-### Mood artwork
+### Иллюстрации настроения
 
-Mood illustrations are decorative and much larger than their rendered chip slot. Native `loading=lazy` was insufficient because browser lazy-loading heuristics still fetched them near the initial viewport.
+Иллюстрации настроения декоративны и намного крупнее области чипа, где отображаются. Нативного loading="lazy" оказалось недостаточно: эвристики браузера всё равно загружали изображения рядом с первым экраном.
 
-The initial mood picker now renders zero-network glyph fallbacks. Original artwork is released only when the user reaches/interacts with the picker (pointer hover/down or keyboard focus), and remains low-priority.
+Теперь первоначальный селектор настроения показывает глифы без сетевого запроса. Исходная иллюстрация загружается только когда пользователь доходит до селектора или взаимодействует с ним (наведение/нажатие указателя или клавиатурный фокус), и остаётся низкоприоритетной.
 
-## Deliberately not changed in this hotfix
+## Что намеренно не меняется
 
-- hero visual design;
-- poster quality presets;
-- recommendation logic;
-- CSS cascade/route scoping;
-- Vercel Image Optimization policy.
+- визуальный дизайн Hero;
+- пресеты качества постеров;
+- логика рекомендаций;
+- CSS-каскад и область действия маршрутных стилей;
+- политика Vercel Image Optimization.
 
-The Lighthouse render-blocking CSS finding should be handled as a separate route-scope refactor because moving historical global patch CSS changes cascade order and requires broader visual regression QA.
+Найденную Lighthouse блокировку CSS следует исправлять отдельным рефакторингом в рамках конкретного маршрута: перенос исторических глобальных патч-стилей меняет порядок каскада и требует более широких визуальных регрессионных проверок.
