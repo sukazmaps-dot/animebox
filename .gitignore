@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# Environment files and secrets: keep local values out of Git.
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -42,16 +43,5 @@ next-env.d.ts
 *.zip
 
 .data/
-
-.env.local
-
-
-# Environment variables / secrets
-.env
-.env.local
-.env.*.local
-
-.vercel
-.env*
 
 /artifacts/css-inventory/
