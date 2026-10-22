@@ -1,33 +1,40 @@
-# AnimeBox — Patch 29.1 Mobile UX & Performance Polish
+# Патч AnimeBox 29.1 — доработка мобильной главной и производительности
 
-## Goal and rationale
-Promote the retention action before the social lobby for returning viewers, preserve discoverable Watch Together for new users, and reduce mobile first-screen weight. Patch 29.0 introduced social features above the original continuation shelf; legacy CSS had a 25rem minimum Hero which overrode older mobile heights. The public lobby had a window interval even while offscreen, though fetching was checked for visibility.
+## Цель и обоснование
 
-## UI acceptance
-1. Homepage DOM flow: Hero → Continue Watching (only when real resume items exist) → Watch Together → Discovery (personal schedule, mood, recommendations) → existing shortcuts and catalog.
-2. Existing HomeContinueWatching is mounted exactly once and receives items via useHomeFeedRuntime(); neither a new API request nor a second provider is permitted. Keep attribution, timecode, episode links and last-watched context unchanged.
-3. Watch Together server header and two links remain visible without hydration; up to three actual joinable rooms, honest loading/empty/degraded/error views. Public snapshot must not reveal invite secrets.
-4. For phones 391–768px, mobile Hero minimum height is 340px; 320–390px, 320px. Height auto-expands for long localized names; never clip title or actions. The primary and secondary watch CTA retain at least 44px height.
-5. Compact social room grid: one column, small lazy posters, two-line names, episode/host/viewer count, button at least 44px. Narrow widths preserve all links without scrolling horizontally.
-6. Respect light/dark theme colors, focus-visible and reduced-motion. No new autoplay or video transport.
-7. Mobile Hero no longer applies expensive CSS filter or will-change on large backdrop/key-art images. Keep the already established single high-priority Hero backdrop and adaptive sizes; do not promote a second high-priority mobile image before field measurement.
+Для возвращающихся зрителей действие продолжения просмотра должно стоять выше социального блока; при этом новые пользователи должны легко находить Watch Together, а нагрузку первого мобильного экрана нужно снизить. В патче 29.0 социальные функции были поставлены выше исходной полки продолжения просмотра, а старый CSS задавал Hero минимальную высоту 25rem, переопределявшую прежние мобильные размеры. В публичном лобби работал таймер, даже когда блок не был виден, хотя перед загрузкой выполнялась проверка видимости.
 
-## Client lifecycle / bandwidth
-- Dedicated deferred import and IntersectionObserver, no player, chat transport, PeerJS, iframe or additional WebSocket in homepage.
-- When observer enters proximity and document is visible: fetch once (subject to 30-second cooldown) and run a 30-second interval.
-- On observer exit or hidden tab: stop the interval, abort an in-flight room-list request. No timer continues to wake the background page.
-- On return: restart timer and fetch only if the cooldown has elapsed, otherwise wait until the next interval; respect aborted request and timeout.
-- On unmount: disconnect observer and listeners; abort listing/join requests.
+## Требования к интерфейсу
 
-## Test matrix
-Phones 320/360/375/390/430/768 px; tablet 1024px; desktop 1440/1920px; guest vs authenticated; zero/one/multiple resume items; empty/live/stale/full/degraded rooms; theme dark/light; prefers-reduced-motion; hidden tab, scroll-away/return; browser Back navigation and failed room join; save-data or 2G.
+1. Порядок главной в DOM: Hero → «Продолжить просмотр» (только если есть настоящие элементы для возобновления) → Watch Together → Обнаружение (личное расписание, настроение, рекомендации) → существующие быстрые ссылки и каталог.
+2. Существующий HomeContinueWatching монтируется ровно один раз и получает элементы через useHomeFeedRuntime(); нельзя добавлять новый API-запрос или второй провайдер. Атрибуция, таймкод, ссылки на эпизоды и контекст последнего просмотра не меняются.
+3. Серверная шапка Watch Together и две ссылки остаются видны до гидратации. Показывать до трёх реальных комнат, к которым можно подключиться; корректно отображать загрузку, пустое, деградировавшее и ошибочное состояние. Публичный снимок не должен раскрывать секреты приглашений.
+4. На телефонах шириной 391–768px минимальная высота мобильного Hero — 340px; на 320–390px — 320px. Высота автоматически растёт для длинных локализованных названий; название и действия нельзя обрезать. Основная и вторичная кнопки просмотра имеют высоту не менее 44px.
+5. Компактная сетка комнат: одна колонка, небольшие лениво загружаемые постеры, названия в две строки, эпизод/организатор/число зрителей и кнопка не ниже 44px. На узких экранах ссылки остаются доступны без горизонтальной прокрутки.
+6. Соблюдать цвета светлой/тёмной тем, видимость фокуса и reduced-motion. Не добавлять автозапуск или передачу видеопотока.
+7. Мобильный Hero больше не применяет дорогие CSS-фильтры или will-change к большим фоновым/ключевым изображениям. Сохранить уже установленный единственный высокоприоритетный фон Hero и адаптивные размеры; не повышать приоритет второй мобильной картинки до полевых измерений.
 
-## Performance goals, not yet measured
-Lighthouse mobile >=95 in a repeatable throttled lab profile; p75 LCP <=2.5s, INP <=200ms, CLS <=0.1 on actual traffic. No page-wide horizontal overflow, new iframes or new playback connections.
-Measure on the production domain after CI and Railway deploy. Do not claim the target solely from source-level tests.
+## Жизненный цикл клиента и пропускная способность
 
-## Release gates / rollback
-- npm run patch29-1:check and npm run patch29:check
-- Existing home composition / home discovery invariants, TypeScript, ESLint, full prebuild gates, production build.
-- Check production deployment of merge SHA in both Railway services.
-- Roll back with revert; no database schema or API migrations.
+- Отдельный отложенный импорт и IntersectionObserver; на главной нет плеера, транспорта чата, PeerJS, iframe или дополнительных WebSocket.
+- Когда блок входит в область видимости и документ активен: один запрос (с учётом 30-секундного кулдауна), затем интервал 30 секунд.
+- При выходе блока из области наблюдения или скрытии вкладки интервал останавливается, активный запрос списка комнат отменяется. Фоновая страница не должна пробуждаться таймером.
+- При возвращении таймер запускается снова; запрос выполняется только после завершения кулдауна, иначе ожидать следующего интервала. Учитывать отмену запроса и тайм-аут.
+- При размонтировании отключать observer и обработчики, отменять запросы списка/подключения.
+
+## Матрица тестирования
+
+Телефоны: 320/360/375/390/430/768px; планшет: 1024px; десктоп: 1440/1920px. Гость и авторизованный пользователь; ноль/один/несколько элементов продолжения; пустые/активные/устаревшие/полные/деградировавшие комнаты; светлая/тёмная тема; prefers-reduced-motion; скрытие вкладки и уход/возврат прокрутки; навигация «Назад» и ошибка подключения к комнате; экономия трафика или 2G.
+
+## Цели производительности — пока не измерены
+
+Целевой Lighthouse mobile — не ниже 95 в воспроизводимом тестовом профиле; p75 LCP ≤ 2,5 с, INP ≤ 200 мс, CLS ≤ 0,1 на реальном трафике. Не должно быть горизонтального переполнения страницы, новых iframe или новых подключений воспроизведения.
+
+Измерять на production-домене после прохождения CI и деплоя Railway. Не заявлять о достижении целей только на основании проверок исходников.
+
+## Условия выпуска и откат
+
+- `npm run patch29-1:check` и `npm run patch29:check`;
+- существующие инварианты компоновки/обнаружения главной, TypeScript, ESLint, все prebuild-проверки и production build;
+- проверить деплой merge SHA в обоих сервисах Railway;
+- откатить через revert; миграции схемы БД и API не требуются.
