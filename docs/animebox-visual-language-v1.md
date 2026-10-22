@@ -1,82 +1,82 @@
-# AnimeBox Visual Language v1 — Dark Anime Aurora
+# Визуальный язык AnimeBox v1 — тёмная аниме-аврора
 
-## Goal
+## Цель
 
-Create a recognisable AnimeBox interface language without returning to noisy glassmorphism or flat admin-dashboard minimalism. The UI stays ordered and readable, while important surfaces gain local depth, violet/cyan light and restrained motion.
+Создать узнаваемый визуальный язык AnimeBox без возвращения к шумному glassmorphism или плоскому минимализму административной панели. Интерфейс остаётся упорядоченным и читаемым, а важные поверхности получают локальную глубину, фиолетово-голубой свет и сдержанное движение.
 
-## Core rules
+## Основные правила
 
-- 80–90% of the interface remains calm and dark; glow is local, not global.
-- No AI-generated illustrations or decorative raster 3D art in the refactored surfaces.
-- Icons use one outline family (Phosphor) in the resting state. Fill is reserved for active state/status.
-- Important blocks use three layers: dark surface → local aura → icon/content.
-- Hairline borders stay neutral. Violet is used for identity, not for every border.
-- CTA height is 44px with 10px radius.
-- Motion vocabulary: `float` (3–4s), `ring` (2–2.5s), `lift` (160–220ms).
-- Respect `prefers-reduced-motion` / `useReducedMotion`.
+- 80–90% интерфейса остаётся спокойным и тёмным; свечение локальное, а не глобальное.
+- В переработанных поверхностях не использовать иллюстрации, созданные ИИ, или декоративные растровые 3D-изображения.
+- В обычном состоянии иконки используют единое контурное семейство Phosphor. Заливка предназначена для активного состояния/статуса.
+- Важные блоки используют три слоя: тёмная поверхность → локальная аура → иконка/контент.
+- Тонкие рамки остаются нейтральными. Фиолетовый обозначает идентичность, а не украшает каждую рамку.
+- Высота CTA — 44px, скругление — 10px.
+- Принципы движения: float (3–4 с), ring (2–2,5 с), lift (160–220 мс).
+- Соблюдать prefers-reduced-motion / useReducedMotion.
 
-## Brand tokens
+## Брендовые токены
 
-- Canvas: `#070a10`
-- Surface: `#0c111a`
-- Raised: `#111823`
-- Text: `#f5f6fb`
-- Muted: `#929cad`
-- Violet: `#9278ff`
-- Violet light: `#b09cff`
-- Cyan: `#6fdcff`
+- Холст: `#070a10`
+- Поверхность: `#0c111a`
+- Приподнятая поверхность: `#111823`
+- Текст: `#f5f6fb`
+- Приглушённый текст: `#929cad`
+- Фиолетовый: `#9278ff`
+- Светло-фиолетовый: `#b09cff`
+- Голубой: `#6fdcff`
 
-Runtime source: `app/animebox-visual-language-v1.css`.
+Источник рантайма: `app/animebox-visual-language-v1.css`.
 
-## Signature motifs
+## Фирменные мотивы
 
-### Luminous spine
+### Световая линия
 
-A thin local violet → cyan light line for feature sections and active navigation. It should never become a thick decorative bar.
+Тонкая локальная световая линия фиолетовый → голубой для акцентных секций и активной навигации. Она не должна превращаться в толстую декоративную полосу.
 
-### Icon core
+### Основа иконки
 
-Reusable component: `components/ui/AnimeBoxIconCore.tsx`.
+Общий компонент: `components/ui/AnimeBoxIconCore.tsx`.
 
-Every hero/empty-state icon can use a restrained square shell plus a blurred local aura. The icon remains SVG.
+Иконка Hero/пустого состояния может использовать сдержанную квадратную оболочку и размытое локальное свечение. Сама иконка остаётся SVG.
 
-### CTA family
+### Семейство CTA
 
 - `.ab-action.ab-action--primary`
 - `.ab-action.ab-action--secondary`
 
-Both are 44px high and share the same interaction rhythm.
+Обе кнопки высотой 44px и с одинаковым ритмом взаимодействия.
 
-## Refactored surfaces
+## Переработанные поверхности
 
-- Desktop sidebar / Premium membership
-- Guest and authenticated Tracker empty states
-- Telegram anime-notification banner
-- Telegram channel promo (vector-only)
-- Episode community/discussion banner
-- Quiet tab styling foundation
+- Боковая панель десктопа / подписка Premium;
+- пустые состояния трекера для гостя и авторизованного пользователя;
+- баннер уведомлений об аниме в Telegram;
+- промо Telegram-канала (только векторная графика);
+- баннер обсуждения/сообщества эпизода;
+- основа спокойного оформления вкладок.
 
-## Anti-patterns
+## Антипаттерны
 
-Do not add:
+Не добавлять:
 
-- glow around every card;
-- purple borders on every surface;
-- giant rounded SaaS cards;
-- random 3D WebP art for utility UI;
-- emoji in place of UI SVGs;
-- unrelated animation styles per component.
+- свечение вокруг каждой карточки;
+- фиолетовую рамку на каждой поверхности;
+- огромные округлые карточки в стиле SaaS;
+- случайные 3D WebP-изображения в утилитарном интерфейсе;
+- эмодзи вместо интерфейсных SVG;
+- отдельный несвязанный стиль анимации для каждого компонента.
 
-## Leaderboard Visual v2
+## Визуальный язык таблицы лидеров v2
 
-The leaderboard follows the same Dark Anime Aurora language instead of a dashboard-card layout.
+Таблица лидеров следует тому же стилю тёмной аниме-авроры, а не компоновке из административных карточек.
 
-- The hero is intentionally compact and contains the user's rank summary instead of ornamental empty space.
-- Ranking mode and period controls share one restrained segmented-control language; the active period uses a moving Framer Motion indicator.
-- Section headings use the AnimeBox luminous spine motif.
-- Top 3 remains on dark AnimeBox surfaces. Gold / silver / bronze are accents only, never full-card themes.
-- Rank 1 has the largest avatar, a subtle crown float and a restrained gold aura mixed with the global violet identity.
-- Rank numbers are rendered as oversized low-opacity background typography to create depth without raster art.
-- The user's own position is a compact pinned strip with time, episodes and level.
-- Places 4–100 use a dense row system with a left glow reveal on hover and a direct profile affordance.
-- Reduced-motion users receive the same hierarchy without looping motion.
+- Hero намеренно компактный: он содержит сводку ранга пользователя, а не декоративное пустое пространство.
+- Переключатели режима ранжирования и периода используют единый сдержанный язык сегментированных контролов; активный период отмечается движущимся индикатором Framer Motion.
+- Заголовки секций используют мотив световой линии AnimeBox.
+- Топ-3 остаётся на тёмных поверхностях AnimeBox. Золото/серебро/бронза — только акценты, не полноценные темы всей карточки.
+- У первого места самый крупный аватар, сдержанное плавание короны и умеренная золотая аура в сочетании с фирменным фиолетовым.
+- Номера мест отображаются крупной типографикой с низкой непрозрачностью на заднем плане, создавая глубину без растрового арта.
+- Собственная позиция пользователя — компактная закреплённая полоса со временем, эпизодами и уровнем.
+- Места 4–100 используют плотную систему строк с появляющимся слева свечением при наведении и прямой ссылкой на профиль.
+- Пользователи с reduced-motion получают ту же визуальную иерархию без циклической анимации.
