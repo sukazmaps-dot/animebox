@@ -1,25 +1,32 @@
-# Patch 29.0 — Social-first AnimeBox Homepage
+# Патч 29.0 — главная AnimeBox с приоритетом социальных функций
 
-## Product objective
-Make Watch Together a first-class reason to return, rather than an obscure secondary nav. Preserve existing personalized continue-watching, the recommendation feed, schedules, and main-thread responsiveness.
+## Цель продукта
 
-## Implemented architecture
-- Main homepage remains a Server Component shell with the existing feed/schedule contexts.
-- Watch Together lives immediately after the Hero as a server-rendered section with SSR text and direct create/explore links.
-- Its public room summaries are client-loaded via dynamic import only when approaching the viewport, never during the first image paint.
-- Poll only when the browser tab and section are visible, at most once per 30 seconds; all requests abort on unmount.
-- Show up to three joinable actual public rooms. Rank preferred anime IDs above currently watching rooms, then engagement. Guests see general rooms.
-- Public listing does not contain a join secret. An authenticated join resolves it on click through the dedicated protected endpoint. The secret is embedded only in the fragment of the destination URL, not analytics.
-- Logged-out visitors can explore. Joining offers authentication, directing to Watch Together.
-- Empty, degraded, timeout and API errors have realistic copy and a create-room CTA; no fake activity.
-- Lightweight AnimeImage thumbnails and static CSS. Zero video iframes, zero peer synchronization, zero room chat on the home page.
-- Remove the old legacy personalized room card which attempted to construct a secret URL from a secret-less public listing.
+Сделать Watch Together одной из главных причин возвращаться на сайт, а не скрытой второстепенной ссылкой. При этом сохранить персональное продолжение просмотра, ленту рекомендаций, расписание и отзывчивость главного потока браузера.
 
-## Acceptance
-- Guest, authorized, personal history/no history, empty/full/private/ended rooms, query failure, throttling, timeout, tab resume, keyboard and mobile.
-- Run npm run patch29:check, npx tsc --noEmit, npx eslint (changed files), and the project's full CI build.
-- Use real-user p75 Web Vitals (LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1) and lab Lighthouse 95+ as targets, not promises. No source autoplay/previews.
-- Next stages: scheduled communal screenings and opt-in friend presence, with dedicated experiments and metrics.
+## Реализованная архитектура
 
-## Rollback
-Revert the patch's merge; room APIs, membership and Watch Together theater remain untouched.
+- Главная остаётся оболочкой Server Component с существующим контекстом ленты/расписания.
+- Watch Together расположен сразу после Hero как серверно отрисованный раздел с текстом SSR и прямыми ссылками создания/обзора комнат.
+- Краткая публичная информация о комнатах загружается на клиенте через динамический импорт только при приближении блока к viewport, но не во время первой отрисовки изображения.
+- Опрос выполняется только когда вкладка браузера и секция видимы, не чаще одного раза в 30 секунд; все запросы отменяются при размонтировании.
+- Показывать до трёх реальных публичных комнат, к которым можно подключиться. Сначала ранжировать комнаты с предпочитаемыми ID аниме, затем комнаты, где идёт просмотр, и далее по вовлечённости. Гостям показываются общие комнаты.
+- В публичном списке нет секрета подключения. Для авторизованного пользователя секрет разрешается по нажатию через отдельный защищённый эндпоинт. Секрет находится только во фрагменте URL назначения и не попадает в аналитику.
+- Гости могут изучать комнаты. При подключении им предлагается авторизация с переходом в Watch Together.
+- Для пустого, деградировавшего, истёкшего по тайм-ауту и ошибочного API состояния используются правдоподобные тексты и кнопка создания комнаты; фиктивная активность не отображается.
+- Используются лёгкие миниатюры AnimeImage и статический CSS. На главной нет видео iframe, синхронизации peer-соединений или чата комнат.
+- Удаляется старая персональная карточка комнаты, которая пыталась построить секретный URL из публичного списка без секрета.
+
+## Приёмка
+
+Проверить: гостя и авторизованного пользователя, наличие/отсутствие истории, пустые/полные/приватные/завершённые комнаты, ошибки запросов, ограничение частоты, тайм-аут, возвращение на вкладку, клавиатуру и мобильные устройства.
+
+Запустить `npm run patch29:check`, `npx tsc --noEmit`, `npx eslint` для изменённых файлов и полный CI build проекта.
+
+Целевые показатели реального p75 Web Vitals (LCP ≤ 2,5 с, INP ≤ 200 мс, CLS ≤ 0,1) и лабораторный Lighthouse 95+ — цели, а не обещания. Не включать автозапуск/предпросмотр видео из источников.
+
+Следующие этапы: совместные запланированные просмотры и присутствие друзей по opt-in, с отдельными экспериментами и метриками.
+
+## Откат
+
+Откатить коммит слияния патча. API комнат, участие в них и Watch Together theater не меняются.
