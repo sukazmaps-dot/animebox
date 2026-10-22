@@ -1,19 +1,23 @@
-# Hotfix 28.1 — Recommendation Rail Momentum
+# Хотфикс 28.1 — плавная прокрутка лент рекомендаций
 
-Reported behavior: rapid horizontal scrolling can make the recommendation rail jump backwards.
+**Наблюдаемое поведение:** при быстрой горизонтальной прокрутке лента рекомендаций может неожиданно прыгать назад.
 
-Code inspection found two sources of involuntary position changes: virtual windows remove/insert native snap targets during a gesture, and updateVirtualWindow writes scrollLeft when the measured card stride changes. A third vulnerable point is the first appended page crossing the DOM virtualization threshold before geometry has been measured.
+Проверка кода выявила два источника непроизвольного изменения позиции: виртуальное окно удаляет/добавляет нативные цели snap во время жеста, а updateVirtualWindow записывает scrollLeft при изменении измеренного шага карточек. Третья уязвимая точка — первая добавленная страница может пересечь порог DOM-виртуализации до того, как будет измерена геометрия.
 
-Changes:
+## Изменения
 
-- Rows configured for virtualization disable native scroll snapping and scroll anchoring for their entire mounted lifetime, including before the first paginated append.
-- Native touch/trackpad momentum owns scrollLeft: geometry measurement no longer adjusts the offset.
-- Card geometry is measured before virtualization activates, so crossing the threshold can render spacers using an existing width.
-- Arrow clicks use an accumulated absolute target for successive clicks in the same direction. A deliberate pointer/wheel/keyboard interaction clears the arrow target; reversal uses the actual current position.
-- Existing pagination, bounded DOM window, append-only recommendation identity and per-rail request ownership are preserved.
+- Для строк с виртуализацией на всё время монтирования отключаются нативное прилипание прокрутки и scroll anchoring, в том числе до добавления первой страницы.
+- Нативная инерция сенсорной панели/тачпада управляет scrollLeft: измерение геометрии больше не корректирует позицию.
+- Геометрия карточек измеряется до включения виртуализации, чтобы при достижении порога пустые элементы-заполнители могли использовать уже известную ширину.
+- Клики по стрелкам используют накопленную абсолютную целевую позицию при последовательных кликах в одном направлении. Намеренное взаимодействие указателем/колёсиком/клавиатурой сбрасывает цель стрелки; при движении в обратную сторону используется фактическая текущая позиция.
+- Сохраняются существующая пагинация, ограниченное DOM-окно, добавление рекомендаций без замены идентичности и владение запросами каждой ленты.
 
-Acceptance: fast forward gestures do not produce programmatic backwards writes; appending past 36 cards retains spacer geometry; repeated forward arrow clicks accumulate their destination; intentional backwards navigation remains available; reduced-motion and normal rows remain compatible.
+## Приёмка
 
-Regression test runs the actual ScrollRow component with a mocked track and hook lifecycle. It checks measurement/append/width changes without scrollLeft writes, stable styling before virtualization, first virtual spacer generation and two rapid arrow targets (640 -> 1280). New test is wired after the required first release consolidation gate.
+Быстрые жесты вперёд не должны вызывать программную запись позиции назад; добавление более 36 карточек сохраняет геометрию заполнителей; повторные клики по стрелке вперёд накапливают целевую позицию; намеренная прокрутка назад остаётся доступна; обычные строки и reduced-motion сохраняют совместимость.
 
-Limits: the component regression test does not simulate a browser's native inertial scrolling engine. Device-level swipe verification remains a separate check; do not claim it passed from this test alone. No API, SQL or recommendation scoring change.
+Регрессионный тест запускает настоящий компонент ScrollRow с имитацией дорожки и жизненного цикла хука. Он проверяет измерение/добавление/изменение ширины без записи scrollLeft, стабильные стили до виртуализации, создание первого виртуального заполнителя и две быстрые цели стрелки (640 → 1280). Новый тест запускается после обязательного первого шлюза консолидации выпуска.
+
+## Ограничения
+
+Регрессионный тест компонента не симулирует нативный движок инерционной прокрутки браузера. Проверка свайпа на устройстве остаётся отдельным этапом; нельзя утверждать, что она пройдена на основании одного этого теста. Изменений API, SQL или оценки рекомендаций нет.
