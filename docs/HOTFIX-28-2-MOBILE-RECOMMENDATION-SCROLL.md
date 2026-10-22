@@ -1,11 +1,11 @@
-# Hotfix 28.2 — Mobile recommendation momentum
+# Хотфикс 28.2 — инерционная прокрутка рекомендаций на мобильных
 
-Follow-up to 28.1: keep the virtual DOM window stable during finger-driven scrolling and the inertial tail after touchend. Track touchstart/touchend/touchcancel and passive scroll events independently of React callback rebindings. A single 180ms quiet-period timer ends momentum; every inertial scroll rearms it.
+Продолжение 28.1: виртуальное DOM-окно должно оставаться стабильным во время прокрутки пальцем и в течение инерционного движения после touchend. События touchstart/touchend/touchcancel и пассивной прокрутки отслеживаются независимо от повторных привязок React-обработчиков. Один таймер тишины на 180 мс завершает инерционный режим; каждое инерционное событие прокрутки запускает его заново.
 
-While momentum is active, keep the current window if it covers all visible cards. If a fast fling reaches beyond that window, advance immediately rather than rendering an empty viewport. After settling, refresh the normal overscan window. Never write scrollLeft to restore an anchor.
+Пока инерция активна, сохранять текущее окно, если оно покрывает все видимые карточки. Если быстрый бросок выходит за границы окна, немедленно продвинуть окно, а не оставлять пустой viewport. После остановки обновить обычное окно overscan. Никогда не записывать scrollLeft ради восстановления якоря.
 
-Touch scrolling prefetches at 2.5 viewport widths before the loaded edge, instead of the default 0.55 viewport threshold. Existing hasMore/loading/latch guards still bound requests. Desktop threshold and existing snap-disabled virtual row policy remain unchanged.
+При сенсорной прокрутке предварительная загрузка запускается за 2,5 ширины viewport до границы загруженных карточек вместо стандартного порога 0,55 ширины viewport. Существующие проверки hasMore/loading/latch по-прежнему ограничивают запросы. Десктопный порог и политика отключённого snap для виртуализированных строк не меняются.
 
-All listeners are passive; no preventDefault or custom drag handler replaces native scrolling. Unmount clears listeners/timer. No API/SQL/ranking changes.
+Все обработчики пассивные; preventDefault и собственный drag-обработчик не заменяют нативную прокрутку. При размонтировании слушатели и таймер удаляются. API/SQL/ранжирование не меняются.
 
-Tests execute the actual ScrollRow component with touch event/timer mocks: stable covered window, inertia after finger release, one rearmed timer, refresh after settling, far-fling window coverage, zero programmatic position writes and cleanup. Tests do not emulate the native iOS/Android scrolling engine; physical-device verification remains pending.
+Тесты исполняют настоящий ScrollRow с имитацией touch-событий и таймеров: стабильность покрытого окна, инерция после отпускания пальца, один повторно запускаемый таймер, обновление после остановки, покрытие окна при далёком броске, отсутствие программных записей позиции и очистка ресурсов. Тесты не эмулируют нативный движок прокрутки iOS/Android; проверка на физическом устройстве остаётся незавершённой.
