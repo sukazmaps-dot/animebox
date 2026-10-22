@@ -1,44 +1,42 @@
-# AnimeBox Patch 12.4.2 — Visual Scale Normalization
+# Патч AnimeBox 12.4.2 — нормализация визуального масштаба
 
-## Goal
-Make AnimeBox feel like one product by normalizing the physical scale of UI surfaces.
+## Цель
 
-The patch intentionally does not make every component identical. It defines three size tiers:
+Сделать AnimeBox визуально единым продуктом, согласовав физические размеры элементов интерфейса.
 
-- compact: chips, badges, episode controls;
-- standard: normal cards, tracker rows, comments, profile surfaces;
-- feature: Hero, major profile/Watch Together surfaces and primary CTA zones.
+Патч не делает все компоненты одинаковыми. Он вводит три категории размеров:
 
-## Scale tokens
+- компактные: чипы, бейджи, элементы управления эпизодами;
+- стандартные: обычные карточки, строки трекера, комментарии и блоки профиля;
+- крупные: Hero, основные блоки профиля/Watch Together и зоны главных действий.
 
-Controls:
-- compact 36 px
-- standard 42 px
-- feature 48 px
+## Токены масштаба
 
-Padding:
-- 10 / 14 / 18 px
+Высота элементов управления: компактная — 36 px; стандартная — 42 px; крупная — 48 px.
 
-Radius:
-- 10 / 14 / 18 px
+Внутренние отступы: 10 / 14 / 18 px.
 
-Gaps:
-- 8 / 12 / 18 px
+Скругления: 10 / 14 / 18 px.
 
-## Normalized areas
-- tracker;
-- episode comments;
-- anime-page episodes and personal controls;
-- lower profile surfaces;
-- Telegram/community promo;
+Промежутки: 8 / 12 / 18 px.
+
+## Области нормализации
+
+- трекер;
+- комментарии к эпизодам;
+- эпизоды и персональные действия на странице аниме;
+- нижние блоки профиля;
+- промоблоки Telegram/сообщества;
 - Watch Together;
-- leaderboard;
-- mini-profile.
+- таблица лидеров;
+- мини-профиль.
 
-Anime posters keep their media aspect ratios. Feature heroes stay intentionally larger.
+Пропорции постеров не меняются. Крупные блоки Hero намеренно остаются больше обычных элементов.
 
-## Mobile
-Mobile is the primary target. Standard cards use roughly 12–14 px padding and 14 px radius; normal controls use 42 px height. Large CTA controls remain 48 px.
+## Мобильные устройства
 
-## Boundaries
-No business logic, player, progress, tracker backend, Premium lifecycle, recommendation scoring or database schema changes.
+Мобильная версия — основной ориентир. У стандартных карточек обычно 12–14 px внутреннего отступа и скругление 14 px; обычные элементы управления имеют высоту 42 px. Крупные основные кнопки остаются высотой 48 px.
+
+## Границы
+
+Не меняются бизнес-логика, плеер, учёт прогресса, серверная часть трекера, жизненный цикл Premium, оценка рекомендаций и схема базы данных.
