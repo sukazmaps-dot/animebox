@@ -1,19 +1,19 @@
-# Schedule tooltips and dense interaction layout
+# Подсказки расписания и компактная компоновка элементов
 
-## Scope / acceptance
+## Область работ и критерии приёмки
 
-1. Calendar event tooltips render through a React Portal into `document.body`, outside every clipped day column. They measure the anchor/panel, prefer the space above, flip below when needed and clamp to a 12px viewport inset. Long names wrap. Resize, ancestor scrolling and panel resizing trigger bounded animation-frame updates. Only an open tooltip observes/listens. Pointer hover and keyboard focus reveal it, Escape dismisses it, the pointer can enter the tooltip without dismissing it, and the link references it through `aria-describedby`. Native `title` is removed to avoid two overlapping descriptions. Clicking follows the original link.
-2. Calendar time, poster and text share a centered grid row. Explicit column/row placement overrides legacy mobile ordering. Every week event remains present; phone week scrolling is retained. Metadata stays readable and rows remain within the existing 85px density ceiling.
-3. Friends lists are bounded by an 1180px page and 560px person-card ceiling. Conditional request/friend sections form two columns from 1200px; a sole list spans the available columns. Discovery/activity panels keep their own two-column layout. Actions and friend mutations are unchanged.
-4. When a ranking list exists, leaderboard podium/personal position sit beside the list from 1200px. Without lower-ranked entries the original single section remains. DOM reading order and all ranking calculations remain unchanged.
-5. Anime library/notifications and the actual rating component share a two-column grid from 1000px. Rating is bounded at 680px; discussion is bounded at 1040px. Mobile stays one column. Episode cards, catalog cards and calendar events consume the common radius and use an accent border/background hover without vertical jumping.
-6. Rating labels, episode metadata, genre labels, discussion labels and social text use semantic shared palette colors. Selected rendered labels must reach 4.5:1 in both themes. Profile customization and Kodik iframe rendering remain provider/user owned.
+1. Подсказки событий календаря отображаются через React Portal в document.body, вне обрезающих колонок дней. Измеряются якорь и панель: сначала используется место сверху, при необходимости подсказка переносится вниз и ограничивается отступом 12px от края viewport. Длинные названия переносятся. Изменение размера, прокрутка предков и изменение размера панели вызывают ограниченные обновления через animation frame. Только открытая подсказка подписывается на события. Наведение и клавиатурный фокус показывают её, Escape закрывает, указатель может переместиться внутрь подсказки без закрытия, ссылка связывается с ней через aria-describedby. Нативный title удаляется, чтобы избежать двух накладывающихся описаний. Клик ведёт по исходной ссылке.
+2. Время, постер и текст события календаря находятся в одной центрированной строке сетки. Явное размещение строк/колонок переопределяет старый мобильный порядок. Все недельные события сохраняются; на телефонах остаётся прокрутка недели. Метаданные читаемы, строки укладываются в существующий предел плотности 85px.
+3. Списки друзей ограничены шириной страницы 1180px и карточки человека — 560px. Условные секции запросов/друзей образуют две колонки от 1200px; единственный список занимает обе доступные колонки. Панели поиска/активности сохраняют собственную двухколоночную компоновку. Действия и изменения дружбы не меняются.
+4. При наличии рейтингового списка пьедестал и личная позиция таблицы лидеров размещаются рядом со списком от 1200px. Если записей ниже нет, сохраняется исходная одиночная секция. Порядок чтения DOM и расчёты ранжирования не меняются.
+5. Библиотека аниме/уведомления и настоящий компонент оценки используют двухколоночную сетку от 1000px. Оценка ограничена 680px, обсуждение — 1040px. На мобильных остаётся одна колонка. Карточки эпизодов, каталога и события календаря используют общие скругления, акцентные рамку/фон при наведении без вертикального скачка.
+6. Подписи оценок, метаданные эпизодов, жанры, обсуждения и социальный текст используют семантические цвета общей палитры. Выбранные отображаемые подписи должны иметь контраст от 4,5:1 в обеих темах. Настраиваемые профили и отрисовка iframe Kodik остаются под управлением пользователя/провайдера.
 
-## Verification
+## Проверки
 
-- Full npm prebuild gates and production Next build; ESLint on changed components (existing image warning only).
-- `scripts/schedule-tooltip-smoke.mjs`: real built calendar; portal parent, z-index, viewport edges, complete text, described-by association, keyboard/Escape, hover persistence at 390/1440/1920.
-- `scripts/dense-interaction-smoke.mjs`: actual SSR-rendered rating/discussion components with auth/network mocked, series/friends CSS fixtures, both themes at 390/1440/1920. Bounded panels, two-column placement and selected label contrast.
-- `scripts/page-consistency-smoke.mjs`: existing 30-route/theme/viewport regression suite; preserves the event-height ceiling and poster aspect ratio.
+- Полный npm prebuild и production build Next; ESLint изменённых компонентов (только существующее предупреждение об изображении).
+- `scripts/schedule-tooltip-smoke.mjs`: настоящий собранный календарь; родитель portal, z-index, края viewport, полный текст, связь aria-describedby, клавиатура/Escape, сохранение при наведении на 390/1440/1920px.
+- `scripts/dense-interaction-smoke.mjs`: реальные SSR-отрисованные компоненты оценки/обсуждения с имитацией авторизации/сети, CSS-фикстуры сериалов/друзей, обе темы при 390/1440/1920. Проверяются границы панелей, двухколоночное размещение и контраст выбранных подписей.
+- `scripts/page-consistency-smoke.mjs`: существующая регрессионная матрица из 30 маршрутов/тем/размеров; сохраняются ограничение высоты события и пропорции постера.
 
-Authenticated friend actions, live rating submission and provider playback are not replayed in the visual fixtures. Check those normally after release. No database, secrets or DNS updates are required.
+Действия друзей у авторизованного пользователя, отправка оценки и воспроизведение провайдера не повторяются в визуальных фикстурах. После выпуска проверьте их обычным способом. Изменения БД, секретов и DNS не нужны.
