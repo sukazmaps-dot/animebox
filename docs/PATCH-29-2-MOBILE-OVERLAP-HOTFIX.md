@@ -1,35 +1,41 @@
-# Patch 29.2 — mobile title actions overlap & Watch Together readability
+# Патч 29.2 — наложение действий на мобильной странице тайтла и читаемость Watch Together
 
-## Evidence
-- Android Chrome: two cinematic action buttons (Favorite and Add to tracker) visually overlap the first lines of the AnimeSynopsis description.
-- Mobile Watch Together hub is visibly compressed: desktop-like layout and micro typography in result cards, lobby tabs, buttons and invite form.
+## Доказательства
 
-## Root causes found
-- The cinematic detail JSX references layout.actions, but the imported detail-layout.module.css had no action layout class, leaving the wrap and spacing to older generic rules.
-- The legacy mobile CSS has competing flex/grid declarations around anime-detail-actions. No intrinsic mobile block dimensions were guaranteed at the new integration boundary.
-- The Watch Together CSS includes a number of 7–10px type rules and multiple later grid rewrites. A last, hub-scoped mobile contract is safer than broad global changes.
+- В Android Chrome две кинематографические кнопки действий (избранное и добавление в трекер) визуально перекрывают первые строки описания AnimeSynopsis.
+- Мобильная область Watch Together слишком сжата: десктопоподобная компоновка и слишком мелкая типографика в карточках результатов, вкладках лобби, кнопках и форме приглашения.
 
-## Fix requirements
-1. Keep actions in normal document flow and reserve full wrapped height. Movie playback is full-width; favorite and tracker buttons each have an independent 48px circular touch surface on a second row.
-2. The description is a separate block, after actions and before genres. No negative margin, overlay, fixed height, or absolute positioning.
-3. The same solution works whether the tracker button is present or disappears after saving, and when progress labels or save errors are shown. Long localized titles and font enlargement must not overlap.
-4. Mobile Watch Together: a stacked hero/invite card, 1-column lobby and anime results, native readable fonts (11–16px+), touchable 44px primary buttons, and no horizontal overflow at 320/360/375/390/430/720px.
-5. Leave room APIs, video players, authentication, existing tracker behavior, desktop grids, and dynamic imported components untouched. Preserve light/dark theme via existing CSS variables.
-6. Reduced-motion media query retains function with no decorative transitions.
+## Найденные первопричины
 
-## Verification
-- npm run patch29-2:check; TypeScript; targeted ESLint; production build and all existing prebuild checks.
-- Manual visual testing: mobile widths 320, 360, 375, 390, 430 and 720; long text; no text; action busy / saved / unsaved; guest; live and empty rooms; mobile with browser text scaling 125%; light/dark.
-- Success: last circular action bottom is strictly above description top; no horizontal page overflow; buttons respond to touch; Watch Together cards readable without pinch zoom.
-- If CI passes merge PR and monitor Railway service deployments for exact merge SHA.
+- JSX страницы деталей использует layout.actions, но импортированный detail-layout.module.css не содержит класса компоновки действий; перенос и промежутки зависят от старых общих правил.
+- В старом мобильном CSS конкурируют объявления flex/grid для anime-detail-actions. На новой границе интеграции не гарантированы собственные размеры мобильного блока.
+- CSS Watch Together содержит много правил шрифта 7–10px и несколько последующих переработок сетки. Безопаснее добавить последнее мобильное правило, ограниченное областью hub, чем менять всё глобально.
 
-## Rollback
-Revert the PR; no SQL migration or data changes.
+## Требования к исправлению
 
-## Browser geometry regression
-- Install Playwright 1.62.1 and run `npx playwright install chromium` once, then `npm run anime-layout:check`.
-- Quality Gate installs pinned Playwright in a temporary directory and Chromium and runs this check before TypeScript and production build.
-- Covers 160 fixtures: dark/light; 320/360/375/390/430/720/767/768/1024/1920px; 100%/125% text; guest/saved/resume/error states.
-- Measures button bounds, wrapper containment, synopsis separation, viewport overflow and mobile touch targets using real source CSS. Global imports follow `app/layout.tsx`; CSS Modules use Next's scoping plugins; Tailwind is compiled.
-- Offline DOM fixture, not a React interaction or deployed-page test. Does not verify authentication, playback, remote media, live rooms or Android rendering.
-- Local check passed with Chromium 153 via `CHROMIUM_EXECUTABLE_PATH`; CI uses the browser installed by pinned Playwright.
+1. Оставить действия в обычном потоке документа и зарезервировать полную высоту с учётом переноса. Просмотр фильма занимает всю ширину; кнопки избранного и трекера имеют отдельные круглые сенсорные области 48px во втором ряду.
+2. Описание — отдельный блок после действий и перед жанрами. Не использовать отрицательные отступы, наложение, фиксированную высоту или абсолютное позиционирование.
+3. Решение должно работать, когда кнопка трекера присутствует или исчезает после сохранения, а также при отображении метки прогресса или ошибки сохранения. Длинные локализованные названия и увеличенный шрифт не должны вызывать наложение.
+4. Мобильный Watch Together: вертикально расположенные Hero/приглашение, одноколоночные лобби и результаты аниме, читаемые стандартные шрифты (от 11–16px), основные сенсорные кнопки от 44px, отсутствие горизонтального переполнения на ширинах 320/360/375/390/430/720px.
+5. Не менять API комнат, видеоплееры, авторизацию, поведение трекера, десктопные сетки и динамически импортируемые компоненты. Сохранить светлую/тёмную тему через существующие CSS-переменные.
+6. Media query reduced-motion сохраняет функциональность и отключает декоративные переходы.
+
+## Проверка
+
+- `npm run patch29-2:check`, TypeScript, целевой ESLint, production build и все существующие prebuild-проверки.
+- Ручной визуальный тест на 320, 360, 375, 390, 430 и 720px: длинный текст/отсутствие текста; действие в процессе/сохранено/не сохранено; гость; активные и пустые комнаты; масштабирование текста браузером 125%; светлая/тёмная тема.
+- Успех: нижний край последнего круглого действия строго выше начала описания; нет горизонтального переполнения страницы; кнопки реагируют на касание; карточки Watch Together читаемы без увеличения жестом.
+- Если CI проходит, слить PR и отслеживать деплои сервисов Railway по точному merge SHA.
+
+## Откат
+
+Revert PR. SQL-миграции и изменения данных не нужны.
+
+## Регрессия геометрии в браузере
+
+- Один раз установить Playwright 1.62.1 и Chromium командой `npx playwright install chromium`, затем запустить `npm run anime-layout:check`.
+- Quality Gate устанавливает закреплённую версию Playwright во временный каталог и Chromium, запускает эту проверку до TypeScript и production build.
+- Покрыто 160 фикстур: светлая/тёмная темы; 320/360/375/390/430/720/767/768/1024/1920px; масштаб текста 100%/125%; состояния гостя/сохранения/продолжения/ошибки.
+- По настоящему CSS источника измеряются границы кнопок, вложенность обёрток, отделение описания, переполнение viewport и мобильные сенсорные цели. Глобальные импорты идут по app/layout.tsx; CSS Modules используют плагины области видимости Next; Tailwind компилируется.
+- Это автономная DOM-фикстура без взаимодействий React и без теста опубликованной страницы. Она не проверяет авторизацию, воспроизведение, удалённое медиа, живые комнаты или отрисовку Android.
+- Локальная проверка прошла с Chromium 153 через CHROMIUM_EXECUTABLE_PATH; в CI используется браузер, установленный закреплённым Playwright.
