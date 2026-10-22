@@ -1,20 +1,24 @@
-# AnimeBox: card and page consistency
+# AnimeBox: согласованность карточек и страниц
 
-## Problem and scope
-The shared shell used warm charcoal/lavender tokens while route CSS retained blue-black surfaces, low-opacity labels and oversized spacing. Catalog columns could stretch a 2:3 poster to almost 300px wide. Recommendation and tracker markup had separate visual contracts.
+## Проблема и область работ
 
-## Implementation contract
-- `AnimeCardContent` is the shared visual component used by `AnimeCard`, `SmartRecommendationCard` and tracker identity. It accepts media/details slots and `poster` or `inline` layout; links and controls remain owned by callers. This preserves recommendation impressions, feedback, saves and tracker status menus without nesting interactive controls inside links.
-- Vertical posters reserve 2:3 space and use the same 14px radius, 14px/1.4 two-line title and 12px metadata. Catalog grid uses auto-fill columns at a 170px minimum, then two columns below 600px. Recommendation controls/reasons remain available.
-- Tracker retains its useful horizontal variant. Snapshot data contains no poster URL: the existing brand fallback remains; no per-card metadata fetches or guessed image URLs are introduced.
-- Weekly headers shrink from 62 to 44px, event padding from 10 to 7px, event gaps from 8 to 6px. Mobile rows remain at least 64px. All seven days and all releases remain accessible; 79 weekly events still require scrolling. No fixed viewport-height clipping.
-- Tracker, schedule, leaderboard and Watch Together hub surfaces/text use `--ab-ui-*` theme tokens. Dark secondary text is opaque `#aca6b6`, accent `#a798cf`; light equivalents use existing theme tokens. Primary text is never reduced with alpha.
-- Leaderboard uses a wider 1320px content maximum, shorter sections/podiums and a two-column season panel on wide screens. First-place distinction, medal colors and links remain.
-- Watch Together hero/empty lobby are shorter; room grids adapt by available width. Active-room theater/player CSS remains independent.
-- Empty page space is not filled with fake users/rooms. Content uses natural height and smaller bottom gutters.
+Общая оболочка использовала тёплые графитово-лавандовые токены, а CSS отдельных маршрутов сохранял сине-чёрные поверхности, малоконтрастные подписи и чрезмерные промежутки. Колонки каталога могли растягивать постер 2:3 почти до 300px ширины. Разметка рекомендаций и трекера имела разные визуальные контракты.
 
-## Acceptance checks
-Production build and all repository prebuild gates; targeted TSX lint. Browser verification covers dark/light 390/1440/1920px, all seven schedule columns and dense fixture events, card aspect ratio/title typography, tracker label contrast, and empty/loaded hub layouts. Public user interactions require real account/session and are not asserted by unauthenticated layout fixtures.
+## Контракт реализации
 
-## Release
-Separate patch from PR #192. No environment variables, database migration, DNS or media Worker changes required. Merge/deployment can be reviewed from the final PR diff.
+- `AnimeCardContent` — общий визуальный компонент для `AnimeCard`, `SmartRecommendationCard` и идентичности в трекере. Он принимает слоты медиа/подробностей и варианты компоновки `poster` или `inline`; ссылки и элементы управления остаются ответственностью вызывающих компонентов. Это сохраняет учёт показов рекомендаций, обратную связь, сохранение и меню статуса трекера без вложения интерактивных элементов в ссылки.
+- Вертикальные постеры резервируют пропорцию 2:3 и используют одинаковые скругления 14px, заголовок 14px/1.4 максимум в две строки и метаданные 12px. Сетка каталога использует auto-fill с минимальной шириной 170px, затем две колонки при ширине ниже 600px. Элементы управления/причины рекомендаций остаются доступны.
+- Трекер сохраняет полезный горизонтальный вариант. В снимке данных нет URL постера: используется существующая брендовая заглушка; не добавляются запросы метаданных для каждой карточки и выдуманные URL изображений.
+- Высота заголовков недели снижена с 62 до 44px, отступы событий — с 10 до 7px, промежутки событий — с 8 до 6px. Мобильные строки остаются не ниже 64px. Все семь дней и все релизы доступны; 79 недельных событий по-прежнему требуют прокрутки. Нет обрезания фиксированной высотой viewport.
+- Поверхности/текст трекера, расписания, таблицы лидеров и Watch Together используют тематические токены `--ab-ui-*`. Вторичный текст тёмной темы — непрозрачный `#aca6b6`, акцент — `#a798cf`; светлая тема использует существующие токены. Прозрачность не используется для приглушения основного текста.
+- Таблица лидеров использует максимальную ширину содержимого 1320px, более короткие секции/пьедесталы и две колонки сезонной панели на широких экранах. Отличие первого места, цвета медалей и ссылки сохраняются.
+- Hero Watch Together и пустое лобби стали ниже; сетки комнат адаптируются к доступной ширине. CSS активной комнаты/плеера остаётся независимым.
+- Пустое пространство страницы не заполняется фальшивыми пользователями или комнатами. Контент использует естественную высоту и меньшие нижние отступы.
+
+## Критерии приёмки
+
+Production build и все prebuild-проверки репозитория; целевой lint TSX. Браузерная проверка покрывает тёмную/светлую темы на 390/1440/1920px, все семь колонок расписания и насыщенные тестовые события, пропорции карточек и типографику заголовков, контраст подписей трекера и компоновку пустого/заполненного блока. Для проверки реальных публичных взаимодействий нужна аккаунтная сессия; неавторизованные фикстуры разметки их не подтверждают.
+
+## Выпуск
+
+Отдельный патч от PR #192. Изменения переменных окружения, миграция БД, DNS или Worker медиа не требуются. Состав изменений можно проверить по итоговому diff PR.
