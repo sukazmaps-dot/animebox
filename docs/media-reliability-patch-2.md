@@ -1,70 +1,31 @@
-# Audit patch 2: visible posters and artwork recovery
+# Аудит-патч 2: восстановление видимых постеров и арта
 
-## Goal and observed behavior
+## Цель и наблюдаемое поведение
 
-Keep poster surfaces usable when delivery stalls or catalog metadata updates.
-Production inspection found valid posters loading through `/api/image` after
-media-edge failures. The relevant code also had two deterministic failure modes:
-native-lazy images had no watchdog once visible, and adding fallback URLs reset
-already decoded images to an invisible loading state.
+Поверхности постеров должны оставаться работоспособными при задержках доставки и обновлении метаданных каталога. Проверка production обнаружила валидные постеры, которые успешно загружались через `/api/image` после сбоев медиа-узла. В коде также обнаружены два детерминированных сценария отказа: у изображений с нативной ленивой загрузкой не было watchdog после появления в области видимости, а добавление резервных URL сбрасывало уже декодированные изображения в невидимое состояние загрузки.
 
-Several consumers additionally used only `coverImage`, ignoring valid legacy
-`image` fields or the legacy URLs behind a non-null but empty cover object.
+Кроме того, некоторые потребители использовали только `coverImage`, игнорируя валидные старые поля `image` или URL старого формата за непустым, но фактически пустым объектом cover.
 
-## Implementation
+## Реализация
 
-- `AnimeImage` and `AnimeImageCascade` share a viewport-based recovery hook.
-  Native-lazy images become eager only while visibly loading. A single shared
-  observer services pending images; older WebViews use one shared scroll/resize
-  listener pair and a coalesced animation frame.
-- Existing source timeouts remain conservative (6.5s primary / 7.5s alternate /
-  9.5s server proxy; 8.5s for cascade sources). One pass has a 24s visible,
-  foreground budget. Scrolling away or hiding the tab pauses both the source
-  and overall budget. Exhaustion reaches the local fallback, then the existing
-  bounded transient-retry policy can run a new pass.
-- Loaded images survive metadata changes while their successful candidate is
-  still present. Different image sources reset normally. Attempt generations
-  reject late callbacks, including A → B → A reuse.
-- A global edge cooldown no longer rewrites the `picture`/`srcset` of an already
-  loaded image. Circuit-driven skips are persisted so cooldown expiry cannot
-  rewind an active independent request.
-- Successful delivery paths are remembered for up to two minutes, at most 128
-  entries, in tab memory only. Hints apply once per candidate chain and are
-  invalidated when that path fails. SSR ignores hints for deterministic markup;
-  hydration/client rendering can reuse them. No image bytes are stored.
-- Catalog, recommendations, continue-watching, top lists and tonight artwork
-  merge `coverImage` with legacy `image`, preserving independent known sources.
-- `data-image-request-state` distinguishes missing-source, deferred,
-  offscreen-pending, visible-pending, loaded and exhausted. Existing failure
-  stage/reason attributes remain available on the shared poster component.
-  These are local diagnostics, not a new analytics collection pipeline.
+- `AnimeImage` и `AnimeImageCascade` используют общий хук восстановления, ориентированный на viewport. Нативно ленивые изображения переходят к eager-загрузке только если видимы и всё ещё загружаются. Один общий observer обслуживает ожидающие изображения; в старых WebView используется одна общая пара слушателей scroll/resize и объединённый animation frame.
+- Существующие тайм-ауты источников остаются консервативными: 6,5 с для основного источника, 7,5 с для альтернативного, 9,5 с для серверного прокси; 8,5 с для каскадных источников. Один проход имеет общий бюджет 24 с для видимого элемента на активной вкладке. При прокрутке в сторону или скрытии вкладки приостанавливаются таймер источника и общий бюджет. После исчерпания используется локальная заглушка, затем существующая ограниченная политика временных повторов может начать новый проход.
+- Загруженные изображения сохраняются при изменении метаданных, пока успешный кандидат остаётся в списке. При смене источника изображение сбрасывается как обычно. Поколения попыток отсекают поздние обработчики, в том числе при цикле A → B → A.
+- Глобальный период охлаждения edge больше не переписывает picture/srcset уже загруженного изображения. Пропуски, вызванные circuit-breaker, сохраняются, чтобы истечение периода охлаждения не могло откатить активный независимый запрос.
+- Успешные пути доставки запоминаются максимум на две минуты, не более 128 записей, только в памяти вкладки. Подсказка применяется один раз на цепочку кандидатов и инвалидируется при ошибке этого пути. SSR игнорирует такие подсказки ради детерминированной разметки; гидратация/клиентский рендер может использовать их. Байты изображений не сохраняются.
+- Каталог, рекомендации, продолжение просмотра, топ-списки и арт «на сегодня» объединяют coverImage со старым image, сохраняя известные независимые источники.
+- `data-image-request-state` различает отсутствие источника, отложенную загрузку, ожидание вне экрана, видимое ожидание, успешную загрузку и исчерпание попыток. Существующие атрибуты этапа/причины сбоя остаются в общем компоненте постера. Это локальная диагностика, а не новый конвейер аналитики.
 
-## Acceptance and checks
+## Приёмка и проверки
 
-`tests/poster-visible-recovery.cjs` mounts real components/hook/observer with a
-virtual clock and checks visible lazy stalls, foreground-only budget, scroll/tab
-pause and resume, cached decoding, metadata continuity, old attempt callbacks,
-loaded srcsets during cooldown, cooldown expiry, SSR-safe session hints, expiry
-and entry bounds, no-IntersectionObserver fallback, shared observer cleanup,
-and actual catalog/top consumer handling of legacy posters.
+`tests/poster-visible-recovery.cjs` монтирует реальные компоненты/хук/observer с виртуальным временем и проверяет зависание видимой ленивой загрузки, бюджет только на переднем плане, паузы/возобновление после прокрутки или скрытия вкладки, кешированное декодирование, непрерывность при смене метаданных, поздние обработчики старых попыток, srcset загруженных изображений во время cooldown, истечение cooldown, безопасные для SSR подсказки сеанса, ограничение срока/записей, резерв без IntersectionObserver, очистку общего observer и реальное использование старых постеров каталогом/топ-списками.
 
-The test runs inside `poster-reliability:check` and the existing prebuild gate.
-The test sets NODE_ENV=test before React imports, including under a production
-build environment. Existing source/srcset, WebP decode, edge cooldown, delayed
-retry, proxy cache and warmup tests must continue passing.
+Тест входит в `poster-reliability:check` и существующий prebuild gate. Он задаёт NODE_ENV=test до импортов React даже в окружении production build. Продолжат выполняться существующие тесты source/srcset, декодирования WebP, edge cooldown, отложенных повторов, кеша прокси и предварительной загрузки.
 
-The static image-delivery check now enforces the real visibility guard rather
-than forbidding every lazy watchdog. The warmup guard now requires exactly two
-module-shared observers (overscan and true visibility), plus cleanup, rather
-than one observer that could not distinguish these jobs. No stylesheet layers, provider URL guesses,
-new storage writes, SQL migrations or environment variables are introduced.
+Статическая проверка доставки изображений теперь требует реальную защиту видимости, а не запрещает любой lazy-watchdog. Проверка предварительной загрузки требует ровно два общих на модуль observer (overscan и фактическая видимость) с очисткой ресурсов, а не один observer, который не различает эти задачи. Слои таблиц стилей, предположения об URL провайдера, новые записи в хранилища, SQL-миграции и переменные окружения не добавляются.
 
-## Release and canary
+## Выпуск и canary
 
-After deployment, inspect search/catalog and recommendation rows, a title page,
-and tonight hero. For visible pending surfaces, inspect failure stage/reason and
-request-state. Repeat after scrolling away/back, updating a card's metadata and
-switching tabs. A missing URL must remain distinguishable from a delivery error.
+После деплоя проверить поиск/каталог, ряды рекомендаций, страницу тайтла и Hero «на сегодня». Для видимых зависших поверхностей проверить этап/причину ошибки и состояние запроса. Повторить после прокрутки в сторону и обратно, обновления метаданных карточки и переключения вкладок. Отсутствующий URL должен отличаться от ошибки доставки.
 
-Third-party outages can still exhaust every known source. The patch guarantees
-bounded recovery and stable surfaces, not universal availability of external art.
+Сторонние источники всё ещё могут быть недоступны одновременно. Патч гарантирует ограниченное восстановление и стабильные поверхности, но не обещает универсальную доступность внешнего арта.
