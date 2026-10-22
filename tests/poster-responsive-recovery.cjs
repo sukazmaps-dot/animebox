@@ -75,6 +75,17 @@ const thumbnailOnly = service.getImageCandidates({ extraLarge: mislabeled.extraL
 assert.ok(thumbnailOnly.every(value => value.startsWith('/') || value === mislabeled.extraLarge ||
   new URL(value).searchParams.get('url') === mislabeled.extraLarge), 'missing high-resolution URLs are never invented');
 
+// Regression test: extraLarge resolution must not be downgraded to large
+const multiQualityPoster = {
+  extraLarge: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/extraLarge/anime1.jpg',
+  large: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/anime1.jpg',
+  medium: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/anime1.jpg',
+};
+const qualityCandidates = service.getImageCandidates(multiQualityPoster, 'compact', { preset: 'card' });
+assert.equal(new URL(qualityCandidates[0], 'https://youranimebox.com').searchParams.get('url'), multiQualityPoster.extraLarge,
+  'extraLarge must be preferred over large for card preset');
+assert.ok(qualityCandidates.indexOf(qualityCandidates[0]) < qualityCandidates.indexOf(multiQualityPoster.large));
+
 
 // Actual mounted components: onError must switch BOTH src and srcset. Neither
 // picture source may keep pointing at the failed primary, including auto mode.
