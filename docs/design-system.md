@@ -1,18 +1,18 @@
-# AnimeBox Design System v1
+# Дизайн-система AnimeBox (Версия 1)
 
-AnimeBox should look like one product, not a collection of individually decorated screens.
+AnimeBox должен выглядеть как единый целостный продукт, а не как набор случайно оформленных экранов.
 
-## Product visual ratio
+## Визуальный баланс продукта
 
-- 70% quiet dark surfaces
-- 20% brand violet accents
-- 10% special effects
+- 70% — спокойные темные поверхности
+- 20% — фирменные фиолетовые акценты
+- 10% — специальные эффекты
 
-The accent is used to establish hierarchy, not to decorate every container.
+Акцент используется исключительно для выстраивания иерархии, а не для украшения каждого контейнера.
 
-## Core tokens
+## Базовые токены (Core tokens)
 
-Runtime tokens live in `app/globals.css`:
+Интерфейсные токены находятся в файле `app/globals.css`:
 
 - `--ab-bg`
 - `--ab-surface-1`
@@ -32,178 +32,177 @@ Runtime tokens live in `app/globals.css`:
 - `--ab-radius-lg` = 18px
 - `--ab-radius-xl` = 24px
 
-Do not introduce a new almost-identical shade or radius when a token already expresses the role.
+Запрещено вводить новые, почти идентичные оттенки или скругления, если существующий токен уже решает эту задачу.
 
-## Surfaces
+## Поверхности (Surfaces)
 
-Default card:
-- flat `--ab-surface-1`
-- 1px `--ab-border`
-- 12px radius
-- no glow
-- no decorative radial gradient
+Стандартная карточка:
+- Плоская поверхность `--ab-surface-1`
+- Граница в 1px `--ab-border`
+- Радиус скругления 12px
+- Без свечения (glow)
+- Без декоративных радиальных градиентов
 
-Nested card:
-- `--ab-surface-2`
-- subtle border only when separation is necessary
+Вложенная карточка:
+- Поверхность `--ab-surface-2`
+- Тонкая граница только там, где необходимо визуальное разделение
 
-Large hero:
-- may use artwork/backdrop supplied by actual anime content
-- should not add a decorative purple orb simply to fill space
-- prefer an accent rail, image, data or typography
+Большой баннер (Hero):
+- Может использовать арт или бэкграунд из реального контента аниме
+- Не должен содержать декоративных фиолетовых сфер «просто чтобы заполнить пространство»
+- Предпочтительно использовать акцентные линии (rails), изображения, данные или типографику
 
-## Special effects
+## Специальные эффекты
 
-Glow is reserved for:
-- Legendary achievement
-- Premium-specific state
-- leaderboard first place
-- achievement/level unlock celebration
-- focused primary action when necessary
+Свечение (Glow) зарезервировано только для:
+- Легендарных достижений
+- Премиум-статусов и состояний
+- Первого места в таблице лидеров
+- Празднования открытия достижений или новых уровней
+- Акцента на важном целевом действии (при необходимости)
 
-Do not add glow to ordinary cards, filters, empty states, navigation or every hover.
+Не добавляйте свечение на обычные карточки, фильтры, пустые состояния (empty states), навигацию или на каждый ховер (наведение курсора).
 
-## Typography
+## Типографика
 
-Use:
-- body: 400–500
-- controls: 600–650
-- headings: 700–760
-- display numbers only: up to 800
+Используйте следующую насыщенность шрифта:
+- Основной текст (body): 400–500
+- Элементы управления (controls): 600–650
+- Заголовки (headings): 700–760
+- Только для отображения чисел (display numbers): до 800
 
-Avoid 900/950 as the default UI weight.
+Избегайте использования 900/950 в качестве стандартной насыщенности интерфейса.
 
-Small section labels should read naturally. Do not put an uppercase English eyebrow above every page title.
+Небольшие метки разделов должны читаться естественно. Не нужно ставить верхний заголовок (eyebrow) прописными латинскими буквами над каждым заголовком страницы.
 
-Good:
+Хорошо:
 - `AnimeBox · Задания`
 - `Ежедневные`
 - `История сезонов`
 
-Avoid:
+Плохо:
 - `ANIMEBOX EXPERIENCE`
 - `PREMIUM PROGRESSION SYSTEM`
-- generic marketing copy above functional screens
+- Абстрактный маркетинговый текст над функциональными экранами
 
-## Radius scale
+## Шкала скруглений (Radius scale)
 
-Only use:
-- 8px — buttons, tabs, compact controls
-- 12px — cards and nested panels
-- 18px — major sections and heroes
-- 24px — rare oversized containers/modal shells
+Используйте строго:
+- 8px — кнопки, вкладки, компактные элементы управления
+- 12px — карточки и вложенные панели
+- 18px — крупные разделы и баннеры (heroes)
+- 24px — редкие оверзайз-контейнеры или оболочки модальных окон
 
-Pills are only for semantic badges: Premium, rank, status, season title. Filters should normally be tabs or compact rectangular controls.
+Метки-таблетки (Pills) предназначены только для семантических баджей: Премиум, ранг, статус, название сезона. Фильтры обычно должны быть вкладками или компактными прямоугольными элементами.
 
-## Motion
+## Анимация и движение (Motion)
 
-Motion must communicate state.
+Движение должно передавать состояние.
 
-Allowed:
-- card hover: translateY(-2px)
-- progress changes
-- tab transitions
-- modal entrance
-- achievement / level celebration
+Разрешено:
+- Ховер карточки: translateY(-2px)
+- Изменение прогресс-баров
+- Переключение вкладок
+- Появление модальных окон
+- Празднование достижений / уровней
 
-Avoid:
-- scaling every card
-- glow growing on every hover
-- simultaneous blur + scale + rotate for normal controls
+Избегайте:
+- Масштабирования (scale) каждой карточки
+- Увеличения свечения на каждый ховер
+- Одновременного размытия + масштабирования + поворота для обычных элементов управления
 
-Respect `prefers-reduced-motion`.
+Уважайте системную настройку пользователя `prefers-reduced-motion`.
 
-## Brand motif
+## Фирменный мотив
 
-AnimeBox uses a short violet accent rail as its recurring structural motif:
-- section headings
-- selected navigation
-- important content panels
+В качестве регулярного структурного мотива AnimeBox использует короткую фиолетовую акцентную линию (rail):
+- Заголовки разделов
+- Выбранные элементы навигации
+- Важные контентные панели
 
-Prefer this rail over decorative purple clouds or random gradients.
+Отдавайте предпочтение этой линии вместо декоративных фиолетовых облаков или случайных градиентов.
 
-## Copy
+## Тексты (Copy)
 
-Functional copy beats generic marketing copy.
+Функциональный текст важнее абстрактного маркетинга.
 
-Prefer:
+Хорошо:
 - `Продолжить просмотр`
 - `3 серии до завершения`
 - `Серия появится в плеере — пришлём уведомление`
 
-Avoid:
+Плохо:
 - `Погрузись в уникальный мир персонального опыта`
 
-## Exceptions
+## Исключения
 
-A visually rich treatment is justified when the state itself is rare:
-- Legendary unlock
-- Top-1 podium
-- Premium profile treatment
-- launch/event campaign
+Визуально насыщенное и богатое оформление оправдано только тогда, когда само состояние является редким:
+- Легендарный анлок (разблокировка)
+- Топ-1 на подиуме
+- Оформление премиум-профиля
+- Запуск крупных ивентов или кампаний
 
-The exception should feel special because the rest of the product is restrained.
+Исключение должно ощущаться особенным именно потому, что весь остальной продукт сдержан.
 
-## Review checklist for every new UI patch
+## Чек-лист проверки для каждого нового UI-патча
 
-Before merging:
-1. Does this introduce a new color/radius instead of using tokens?
-2. Is a radial gradient actually carrying meaning?
-3. Is this badge semantically a badge, or just text inside a pill?
-4. Would the hierarchy still work with all glow removed?
-5. Is the copy specific to the user's task?
-6. Does mobile preserve the same hierarchy?
-7. Are empty/loading/error states handled?
-8. Does the page have its own composition rather than repeating hero → stats → tabs → card grid without reason?
+Перед мержем (слиянием) проверьте:
+1. Вводит ли этот патч новый цвет/радиус вместо использования существующих токенов?
+2. Несет ли радиальный градиент реальный смысл?
+3. Является ли этот бадж семантически баджем, или это просто текст внутри скругленной «таблетки»?
+4. Будет ли иерархия работать, если полностью убрать всё свечение?
+5. Нацелен ли текст на конкретную задачу пользователя?
+6. Сохраняется ли на мобильных устройствах та же иерархия?
+7. Обработаны ли пустые, загрузочные и ошибочные состояния?
+8. Имеет ли страница собственную композицию, или она просто бездумно повторяет шаблон: баннер → статистика → вкладки → сетка карточек?
 
 
-## v2 — Content First & Signature UI
+## Версия 2 — Контент на первом месте и фирменный интерфейс (Signature UI)
 
-The home experience should make AnimeBox technology visible without turning the page into a dashboard full of boxes.
+Главная страница должна делать технологии AnimeBox видимыми, не превращая экран в дашборд, забитый серыми коробками.
 
-### Home hierarchy
+### Иерархия главной страницы
 
-1. Hero: one title, one primary action, concise metadata.
-2. Continue Watching: the user's real resume state.
-3. Personal pulse: level, streak, daily challenge progress, verified episode count.
-4. Personal recommendations.
-5. Broad catalogue rows.
-6. Utility shelf: tracker, upcoming episodes, support, Telegram.
+1. Главный баннер (Hero): один заголовок, одно основное действие, лаконичные метаданные.
+2. Продолжить просмотр: реальная точка возврата пользователя к просмотру.
+3. Личный пульс: уровень, стрик (серия дней), прогресс ежедневных испытаний, количество проверенных эпизодов.
+4. Персональные рекомендации.
+5. Широкие ряды каталога.
+6. Утилитарная полка: трекер, расписание серий, поддержка, Telegram.
 
-The desktop home should not dedicate a permanent right sidebar to promotional cards. Anime content gets the full reading width first.
+В десктопной версии главная страница не должна отдавать постоянную правую боковую панель под промо-карточки. Аниме-контент получает приоритет по всей ширине экрана.
 
-### Signature anime card
+### Фирменная карточка аниме
 
-The AnimeBox catalogue card is deliberately not a framed SaaS card.
+Карточка каталога AnimeBox намеренно сделана без рамок, в отличие от стандартных SaaS-интерфейсов.
 
-- Poster is the dominant object.
-- Outer card surface is transparent.
-- Score and state live on the poster.
-- A thin violet progress rail communicates watched progress.
-- For watched titles the metadata becomes a functional action: `Продолжить · эпизод N`.
-- Hover moves the poster by at most 2px and never adds a large glow.
-- Genre chips are not part of the default card anatomy.
+- Постер является доминирующим объектом.
+- Внешняя поверхность карточки прозрачна.
+- Рейтинг и статус находятся прямо на постере.
+- Тонкая фиолетовая линия (rail) показывает прогресс просмотра.
+- Для просмотренных тайтлов метаданные превращаются в понятное действие: `Продолжить · эпизод N`.
+- Ховер смещает постер максимум на 2px и никогда не добавляет большое свечение.
+- Теги жанров не входят в стандартную анатомию карточки по умолчанию.
 
-This personal watch-state treatment is a product signature and should not be replaced by decorative badges.
+Такое оформление личного статуса просмотра является визитной карточкой продукта и не должно заменяться декоративными баджами.
 
-### Signature hero
+### Фирменный баннер (Signature hero)
 
-Hero navigation uses a small numeric counter plus thin progress segments rather than carousel dots.
+В навигации главного баннера используются небольшие цифровые счетчики и тонкие полоски прогресса вместо банальных точек карусели (dots).
 
-Hero metadata is plain text with separators. Pills are reserved for real statuses, not every fact.
+Метаданные баннера — это обычный текст с разделителями. «Таблетки» (pills) зарезервированы только для реальных статусов, а не для каждого факта.
 
-The main CTA is intentionally near-white on the home hero. Violet remains the structural brand accent, so it does not compete with anime artwork.
+Основное целевое действие (CTA) на главном баннере намеренно сделано близким к белому цвету. Фиолетовый остается структурным брендовым акцентом и не конкурирует с артом самого аниме.
 
-### Technology should be visible
+### Технологии должны быть видимыми
 
-Existing systems should surface where they help the user make a decision:
+Существующие системы должны выводиться там, где они помогают пользователю принять решение:
+- Позиция возобновления просмотра
+- Подтвержденный прогресс
+- Уровень / ранг
+- Стрик дней (активность)
+- Выполнение челленджей
+- Доступность следующей серии
+- Причина рекомендации
 
-- resume position,
-- verified progress,
-- level/rank,
-- streak,
-- challenge completion,
-- next episode availability,
-- recommendation reason.
-
-Do not invent fake percentages or activity. If a data point is not available, omit it.
+Не выдумывайте фальшивые проценты или фейковую активность. Если данных нет, просто скройте этот элемент.
