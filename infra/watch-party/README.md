@@ -1,48 +1,44 @@
-# AnimeBox Watch Together Network v2
+# Сеть совместного просмотра AnimeBox (Версия 2)
 
-This patch separates the application from the network infrastructure:
+Этот патч разделяет приложение и сетевую инфраструктуру:
 
-- **PeerServer** = signaling only. It does not relay video or chat payloads.
-- **TURN** = relay fallback for WebRTC DataChannel when direct P2P is blocked by
-  VPN, CGNAT, symmetric NAT or restrictive networks.
-- Anime video itself is still loaded independently by every participant from
-  the configured player/provider. TURN only carries Watch Together DataChannel
-  traffic (chat + play/pause/seek/sync).
+- **PeerServer** = используется только для сигнального трафика (signaling). Он не ретранслирует видеопоток или сообщения чата.
+- **TURN** = резервный ретранслятор для WebRTC DataChannel на случай, если прямое P2P-соединение заблокировано VPN, CGNAT, симметричным NAT или строгими сетевыми политиками.
+- Само аниме-видео по-прежнему загружается каждым участником независимо из настроенного плеера/провайдера. TURN переносит только трафик DataChannel комнаты совместного просмотра (чат + команды воспроизведения, паузы, перемотки и синхронизации).
 
-## Recommended production topology
+## Рекомендуемая топология для продакшена
 
 ```text
 youranimebox.com (Vercel)
         |
         | GET /api/watch-party/network
         |
-Browser A ---- peer.youranimebox.com:443 ---- Browser B
+Браузер А ---- peer.youranimebox.com:443 ---- Браузер Б
         \                                   /
-         \------ direct WebRTC P2P --------/
-          \---- TURN fallback if needed --/
+         \------ прямое WebRTC P2P --------/
+          \---- Резервный TURN (при необходимости) --/
 ```
 
-For maximum compatibility, expose TURN as:
+Для максимальной совместимости откройте TURN как:
 
 - `turn:turn.youranimebox.com:3478?transport=udp`
 - `turn:turn.youranimebox.com:3478?transport=tcp`
 - `turns:turn.youranimebox.com:443?transport=tcp`
 
-`turns:...:443` is useful on networks/VPNs that block UDP or non-standard ports.
+Адрес `turns:...:443` крайне полезен в сетях и VPN, которые блокируют UDP или нестандартные порты.
 
-### Important port note
+### Важное примечание о портах
 
-A normal HTTPS reverse proxy and coturn cannot both own the same public
-`IP:443`. The simplest production setup is:
+Обычный HTTPS обратный прокси (reverse proxy) и сервер coturn не могут одновременно использовать один и тот же публичный адрес `IP:443`. Простейшая конфигурация для продакшена выглядит так:
 
-1. PeerServer on one host/IP (or a platform that supports long-lived WebSocket).
-2. coturn on another small VPS/public IP so TURN/TLS can own port 443.
+1. Разверните PeerServer на одном хосте/IP (или на платформе, поддерживающей постоянные WebSocket-соединения).
+2. Разверните coturn на другом небольшом VPS / публичном IP, чтобы протокол TURN/TLS мог полностью занять порт 443.
 
-You can also use an L4 TLS multiplexer, but that is more complex.
+Вы также можете использовать мультиплексор L4 TLS, но это более сложная схема.
 
-## 1. PeerServer
+## 1. Настройка PeerServer
 
-From `infra/watch-party/peer-server`:
+Запуск из директории `infra/watch-party/peer-server`:
 
 ```bash
 docker build -t animebox-peer .
@@ -56,29 +52,25 @@ docker run -d \
   animebox-peer
 ```
 
-Put nginx/Caddy in front of it with HTTPS + WebSocket support. An nginx example
-is included in `nginx-peer.conf.example`.
+Настройте nginx или Caddy перед ним с поддержкой HTTPS и WebSockets. Пример конфигурации для nginx находится в файле `nginx-peer.conf.example`.
 
-## 2. coturn
+## 2. Настройка coturn
 
-Install coturn on the TURN host/VPS and copy
-`coturn/turnserver.conf.example` to your real config.
+Установите coturn на выделенный TURN-хост/VPS и скопируйте шаблон конфигурации `coturn/turnserver.conf.example` в ваш реальный файл конфигурации.
 
-Open:
+Откройте следующие порты:
 
 - TCP/UDP `3478`
-- TCP `443` for TURNS
-- UDP relay range `49160-49200`
+- TCP `443` для TURNS
+- Диапазон портов для UDP-ретрансляции: `49160-49200`
 
-Use a long random `static-auth-secret`. The same value goes into Vercel as
-`WATCH_PARTY_TURN_SECRET`.
+Сгенерируйте длинный случайный секрет для `static-auth-secret`. Точно такое же значение необходимо добавить в переменные окружения Vercel как `WATCH_PARTY_TURN_SECRET`.
 
-coturn shared-secret mode generates temporary credentials. AnimeBox never sends
-the real shared secret to the browser.
+Режим общего секрета (shared-secret) в coturn генерирует временные учетные данные. AnimeBox никогда не отправляет реальный секретный ключ в браузер пользователя.
 
-## 3. Vercel environment variables
+## 3. Переменные окружения Vercel
 
-Recommended:
+Рекомендуемые настройки:
 
 ```env
 WATCH_PARTY_SIGNAL_HOST=peer.youranimebox.com
@@ -90,15 +82,14 @@ WATCH_PARTY_SIGNAL_KEY=animebox
 WATCH_PARTY_STUN_URLS=stun:turn.youranimebox.com:3478,stun:stun.l.google.com:19302
 
 WATCH_PARTY_TURN_URLS=turn:turn.youranimebox.com:3478?transport=udp,turn:turn.youranimebox.com:3478?transport=tcp,turns:turn.youranimebox.com:443?transport=tcp
-WATCH_PARTY_TURN_SECRET=REPLACE_WITH_THE_SAME_COTURN_SHARED_SECRET
+WATCH_PARTY_TURN_SECRET=ЗАМЕНИТЕ_НА_ТОТ_ЖЕ_СЕКРЕТ_ИЗ_COTURN_SHARED_SECRET
 WATCH_PARTY_TURN_TTL_SECONDS=3600
 
-# Debug only. Keep false in production.
+# Использовать только для отладки. На продакшене всегда должно быть false.
 WATCH_PARTY_FORCE_RELAY=false
 ```
 
-If using a managed TURN provider with fixed credentials instead of coturn
-shared-secret mode:
+Если вы используете облачный провайдер TURN-серверов с фиксированными учетными данными вместо режима общего секрета coturn:
 
 ```env
 WATCH_PARTY_TURN_URLS=...
@@ -106,16 +97,15 @@ WATCH_PARTY_TURN_USERNAME=...
 WATCH_PARTY_TURN_CREDENTIAL=...
 ```
 
-Do not set `WATCH_PARTY_TURN_SECRET` in that mode.
+В таком режиме задавать переменную `WATCH_PARTY_TURN_SECRET` не нужно.
 
-## 4. Test
+## 4. Тестирование
 
-Test four combinations:
+Проверьте работоспособность в четырех сценариях:
 
-1. Same Wi-Fi, no VPN: should usually display `P2P`.
-2. Different networks/countries: should connect.
-3. One participant behind VPN/mobile network: may display `TURN RELAY`.
-4. Set `WATCH_PARTY_FORCE_RELAY=true`, redeploy, create a new room: it MUST
-   display `TURN RELAY`. Then immediately return it to `false`.
+1. В одной Wi-Fi сети, без VPN: на экране должно отображаться состояние `P2P`.
+2. Из разных сетей / стран: пользователи должны успешно подключаться друг к другу.
+3. Один из участников находится за VPN или мобильной сетью: статус соединения может измениться на `TURN RELAY`.
+4. Установите `WATCH_PARTY_FORCE_RELAY=true`, сделайте редеплой и создайте новую комнату: на экране ОБЯЗАТЕЛЬНО должно отобразиться состояние `TURN RELAY`. После проверки немедленно верните значение в `false`.
 
-If force-relay cannot connect, TURN is not reachable/configured correctly.
+Если при принудительном реле (force-relay) соединение не устанавливается, значит TURN-сервер недоступен или настроен неверно.
