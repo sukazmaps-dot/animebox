@@ -1,23 +1,26 @@
-# Patch 31.3 — AnimeBox Profile Editor Workspace
+# Патч 31.3 — рабочее пространство редактора профиля AnimeBox
 
-Base: Patch 31.2 in main. Independent branch, draft PR, no production or SQL changes.
+Основа: патч 31.2 в `main`. Независимая ветка, черновой PR; изменения production и SQL отсутствуют.
 
-## Scope / decisions
-- Full-screen self-contained editor overlay and no global Navbar, desktop sidebar or bottom mobile navigation on /profile/edit.
-- Persistent 220–240 px editable draft preview beneath compact header; five editor tabs. Showcase and Rewards live under “Ещё”.
-- Original base media upload pipeline and crop modal unchanged; image banner tab gets a dropzone which opens Premium upsell for non-subscribers.
-- Save/cancel dock always visible; measured height reserved after scroll content, accommodates safe area and visualViewport keyboard; on exit confirms unsaved changes and Telegram BackButton supported.
-- Banner chooser: 6-column circular swatches, single scrollable equal-height fill rail, in-app bottom sheet with HSV square, Hue, validated HEX, supported EyeDropper and recent colors. Underlying draft previews changes instantly.
-- Existing free solid and soft fills remain saveable. Locked glow/sunset fills can be previewed but saving takes non-Premium accounts to the Premium subscription page; API validation remains authoritative.
-- Premium scene demo: horizontally scrollable 120x72 thumbnails, existing four preview contexts, single shared bottom save/upgrade CTA. Premium tab stays mounted when changing tabs to preserve unsaved selections.
-- UI fixes are in original CSS and CSS modules, no new global !important patch files.
+## Область работ и решения
 
-## Tests
-- npm run patch31-3:check (prebuild).
-- GitHub Quality Gate TS / eslint / Next build and real CSS Playwright dock fixture 320, 360, 390, 412, 560, 768 (dark/light, font 14/22, nav variants).
-- Manual real-device checklist: Android Chrome and Telegram WebView 360–430, iOS Safari/Telegram, desktop, keyboard open, saved/dirty/error, color cancel and undo, Premium expiry, static/media crop, tab switching and browser back.
+- Полноэкранный автономный оверлей редактора. На странице `/profile/edit` не показываются глобальный Navbar, боковая панель десктопа или нижняя мобильная навигация.
+- Под компактной шапкой постоянно отображается редактируемый черновой предпросмотр шириной 220–240px; пять вкладок редактора. Showcase и Rewards находятся в разделе «Ещё».
+- Исходный конвейер загрузки базовых медиа и модальное окно кадрирования не меняются. Во вкладке баннера добавляется зона перетаскивания; для пользователя без Premium она открывает предложение подписки.
+- Панель сохранения/отмены всегда видна. После прокручиваемого содержимого резервируется измеренная высота с учётом safe area и клавиатуры через visualViewport. При выходе запрашивается подтверждение несохранённых изменений; поддерживается Telegram BackButton.
+- Выбор баннера: круговые образцы цветов в 6 колонках, одна прокручиваемая лента одинаковой высоты, встроенная нижняя панель с HSV-квадратом, Hue, проверкой HEX, поддержкой EyeDropper и недавними цветами. Предпросмотр черновика обновляется сразу.
+- Существующие бесплатные сплошные и мягкие заливки можно сохранять. Заблокированные свечения/закат доступны для предпросмотра, но попытка сохранения для аккаунта без Premium ведёт на страницу подписки; проверка API остаётся окончательной.
+- Демонстрация сцены Premium: горизонтально прокручиваемые миниатюры 120×72, четыре существующих контекста предпросмотра и одна общая нижняя кнопка сохранения/повышения подписки. Вкладка Premium остаётся смонтированной при переключении вкладок, сохраняя несохранённый выбор.
+- Правки интерфейса находятся в исходном CSS и CSS Modules; новые глобальные патч-файлы с `!important` не добавляются.
 
-## Deliberately not shipped
-- User-defined second gradient color/angle and independent glow intensity require a reviewed additive DB schema and server validation. The existing profiles banner_style enum + banner_color HEX cannot persist these parameters. These controls must not misleadingly appear saveable without that migration.
-- Frame assignment still uses the existing rewards API and does not use the shared draft transaction.
-- Real logged-in production visual check needs a device after PR review. Do NOT merge/deploy without approval.
+## Тесты
+
+- `npm run patch31-3:check` (prebuild).
+- GitHub Quality Gate: TypeScript / ESLint / Next build и реальная CSS Playwright-фикстура панели при ширинах 320, 360, 390, 412, 560 и 768px (светлая/тёмная тема, шрифты 14/22 и варианты навигации).
+- Ручной список для устройств: Android Chrome и Telegram WebView 360–430px, iOS Safari/Telegram, десктоп, открытая клавиатура, сохранённое/изменённое/ошибочное состояние, отмена и возврат цвета, истечение Premium, статическое медиа/кадрирование, переключение вкладок и кнопка «Назад» браузера.
+
+## Что намеренно не включено в выпуск
+
+- Пользовательский второй цвет/угол градиента и независимая интенсивность свечения требуют проверенной дополнительной схемы БД и серверной валидации. Существующие enum `profiles.banner_style` и HEX-поле `banner_color` не могут сохранять эти параметры. Нельзя показывать эти элементы как сохраняемые без миграции.
+- Назначение рамки по-прежнему использует существующий rewards API и не участвует в общей транзакции черновика.
+- Для реальной визуальной проверки с авторизованным аккаунтом после ревью PR нужно устройство. Не сливать и не деплоить без согласования.
