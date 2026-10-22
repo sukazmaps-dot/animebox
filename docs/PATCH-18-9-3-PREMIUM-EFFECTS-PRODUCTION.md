@@ -1,29 +1,25 @@
-# AnimeBox Patch 18.9.3 — Premium Effects Production Hardening
+# Патч AnimeBox 18.9.3 — подготовка эффектов Premium к production
 
-## Goal
+## Цель
 
-Bring Premium atmosphere rendering to production quality across full profiles,
-Studio live preview, social mini-profiles, Global Chat, comments and Watch Together.
+Довести отрисовку атмосферы Premium до production-качества в полном профиле, живом предпросмотре Studio, социальных мини-профилях, общем чате, комментариях и Watch Together.
 
-## Root causes fixed
+## Исправленные первопричины
 
-1. Particle positions/timings used CSS multiplication with `--particle-index`.
-   Some browser engines could invalidate left/duration/delay silently.
-2. Stardust inherited `top: 110%` but only drifted a few pixels upward,
-   so stars remained below the visible card.
-3. Sakura inherited the same bottom origin even though petals must fall from above.
-4. Compact mini-profile atmosphere opacity was too weak in the normal 30–50% range.
-5. Reduced-motion hid particle identity entirely instead of only disabling movement.
-6. Premium mini-profile layering accidentally changed the close button to
-   `position: relative`, moving the X button to the left edge.
-7. Premium CSS still contained custom-property multiplication for glow alpha.
+1. Позиции и время частиц вычислялись через CSS-умножение с переменной --particle-index. Некоторые браузерные движки могли молча отклонять left/duration/delay.
+2. Stardust наследовал top: 110%, но смещался вверх лишь на несколько пикселей, поэтому звёзды оставались ниже видимой карточки.
+3. Sakura наследовал ту же нижнюю точку начала, хотя лепестки должны падать сверху.
+4. Непрозрачность атмосферы компактного мини-профиля была слишком слабой в обычном диапазоне 30–50%.
+5. Reduced-motion полностью скрывал визуальную идентичность частиц вместо отключения только движения.
+6. Из-за каскада слоёв мини-профиля Premium кнопка закрытия случайно получала position: relative и перемещалась к левому краю.
+7. В CSS Premium всё ещё использовалось умножение пользовательских свойств для альфа-канала свечения.
 
-## Deterministic renderer
+## Детерминированная отрисовка
 
-`PremiumProfileAtmosphere` now computes particle geometry once from stable indexes.
-No Math.random is used.
+Теперь PremiumProfileAtmosphere вычисляет геометрию частиц один раз на основе стабильных индексов. Math.random не используется.
 
-Each particle receives precomputed CSS variables:
+Для каждой частицы заранее рассчитываются CSS-переменные:
+
 - --particle-left
 - --particle-static-top
 - --particle-duration-soft
@@ -35,85 +31,79 @@ Each particle receives precomputed CSS variables:
 - --particle-scale
 - --particle-rotation
 
-Variants:
-- full: 14 particles
-- preview: 11 particles
-- compact: 8 particles
+Варианты плотности:
 
-## Effect physics
+- полный профиль: 14 частиц;
+- предпросмотр: 11 частиц;
+- компактный профиль: 8 частиц.
 
-- Aurora: ambient clouds + sparse distributed static/twinkling dust.
-- Embers: particles rise from the bottom.
-- Sakura: petals start above the card and fall downward.
-- Stardust: stars are distributed over the visible surface and twinkle in place.
+## Физика эффектов
 
-## Motion modes
+- Aurora: фоновые облака и редкая распределённая пыль — статическая или мерцающая.
+- Embers: частицы поднимаются снизу.
+- Sakura: лепестки начинаются выше карточки и падают вниз.
+- Stardust: звёзды распределены по видимой поверхности и мерцают на месте.
 
-- Off: no ongoing animation; particles remain as a static composition.
-- Soft: long calm durations.
-- Live: faster particle motion and stronger identity.
+## Режимы движения
 
-## Accessibility
+- Off: постоянной анимации нет; частицы остаются статичной композицией.
+- Soft: длинные, спокойные циклы движения.
+- Live: более быстрое движение частиц и более выразительный эффект.
 
-`prefers-reduced-motion` disables animation but keeps a static Premium composition.
-Premium identity therefore remains visible without forced motion.
+## Доступность
 
-## Intensity semantics
+prefers-reduced-motion отключает анимацию, но сохраняет статичную композицию Premium. Таким образом, визуальная идентичность остаётся видимой без принудительного движения.
 
-- 0% means visually off.
-- 30–50% is tuned as the normal useful range.
-- Higher values remain bounded.
+## Семантика интенсивности
 
-## Mini-profile close button
+- 0% — эффект визуально выключен;
+- 30–50% — настроенный обычный рабочий диапазон;
+- более высокие значения остаются ограниченными.
 
-The Premium layering selector no longer makes `.close` relative.
-The close button is explicitly pinned to the top-right overlay with its own z-index.
-Mobile receives a separate safe inset.
+## Кнопка закрытия мини-профиля
 
-## Cross-browser CSS
+Селектор слоёв Premium больше не переводит .close в relative. Кнопка закрытия закреплена в верхнем правом углу оверлея и имеет собственный z-index. На мобильных используется отдельный безопасный отступ.
 
-No particle layout/timing depends on CSS multiplication of custom properties.
-The remaining half-glow value is precomputed in TypeScript instead of using
-`calc(var(--ab-premium-glow-alpha) * .5)`.
+## Межбраузерная совместимость CSS
 
-## Performance budget
+Позиция и время частиц больше не зависят от CSS-умножения пользовательских свойств. Оставшееся значение половинного свечения рассчитывается заранее в TypeScript вместо calc(var(--ab-premium-glow-alpha) * .5).
 
-- no requestAnimationFrame particle loop;
-- deterministic static markup;
-- full/preview/compact density variants;
-- only the open mini-profile renders compact particles;
-- mobile mini-profile further reduces visible particle count;
-- CSS animation is fully disabled in Off/reduced-motion modes.
+## Бюджет производительности
 
-## Acceptance
+- нет цикла частиц через requestAnimationFrame;
+- статическая разметка детерминирована;
+- предусмотрены варианты плотности для полного профиля/предпросмотра/компактного режима;
+- компактные частицы отображаются только у открытого мини-профиля;
+- на мобильных мини-профилях видимых частиц ещё меньше;
+- CSS-анимация полностью отключается в режимах Off/reduced-motion.
 
-- TypeScript passes.
-- Targeted lint has zero errors.
-- product/retention regression checks pass.
-- production build passes.
-- no `--particle-index` remains in the renderer/CSS.
-- no Math.random exists in Premium atmosphere renderer.
-- Stardust is visible inside mini-profile bounds.
-- Sakura starts above and falls through the card.
-- Embers rise through the card.
-- close X stays in the top-right on Premium mini-profile.
-- Global Chat / comments / Watch Together keep using the same ProfilePreview.
+## Критерии приёмки
 
-## Quality gate trigger
+- TypeScript проходит;
+- целевой lint не имеет ошибок;
+- регрессионные проверки продукта/удержания пользователей проходят;
+- production build проходит;
+- в отрисовщике/CSS больше нет --particle-index;
+- в отрисовщике атмосферы Premium нет Math.random;
+- Stardust виден внутри границ мини-профиля;
+- Sakura начинается сверху и падает через карточку;
+- Embers поднимаются через карточку;
+- кнопка X остаётся сверху справа в мини-профиле Premium;
+- общий чат, комментарии и Watch Together продолжают использовать один ProfilePreview.
 
-PR #121 must pass the cumulative main-based production workflow before packaging.
+## Условие Quality Gate
 
+PR #121 должен пройти накопительный production-workflow на базе main до упаковки изменений.
 
-## Foreground layering fix
+## Исправление слоёв переднего плана
 
-Premium atmosphere is split into two rendering planes:
-- ambient layer below profile surfaces;
-- particle layer above opaque surfaces but below close/actions.
+Атмосфера Premium разделена на два слоя:
 
-The atmosphere wrapper itself must not use paint containment because that would trap
-foreground particles in a lower stacking context and make them invisible behind hero/body backgrounds.
+- фоновый слой под поверхностями профиля;
+- слой частиц над непрозрачными поверхностями, но ниже кнопок закрытия и действий.
 
+Сам обёрточный элемент атмосферы не должен использовать paint containment: иначе частицы переднего плана окажутся в более низком контексте наложения и станут невидимыми за фоном Hero/тела профиля.
 
-## Mini-profile stacking flattening
+## Упрощение наложения мини-профиля
 
-The atmosphere wrapper uses `display: contents` so ambient and particle layers participate directly in the card stacking context. The final compact order is ambient z=1, hero/body z=3, particles z=4 and close z=20. Compact Stardust uses 10 deterministic particles with stronger 4–5px star highlights.
+Обёртка атмосферы использует display: contents, чтобы фон и частицы участвовали непосредственно в контексте наложения карточки. Итоговый порядок для компактного режима: фон z=1, Hero/body z=3, частицы z=4, закрытие z=20. В компактном Stardust используется 10 детерминированных частиц с более заметными бликами звёзд размером 4–5px.
