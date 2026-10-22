@@ -30,7 +30,7 @@ import './patch11-3.css';
 import './patch11-4.css';
 import './patch11-4-4.css';
 import './patch11-4-5.css';
-import './patch12-1-home-identity.css';
+import './styles/home-identity.css';
 import './patch12-2-visual-consistency.css';
 import './patch12-3-home-retention.css';
 import './patch12-3-1-mobile-cwv.css';
