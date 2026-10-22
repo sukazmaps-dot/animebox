@@ -1,51 +1,31 @@
-# Audit patch 1: stable catalog and search
+# Аудит-патч 1: стабильность каталога и поиска
 
-## Problem
+## Проблема
 
-The instant index can return ten verified matches, then `/api/anime` falls back
-to three saved matches. First-page enrichment previously treated that partial
-snapshot as authoritative membership and removed seven visible cards.
+Мгновенный индекс может вернуть десять подтверждённых совпадений, после чего /api/anime переключается на три сохранённых совпадения. Раньше обогащение первой страницы считало частичный снимок полным составом каталога и удаляло семь уже видимых карточек.
 
-## Changes
+## Изменения
 
-- Saved and registry-degraded responses explicitly identify partial coverage.
-  Old responses with `catalogMeta` remain compatible.
-- A saved fallback supplements this query/filter/mood scope; it cannot remove
-  previously loaded verified matches. Fresh complete responses still own order
-  and membership, including an empty result.
-- A slower instant preview can supplement a saved response without keeping the
-  page loading, changing pagination, or replacing known metadata with shells.
-- Availability exclusions override retention. Registry degradation deliberately
-  keeps its fail-closed membership and does not revive the instant preview.
-- Query, filter, mood and view changes synchronously invalidate requests and
-  lock load-more. Stale successes/failures cannot write into a new request.
-- Repeated load-more calls remain synchronously deduplicated. A failed page
-  retries that same page; a source change cannot combine incompatible offsets
-  and offers a restart at page 1 while retaining visible cards.
-- SSR passes source and `hasNextPage`, instead of guessing paging from count.
-- Explicit retry bypasses client memory and browser HTTP caches and is available
-  on partial notices as well as errors. No change to normal cache TTLs.
-- The initial debounce no longer resets an already requested second page.
+- Ответы из сохранённых данных и деградировавшего реестра явно указывают частичное покрытие. Старые ответы с catalogMeta остаются совместимыми.
+- Резервный сохранённый результат дополняет данные в рамках текущего запроса/фильтра/настроения, но не может удалять ранее загруженные подтверждённые совпадения. Свежие полные ответы по-прежнему определяют порядок и состав, включая пустой результат.
+- Медленный предварительный результат мгновенного поиска может дополнить сохранённый ответ без продолжения загрузки страницы, изменения пагинации или замены известных метаданных пустыми оболочками.
+- Исключения доступности имеют приоритет над удержанием старых карточек. При деградации реестра сохраняется политика fail-closed и не возобновляется предварительный мгновенный поиск.
+- Изменения запроса, фильтра, настроения и вида синхронно инвалидируют запросы и блокируют load-more. Устаревшие успехи/ошибки не могут записать данные в новый запрос.
+- Повторные вызовы load-more синхронно объединяются. При ошибке страницы повторяется та же страница; смена источника не смешивает несовместимые смещения и предлагает начать с первой страницы, сохраняя уже видимые карточки.
+- SSR передаёт источник и hasNextPage, а не угадывает пагинацию по количеству.
+- Явный повторный запрос обходит клиентскую память и браузерный HTTP-кеш; действие доступно как при частичных результатах, так и при ошибке. Обычные TTL кеша не меняются.
+- Начальный debounce больше не сбрасывает уже запрошенную вторую страницу.
 
-## Acceptance
+## Приёмка
 
-`npm run catalog-stability:check` mounts the actual catalog with deferred service
-responses and checks instant-first/saved-first races, complete-empty responses,
-late previews, exclusions, registry degradation, query/filter isolation, double
-load-more, same-page retry, source changes, SSR paging and metadata retention.
-It runs as part of `catalog-integrity:check` and therefore `prebuild`.
+`npm run catalog-stability:check` монтирует реальный каталог с отложенными ответами сервиса и проверяет гонки мгновенного/сохранённого источника, полный пустой ответ, поздний предварительный результат, исключения, деградацию реестра, изоляцию запроса/фильтра, двойной load-more, повтор той же страницы, смену источника, SSR-пагинацию и сохранение метаданных. Проверка запускается внутри `catalog-integrity:check` и, соответственно, prebuild.
 
-Existing API/metadata/client tests additionally cover explicit exclusions,
-fallback cache expiry, forced refresh, availability policy and provider outage.
-Two test fixtures were updated for index exports/imports added by main #296.
+Существующие тесты API/метаданных дополнительно покрывают явные исключения, истечение кеша резерва, принудительное обновление, политику доступности и отказ провайдера. Две тестовые фикстуры обновлены под экспорты/импорты индекса, добавленные в main #296.
 
-## Release
+## Выпуск
 
-No SQL migrations, new environment variables or production data changes.
-Merge and deploy the branch through the normal release process. Canary checks:
-search `Евангелион`, type another query before completion, change a filter,
-load another page and retry after a provider outage. A fallback must not collapse
-the current query's verified results; a fresh complete response may replace them.
+SQL-миграции, новые переменные окружения и изменения production-данных не нужны.
 
-This patch does not make unavailable third-party providers healthy and does not
-change image delivery, playback, design or recommendation ranking.
+Слить и развернуть ветку обычным процессом выпуска. Проверка canary: найти «Евангелион», до завершения ввести другой запрос, изменить фильтр, загрузить ещё одну страницу и повторить после сбоя провайдера. Резервный ответ не должен схлопывать подтверждённые результаты текущего запроса; свежий полный ответ может их заменить.
+
+Патч не восстанавливает доступность недоступных сторонних провайдеров и не меняет доставку изображений, воспроизведение, дизайн или ранжирование рекомендаций.
