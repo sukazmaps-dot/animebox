@@ -1,146 +1,139 @@
-# Patch 22 — Discovery & Recommendations 3.0
+# Патч 22 — Обнаружение аниме и рекомендации 3.0
 
-## 0. Product goal
+## 0. Цель продукта
 
-Patch 22 turns AnimeBox recommendations from a strong hybrid sorter into a
-full recommendation system whose primary objective is not CTR, but meaningful
-watching.
+Патч 22 превращает рекомендации AnimeBox из сильного гибридного сортировщика в полноценную рекомендательную систему. Её главная цель — не CTR (доля кликов), а содержательный просмотр.
 
-The system must optimize for:
+Система должна улучшать всю цепочку:
 
-1. recommendation -> open;
-2. open -> playback start;
-3. playback start -> meaningful watch;
-4. meaningful watch -> episode completion;
-5. episode completion -> multi-episode continuation;
-6. title completion / positive explicit feedback;
-7. long-term discovery diversity without trapping the viewer in one genre.
+1. показ рекомендации → открытие;
+2. открытие → запуск воспроизведения;
+3. запуск воспроизведения → содержательный просмотр;
+4. содержательный просмотр → завершение эпизода;
+5. завершение эпизода → просмотр нескольких эпизодов подряд;
+6. завершение тайтла или положительная явная оценка;
+7. долгосрочное разнообразие открытий без привязки пользователя к одному жанру.
 
-The recommendation engine must remain explainable, bounded, cache-friendly and
-safe for mobile runtime.
+Рекомендательная система должна оставаться объяснимой, ограниченной по ресурсам, совместимой с кешированием и безопасной для мобильного выполнения.
 
 ---
 
-# 1. Non-negotiable architecture
+# 1. Архитектура, обязательная для соблюдения
 
-The final pipeline is:
+Итоговый конвейер:
 
-User history
-  -> Taste Graph
-  -> Recent taste / Session Intent
-  -> Negative preferences
-  -> Candidate generation
-     - content affinity
-     - AniList graph
-     - franchise continuation
-     - seasonal
-     - hidden gems
-     - collaborative/co-watch signal
-     - controlled exploration
-  -> Candidate scoring
-     - taste match
-     - completion probability
-     - session intent
-     - explicit feedback
-     - freshness
-     - novelty
-     - sequel/franchise boost
-     - availability
-     - exposure fatigue
-     - popularity correction
-  -> Diversity / fatigue reranker
-  -> Availability gate
-  -> Explainable rails
-  -> Exposure / watch telemetry
-  -> Taste feedback loop
+История пользователя  
+  → Граф вкусов  
+  → Недавние предпочтения / намерение текущего сеанса  
+  → Отрицательные предпочтения  
+  → Формирование кандидатов:
+     - сходство по содержанию;
+     - связи AniList;
+     - продолжение франшизы;
+     - сезонные тайтлы;
+     - скрытые находки;
+     - совместные сигналы / совместный просмотр;
+     - контролируемое исследование новых вариантов  
+  → Оценка кандидатов:
+     - соответствие вкусам;
+     - вероятность продолжения просмотра;
+     - намерение текущего сеанса;
+     - явная обратная связь;
+     - актуальность;
+     - новизна;
+     - бонус за продолжение франшизы;
+     - доступность;
+     - усталость от повторных показов;
+     - коррекция влияния популярности  
+  → Повторная сортировка по разнообразию и усталости  
+  → Проверка доступности  
+  → Объяснимые ленты рекомендаций  
+  → Телеметрия показов и просмотра  
+  → Цикл обратной связи для Графа вкусов
 
-Candidate retrieval must stay public/cacheable where possible. User-specific
-ranking stays client-side or behind bounded first-party server reads.
-
----
-
-# 2. Core product principles
-
-## 2.1 Meaningful watch > click
-
-CTR is diagnostic, not the objective.
-
-Primary quality metric:
-
-recommendation impression
- -> click
- -> playback start
- -> >= 10/15 min active viewing
- -> episode completed
- -> second/third episode
- -> title completion
-
-A recommendation that receives clicks but is abandoned immediately is weaker
-than a recommendation with slightly lower CTR and high watch retention.
-
-## 2.2 Long-term taste != current intent
-
-The model separates:
-
-- long-term taste;
-- recent 7/30-day taste;
-- current recommendation session;
-- explicit mood selection;
-- current viewing context.
-
-A user who normally watches psychological thrillers can still want a short
-comedy tonight. Session intent must influence ranking without permanently
-rewriting long-term taste.
-
-## 2.3 Negative signals have semantics
-
-"Not interested" is not the same as:
-
-- already watched;
-- too long;
-- do not like this genre;
-- not now;
-- do not like this setting.
-
-Patch 22 must eventually persist structured negative reasons. "Not now" must
-have a short decay and must not poison long-term taste.
-
-## 2.4 Repetition is a ranking failure
-
-If the same title is shown repeatedly without interaction, its score must
-decay. The user should never feel that AnimeBox ignores repeated non-clicks.
-
-## 2.5 Exploration is controlled
-
-Recommendation slots are divided dynamically between:
-- safe/exploitation;
-- adjacent taste;
-- exploration.
-
-Exploration must preserve important taste characteristics instead of selecting
-random unrelated titles.
-
-## 2.6 Explanation must be evidence-based
-
-Allowed recommendation explanations:
-- because the user completes similar genres;
-- because of a specific recent watched/favorite title;
-- preferred studio;
-- preferred length;
-- current mood/session intent;
-- sequel/franchise continuation;
-- hidden gem with high taste compatibility.
-
-Do not display invented certainty.
+По возможности получение кандидатов должно оставаться публичным и пригодным для кеширования. Персональная сортировка выполняется на клиенте либо с помощью ограниченных запросов к собственному серверу.
 
 ---
 
-# 3. Patch 22 ranking model
+# 2. Основные принципы продукта
 
-## 3.1 Multi-objective score
+## 2.1. Содержательный просмотр важнее клика
 
-Conceptual score:
+CTR — диагностическая метрика, но не конечная цель.
 
+Основная цепочка качества:
+
+показ рекомендации  
+→ клик  
+→ запуск воспроизведения  
+→ не менее 10–15 минут активного просмотра  
+→ завершение эпизода  
+→ просмотр второго или третьего эпизода  
+→ завершение тайтла
+
+Рекомендация, которую открыли и сразу бросили, хуже рекомендации с немного меньшим CTR, но высокой глубиной просмотра.
+
+## 2.2. Долгосрочный вкус не равен текущему намерению
+
+Модель разделяет:
+
+- долгосрочные предпочтения;
+- предпочтения за последние 7/30 дней;
+- текущий сеанс рекомендаций;
+- явно выбранное настроение;
+- текущий контекст просмотра.
+
+Пользователь, который обычно смотрит психологические триллеры, сегодня вечером может захотеть короткую комедию. Намерение текущего сеанса должно влиять на сортировку, но не должно навсегда переписывать долгосрочный вкус.
+
+## 2.3. У отрицательных сигналов разный смысл
+
+«Не интересно» — не то же самое, что:
+
+- уже смотрел;
+- слишком длинное;
+- не нравится этот жанр;
+- не сейчас;
+- не нравится такая обстановка или стиль.
+
+Патч 22 должен сохранять структурированные причины отрицательной обратной связи. Сигнал «не сейчас» должен быстро затухать и не должен портить долгосрочный профиль вкусов.
+
+## 2.4. Повторы — ошибка ранжирования
+
+Если один и тот же тайтл много раз показывается без взаимодействия, его оценка должна снижаться. У пользователя не должно складываться ощущение, что AnimeBox игнорирует повторные пропуски карточки.
+
+## 2.5. Исследование новых вариантов должно быть контролируемым
+
+Слоты рекомендаций динамически распределяются между:
+
+- безопасными вариантами, соответствующими известным предпочтениям;
+- близкими, но новыми вариантами;
+- исследовательскими вариантами.
+
+Исследовательские варианты должны сохранять важные характеристики вкуса пользователя, а не подбирать случайные несвязанные тайтлы.
+
+## 2.6. Объяснение должно опираться на факты
+
+Допустимые причины рекомендации:
+
+- пользователь завершает просмотр похожих жанров;
+- есть конкретный недавно просмотренный или добавленный в избранное тайтл;
+- совпадает предпочитаемая студия;
+- подходит предпочитаемая длительность;
+- соответствует текущее настроение или намерение сеанса;
+- это продолжение сезона или франшизы;
+- это малоизвестная находка с высокой совместимостью со вкусом.
+
+Нельзя показывать выдуманную уверенность.
+
+---
+
+# 3. Модель ранжирования патча 22
+
+## 3.1. Составная оценка
+
+Концептуальная формула:
+
+```text
 final =
   taste_match
   + completed_affinity
@@ -160,1260 +153,903 @@ final =
   - popularity_bias
   - duplicate_family
   - availability_penalty
+```
 
-Every material component must be bounded. No single weak signal may dominate
-the whole model accidentally.
+Каждый существенный компонент должен иметь ограниченный диапазон. Один слабый сигнал не должен случайно доминировать над всей моделью.
 
-## 3.2 Versioning
+## 3.2. Версионирование
 
-Every ranking change that changes ordering materially increments:
-- recommendation model version;
-- algorithm version sent to product_events;
-- analytics version breakdown.
+Каждое изменение ранжирования, заметно влияющее на порядок карточек, должно увеличивать версии:
 
-Patch 22 starts at `22.0-v1`.
+- модели рекомендаций;
+- версии алгоритма, передаваемой в `product_events`;
+- аналитики по версиям.
 
----
-
-# 4. Phase A — Exposure / Fatigue Foundation
-
-## Goal
-
-Stop repeatedly presenting the same recommendation when the viewer has already
-ignored it multiple times.
-
-## Signals
-
-Per anime:
-- impressions in recent 7 days;
-- impressions in recent 30 days;
-- weighted impressions with recency decay;
-- opens;
-- dwell interactions;
-- last impression timestamp;
-- last open timestamp;
-- last positive action timestamp.
-
-## Fatigue policy
-
-- first impression: no penalty;
-- repeated unanswered impressions: increasing penalty;
-- old impressions decay;
-- a recent open materially reduces fatigue;
-- positive actions clear/suppress fatigue;
-- virtual-card remounts must not generate new impressions;
-- fatigue calculation must be O(events + candidates), not
-  O(events * candidates).
-
-## Runtime
-
-Build one exposure map from the bounded local recommendation event history,
-then score every candidate by map lookup.
-
-No new network request is allowed for client fatigue ranking.
-
-## Telemetry
-
-Recommendation impression telemetry includes:
-- exposure count 7d;
-- exposure count 30d;
-- computed fatigue;
-- current algorithm version.
-
-This lets admin analytics correlate repetition with CTR/watch conversion.
+Начальная версия патча 22: `22.0-v1`.
 
 ---
 
-# 5. Phase B — Session Intent
+# 4. Этап A — Основа учёта показов и усталости
 
-## Goal
+## Цель
 
-Model what the viewer appears to want now without overwriting long-term taste.
+Перестать многократно показывать одну рекомендацию, которую пользователь уже несколько раз проигнорировал.
 
-## Inputs
+## Сигналы
 
-- current explicit mood;
-- titles opened in current recommendation session;
-- recent recommendation positive/negative actions;
-- latest watched titles;
-- recent session duration pattern;
-- preferred episode count;
-- completed vs ongoing preference.
+Для каждого аниме учитываются:
 
-## Session vector
+- показы за последние 7 дней;
+- показы за последние 30 дней;
+- взвешенные показы с затуханием по давности;
+- открытия;
+- взаимодействия и задержка внимания;
+- время последнего показа;
+- время последнего открытия;
+- время последнего положительного действия.
 
-Bounded fields:
-- genre weights;
-- short/long preference;
-- finished/ongoing preference;
-- comfort/tension/emotion/adventure weights;
-- exploration appetite;
-- session confidence.
+## Политика усталости
 
-## Decay
+- первый показ не получает штрафа;
+- повторные показы без реакции постепенно увеличивают штраф;
+- старые показы со временем теряют вес;
+- недавнее открытие заметно снижает усталость;
+- положительные действия снимают или подавляют усталость;
+- повторное монтирование виртуализированной карточки не должно создавать новый показ;
+- расчёт усталости должен иметь сложность `O(events + candidates)`, а не `O(events * candidates)`.
 
-Session intent lives for the current session / short window. It does not become
-a permanent Taste Graph update unless later confirmed by meaningful watching.
+## Выполнение в рантайме
 
----
+Сначала построить одну карту показов по ограниченной локальной истории событий рекомендаций, затем оценивать кандидатов через поиск в этой карте.
 
-# 6. Phase C — Completion Probability
+Для клиентского расчёта усталости не допускаются новые сетевые запросы.
 
-## Goal
+## Телеметрия
 
-Estimate whether this viewer is likely to meaningfully continue the title.
+В события показа рекомендации входят:
 
-Initial heuristic model uses:
-- genre completion affinity;
-- completed-title similarity;
-- episode count fit;
-- finished/ongoing preference;
-- user completion rate;
-- binge score;
-- rating / explicit feedback compatibility.
+- число показов за 7 дней;
+- число показов за 30 дней;
+- вычисленная усталость;
+- текущая версия алгоритма.
 
-Output: bounded 0..1 probability-like score.
-
-It is not displayed as a literal probability until calibrated against real
-outcomes.
-
-Later analytics compares score buckets with:
-- start rate;
-- 15m rate;
-- episode completion;
-- multi-episode continuation.
+Это позволяет административной аналитике сопоставлять повторы с CTR и конверсией в просмотр.
 
 ---
 
-# 7. Phase D — Taste Graph 7
+# 5. Этап B — Намерение текущего сеанса
 
-Expand Taste Graph beyond genre-only preference.
+## Цель
 
-Target dimensions:
-- positive/negative genres;
-- completed genres;
-- studios;
-- episode-count preference;
-- format;
-- era/year buckets;
-- finished vs ongoing;
-- completion rate;
-- binge score;
-- ratings;
-- explicit feedback;
-- mood vector;
-- exploration appetite.
+Определять, что пользователь, вероятно, хочет посмотреть сейчас, не перезаписывая долгосрочные предпочтения.
 
-Where reliable metadata exists, add:
-- themes/tags;
-- demographic;
-- setting/tone proxy.
+## Входные данные
 
-All fields require sanitization, caps and confidence.
+- явно выбранное настроение;
+- тайтлы, открытые в текущем сеансе рекомендаций;
+- недавние положительные и отрицательные действия;
+- последние просмотренные тайтлы;
+- характерная длительность недавних сеансов;
+- предпочитаемое количество эпизодов;
+- предпочтение завершённых или выходящих тайтлов.
 
----
+## Вектор сеанса
 
-# 8. Phase E — Franchise Intelligence
+Ограниченные поля:
 
-## Requirements
+- веса жанров;
+- предпочтение коротких или длинных тайтлов;
+- предпочтение завершённых или выходящих тайтлов;
+- веса уюта, напряжения, эмоций и приключений;
+- готовность к новым открытиям;
+- уверенность в определении намерения.
 
-- suppress duplicate seasons in generic rails;
-- recognize sequel/related-title opportunities;
-- do not recommend S2 as a generic discovery candidate when S1 is required and
-  unwatched;
-- prioritize next season after completion of the previous season;
-- create "История продолжается" rail.
+## Затухание
 
-Franchise continuation is intentionally exempt from some family-diversity
-penalties because it is a different user intent than discovery.
+Намерение сеанса действует в текущем сеансе или коротком временном окне. Оно не становится постоянным изменением Графа вкусов, пока это не подтверждено содержательным просмотром.
 
 ---
 
-# 9. Phase F — Controlled Exploration / Hidden Gems
+# 6. Этап C — Вероятность продолжения и завершения
 
-Status: **implemented / CI green**
+## Цель
 
-Dynamic slot mix based on taste confidence.
+Оценивать, с какой вероятностью пользователь будет содержательно смотреть выбранный тайтл дальше.
 
-Implemented mix policy:
-- cold start: safe 50%, adjacent 30%, exploration 20%;
-- high-confidence profile: safe 75%, adjacent 20%, exploration 5%;
-- intermediate confidence interpolates between those bounds;
-- Taste Graph exploration appetite is blended with confidence instead of acting
-  as an unbounded direct quota.
+Начальная эвристическая модель использует:
 
-Candidate classification:
-- `safe`: strong known taste match or franchise continuation;
-- `adjacent`: at least one familiar taste axis with meaningful novelty;
-- `explore`: lower direct taste overlap but acceptable quality and low
-  negative affinity.
+- склонность пользователя завершать просмотр определённых жанров;
+- сходство с завершёнными тайтлами;
+- соответствие количества эпизодов предпочтениям;
+- предпочтение завершённых или выходящих тайтлов;
+- общий процент завершения просмотра пользователем;
+- склонность смотреть несколько эпизодов подряд;
+- совместимость с рейтингом и явной обратной связью.
 
-Hidden-gem qualification:
-- sufficient positive taste affinity;
-- community quality floor;
-- low negative affinity;
-- low exposure fatigue;
-- lower/mid popularity band;
-- blockbuster titles are explicitly excluded from hidden-gem status;
-- popularity is log-scaled so audience size cannot dominate relevance.
+Выход — ограниченная оценка от 0 до 1, похожая на вероятность.
 
-Candidate generation:
-- public/cacheable `hidden_gem` candidate source added;
-- source uses bounded deeper high-score AniList pages;
-- no user/session identifier enters the public recommendation endpoint;
-- final hidden-gem qualification remains client-side.
+Её нельзя показывать как буквальную вероятность, пока она не откалибрована по реальным результатам.
 
-Ranking:
-- model/algorithm version: `22.2-v1`;
-- bounded novelty component;
-- bounded hidden-gem component;
-- bounded popularity-bias penalty;
-- franchise continuation is excluded from exploration accounting.
+Позже аналитика сопоставляет диапазоны оценки с:
 
-Presentation:
-- dedicated `Скрытые находки` rail;
-- `За пределами привычного` uses explicit exploration classification;
-- hidden-gem candidates are reserved before generic Top Match ownership;
-- existing sticky rail ownership / virtualization remains unchanged.
-
-Telemetry:
-- exploration class;
-- novelty score;
-- hidden-gem score;
-- popularity band;
-- all fields flow through impression/open/dwell/feedback attribution.
-
-Regression coverage:
-- exact 50/30/20 cold-start policy;
-- exact 75/20/5 high-confidence policy;
-- hidden-gem quality floor;
-- blockbuster exclusion / popularity correction;
-- franchise continuation exclusion;
-- candidate source/cache contract;
-- rail and telemetry contracts.
-
-Popularity must not dominate recommendation quality.
+- частотой запуска;
+- долей просмотров продолжительностью 15 минут;
+- завершением эпизода;
+- продолжением просмотра нескольких эпизодов.
 
 ---
 
-# 10. Phase G — Fresh / Seasonal discovery
+# 7. Этап D — Граф вкусов 7
 
-Status: **implemented / CI green**
+Расширить Граф вкусов за пределы одних жанров.
 
-Goal:
-surface strong current-season titles without turning freshness into a global
-ranking shortcut.
+Целевые измерения:
 
-Seasonality model:
-- current anime season is derived from the shared catalog season helper;
-- candidate season is derived from AniList `startDate`;
-- relations are `current`, `previous`, `recent`, `older`, `unknown`;
-- current-season freshness decays inside the season instead of acting as a
-  constant bonus;
-- previous-season titles keep only a small decayed tail;
-- older catalogue titles receive no seasonal freshness bonus.
+- положительные и отрицательные предпочтения по жанрам;
+- жанры завершённых тайтлов;
+- студии;
+- предпочитаемое количество эпизодов;
+- формат;
+- периоды выпуска / диапазоны лет;
+- завершённые и выходящие тайтлы;
+- доля завершения просмотра;
+- склонность смотреть несколько эпизодов подряд;
+- оценки;
+- явная обратная связь;
+- вектор настроения;
+- готовность исследовать новое.
 
-Taste gate:
-- freshness never scores by itself;
-- a title must pass a minimum taste-compatibility threshold;
-- final seasonal score is freshness × normalized taste compatibility;
-- explicit negative affinity reduces the score;
-- repeated-exposure fatigue reduces the score;
-- popularity is not part of seasonal eligibility.
+Если доступны надёжные метаданные, добавить:
 
-Candidate generation:
-- public/cacheable `seasonal` source added;
-- current `season + year` are explicit inputs to the shared candidate cache;
-- no user/session identifier enters the public candidate cache key;
-- source rotates with ranked / popularity / mood / hidden-gem / ongoing pools;
-- availability filtering remains mandatory after retrieval.
+- темы и теги;
+- демографическую категорию тайтла;
+- признаки сеттинга и тона.
 
-Ranking:
-- model/algorithm version: `22.3-v1`;
-- bounded `seasonalFreshness` component;
-- seasonal freshness is intentionally excluded from the displayed taste-match
-  percentage so "new" cannot fake a stronger personal match;
-- generic relevance, completion, negative signals, exposure fatigue and
-  franchise logic remain intact.
-
-Presentation:
-- dedicated `Из этого сезона для тебя` rail;
-- rail requires current-season relation plus a minimum personalized seasonal
-  score;
-- seasonal cards are reserved before generic Top Match ownership;
-- sticky rail ownership and bounded DOM virtualization are preserved.
-
-Explainability:
-- evidence-based reason:
-  `Из текущего сезона — совпадает с твоим вкусом`;
-- reason is emitted only when the same seasonal score that affected ranking
-  crosses the configured threshold.
-
-Telemetry:
-- seasonal score;
-- raw freshness score;
-- season relation;
-- season;
-- season year;
-- fields flow through impression/open/dwell/feedback attribution.
-
-Regression coverage:
-- strong current-season taste match receives a bounded boost;
-- zero taste compatibility receives exactly zero seasonal boost;
-- previous season decays below current season;
-- older catalogue titles receive no seasonal boost;
-- negative affinity and fatigue damp freshness;
-- seasonal candidate source/cache contract;
-- rail threshold and telemetry contract.
-
-Never use unconditional `new = high score`.
+Все поля требуют очистки, ограничений диапазона и оценки достоверности.
 
 ---
 
-# 11. Phase H — Structured Feedback 2.0
+# 8. Этап E — Интеллектуальная работа с франшизами
 
-Status: **implemented / CI green**
+## Требования
 
-Goal:
-replace the single ambiguous negative action with explicit reasons that have
-different scope, strength, decay and ranking effects.
+- скрывать дубликаты сезонов в обычных лентах;
+- распознавать возможность продолжения или просмотра связанного тайтла;
+- не рекомендовать второй сезон как обычное открытие, если для просмотра требуется первый, а пользователь его не смотрел;
+- ставить следующий сезон выше после завершения предыдущего;
+- создать ленту «История продолжается».
 
-Feedback policy:
-- `like_more`: positive explicit preference;
-- `not_interested`: permanent title exclusion plus a moderate broad negative
-  signal;
-- `less_like_this`: weaker broad negative signal;
-- `already_watched`: permanent title exclusion with **zero negative taste
-  penalty**;
-- `too_long`: title exclusion plus an episode-count aversion signal, without
-  punishing genres or studios;
-- `dislike_genre`: strong long-term genre-only negative signal;
-- `dislike_setting`: studio/format/era/status proxy for visual/context style,
-  without a strong genre penalty;
-- `not_now`: 14-day temporary snooze with a very small short-term engagement
-  penalty and no long-term taste damage;
-- `hidden`: backwards-compatible legacy strong-hide signal.
-
-Policy/version contract:
-- recommendation model/algorithm version: `22.4-v1`;
-- feedback policy version: `22.4-feedback-v2`;
-- one shared policy module is consumed by client ranking and server Taste Graph;
-- the previous one-row-per-user/title feedback storage contract is preserved.
-
-Persistent data:
-- `recommendation_feedback.signal` accepts the new structured reasons;
-- a user/signal/updated index supports future Phase K breakdowns;
-- feedback policy version is written into bounded metadata;
-- latest feedback for a title remains the source of truth.
-
-Temporary snooze:
-- `not_now` is stored locally with an expiry timestamp;
-- local ranking filters active snoozes immediately;
-- server Taste Graph excludes `not_now` only while its 14-day window is active;
-- once expired, it no longer blocks that title;
-- `not_now` does not alter long-term genre weights.
-
-Taste Graph:
-- feedback processing is axis-aware instead of applying one weight to every
-  metadata dimension;
-- genre, studio, format, era and finished/ongoing status can now receive
-  independent positive/negative weights;
-- `dislike_genre` affects genre vectors only;
-- `dislike_setting` affects studio/format/era/status axes;
-- `already_watched` only excludes the exact title;
-- every signal has its own half-life and minimum decay floor;
-- successful feedback writes immediately refresh the private Taste Graph so
-  structured signals affect the same session.
-
-Length feedback:
-- `too_long` builds a bounded `tooLongEpisodeCountThreshold`;
-- the threshold uses the lower part of the user's explicit too-long examples so
-  one extremely long outlier does not make the signal useless;
-- a dedicated `episodeLengthNegativeAffinity` penalizes titles at or above the
-  learned threshold;
-- explicit length rejection is separate from positive preferred-length affinity;
-- `too_long` never damages genre/studio preference.
-
-Ranking:
-- structured negative events no longer all equal `-1`;
-- `already_watched` has zero engagement penalty;
-- `not_now` is deliberately weak;
-- `dislike_genre` is materially stronger than generic `not_interested`;
-- explicit length aversion has a bounded negative rank component;
-- local temporary snoozes are filtered before scoring.
-
-UI:
-- the old one-click X no longer immediately produces an ambiguous dislike;
-- X opens a native top-layer structured feedback dialog;
-- dedicated `Уже смотрел` remains a fast one-click action;
-- dialog reasons explain what each choice changes;
-- mobile uses a one-column reason list;
-- light and dark themes are supported.
-
-Undo:
-- every negative/neutral hide action produces a 6.5-second undo snackbar;
-- the previous local taste snapshot is restored on undo;
-- the title is reintroduced into the loaded candidate pool and reranked;
-- persistent feedback is deleted server-side;
-- undo waits for the in-flight feedback POST before issuing DELETE, preventing a
-  POST-after-DELETE race.
-
-Telemetry:
-- structured signals continue to use the existing recommendation event pipeline;
-- dismiss-like signals map to `recommendation_dismiss` with
-  `feedback_signal` metadata;
-- `already_watched` keeps its dedicated event;
-- `feedback_policy_version` is attached for model attribution;
-- no second analytics event system is introduced.
-
-Regression coverage:
-- all new DB signals;
-- temporary snooze expiry;
-- genre-only and setting-axis policies;
-- neutral already-watched semantics;
-- too-long isolation from genre/studio taste;
-- Taste Graph refresh after feedback;
-- local snooze ranking filter;
-- feedback dialog contract;
-- mobile/light-theme UI;
-- race-safe undo;
-- model/policy versioning.
-
-Do not infer a long-term dislike from a temporary `not_now` action.
+Продолжение франшизы намеренно освобождается от части штрафов за повторяемость семейства тайтлов: пользователь, который продолжает историю, преследует другую цель, чем пользователь, который ищет новое.
 
 ---
 
-# 12. Phase I — Explainability 2.0
+# 9. Этап F — Контролируемое исследование и скрытые находки
 
-Status: **implemented / CI green**
+**Статус в подробной части документа:** реализовано, CI зелёный.
 
-Goal:
-make every visible recommendation reason a deterministic explanation of the
-actual weighted ranking evidence. Copy must never claim a preference that did
-not contribute positively to this candidate.
+Доля слотов динамически определяется уверенностью в профиле вкусов.
 
-Versions:
-- recommendation model / algorithm: `22.5-v1`;
-- ranking contract: `22.5-v1`;
-- explainability contract: `22.5-explain-v1`.
+Реализованная политика распределения:
 
-Architecture:
-`scoreRecommendation()`
-→ weighted `RecommendationScoreComponents`
-→ semantic candidate context
-→ `buildRecommendationExplanations()`
-→ bounded top-3 explanations
-→ primary reason + source attribution
-→ impression/click/watch telemetry.
+- холодный старт: безопасные 50%, близкие новые варианты 30%, исследование 20%;
+- профиль с высокой уверенностью: безопасные 75%, близкие новые варианты 20%, исследование 5%;
+- промежуточная уверенность плавно интерполируется между этими границами;
+- склонность Графа вкусов к исследованию смешивается с уровнем уверенности, а не используется как неограниченная прямая квота.
 
-Truthfulness contract:
-- a user-facing reason can only be emitted when its supporting weighted
-  component is positive and above a reason-specific minimum;
-- negative components are never converted into positive copy;
-- freshness alone cannot produce a seasonal reason;
-- a preferred episode count cannot produce a length reason when the
-  `episodeLength` rank component contributed zero;
-- franchise copy requires a positive `franchiseContinuation` component;
-- hidden-gem copy requires both hidden-gem qualification and a positive
-  `hiddenGem` component;
-- direct-engagement copy requires a positive `engagementPositive` component;
-- generic discovery is the final fallback instead of inventing a personal
-  explanation.
+Классы кандидатов:
 
-Evidence objects:
-- `key`: stable semantic reason id;
-- `text`: bounded user-facing copy;
-- `components`: exact weighted rank components supporting the copy;
-- `contribution`: summed positive weighted contribution;
-- `contributionShare`: share of all positive weighted evidence;
-- no raw private viewing history is sent to analytics.
+- `safe` — сильное совпадение с известным вкусом или продолжение франшизы;
+- `adjacent` — есть знакомая ось вкуса и заметная новизна;
+- `explore` — прямое совпадение с известным вкусом ниже, но качество приемлемо, а отрицательная совместимость низкая.
 
-Primary selection:
-- candidate explanations are sorted by actual positive weighted contribution;
-- tie priority only resolves equal/near-equal semantic evidence;
-- at most three reasons are retained;
-- the first reason becomes the visible card reason;
-- source attribution derives from the selected primary explanation.
+### Критерии скрытой находки
 
-Supported explanation families:
-- explicit liked-title reference;
-- franchise continuation;
-- genres the user tends to complete;
-- general taste genres;
-- selected mood;
-- current-session intent;
-- preferred studio;
-- preferred format;
-- preferred era;
-- episode-count fit;
-- completion pattern;
-- binge/short-title pace;
-- taste-gated current-season freshness;
-- hidden gem;
-- exploration bridge;
-- previous direct engagement;
-- community quality;
-- short finished discovery;
-- ongoing discovery;
-- generic exploration fallback.
+- достаточное положительное совпадение со вкусом;
+- минимальный порог качества сообщества;
+- низкая отрицательная совместимость;
+- низкая усталость от показов;
+- низкая или средняя популярность;
+- блокбастеры явно исключены из категории скрытых находок;
+- популярность преобразуется логарифмически, чтобы размер аудитории не доминировал над релевантностью.
 
-Specific-title evidence:
-- `Похоже на «X», который тебе понравился` is allowed only when AnimeBox has
-  a local explicit-like/favorite reference title sharing candidate genres;
-- ordinary watch history alone is not described as "liked";
-- if no explicit title reference exists, the engine falls back to genre,
-  completion or other measurable evidence.
+### Формирование кандидатов
 
-Completion language:
-- AnimeBox does not expose `completionScore` as a literal probability;
-- copy describes observed completion behaviour instead;
-- phrases such as "you will finish this" are prohibited until outcome
-  calibration exists.
+- добавлен публичный и кешируемый источник кандидатов `hidden_gem`;
+- источник использует ограниченную выборку более глубоких страниц AniList с высокими оценками;
+- публичный эндпоинт рекомендаций не получает идентификатор пользователя или сеанса;
+- итоговая проверка критериев скрытой находки остаётся на клиенте.
 
-Exploration language:
-- an `explore` candidate can explain the familiar bridge that kept it
-  relevant;
-- if episode-length fit actually contributed, copy can mention familiar length;
-- otherwise taste evidence may be mentioned only when the taste component was
-  positive;
-- fully unsupported novelty falls back to an explicit "experiment" reason.
+### Ранжирование
 
-UI contract:
-- `reason` remains the compact visible single-line reason;
-- `reasons` remains a backwards-compatible string list;
-- `explanations` adds structured scored evidence;
-- cards expose stable explanation key/version data attributes for debugging;
-- match-score tooltip continues to surface the bounded reason list;
-- no extra per-card network request is introduced.
+- версия модели/алгоритма: `22.2-v1`;
+- ограниченный компонент новизны;
+- ограниченный компонент скрытой находки;
+- ограниченный штраф за влияние популярности;
+- продолжение франшизы не учитывается в квоте исследовательских вариантов.
 
-Telemetry:
-- impression, dwell, click, feedback and watch attribution carry:
-  `explanation_version`,
-  `explanation_key`,
-  `explanation_components`,
-  `explanation_contribution`,
-  `explanation_contribution_share`;
-- the explanation context is preserved from card open through player start,
-  15m, 30m and completion events;
-- Phase K can therefore measure conversion by actual reason family without
-  reconstructing copy strings.
+### Представление
 
-Performance:
-- explainability is a pure in-memory pass over already computed rank signals;
-- no provider request;
-- no Supabase request;
-- no per-card async work;
-- maximum three explanation objects per ranked candidate;
-- existing rail virtualization and candidate caching remain unchanged.
+- отдельная лента «Скрытые находки»;
+- лента «За пределами привычного» использует явную классификацию исследования;
+- скрытые находки резервируются до того, как кандидатов займёт общая лента Top Match;
+- существующие правила закрепления карточек за лентами и виртуализация не меняются.
 
-Regression coverage:
-- no legacy `chooseReason()` path;
-- no ad-hoc `reasons.push()` path;
-- no reason from zero/negative component contribution;
-- franchise anti-hallucination;
-- liked-title anti-hallucination;
-- seasonal anti-hallucination;
-- length anti-hallucination;
-- hidden-gem grounding;
-- exploration bridge grounding;
-- bounded top-3 output;
-- positive contribution ordering;
-- contribution-share bounds;
-- source attribution;
-- card → player telemetry continuity.
+### Телеметрия и регрессионные проверки
 
-Reason text must remain evidence-backed even if future UI copy changes.
+Телеметрия включает класс исследования, оценку новизны, оценку скрытой находки и диапазон популярности. Все поля передаются в атрибуцию показа, открытия, задержки внимания и обратной связи.
+
+Регрессионные проверки покрывают:
+
+- точную политику 50/30/20 для холодного старта;
+- точную политику 75/20/5 для профиля с высокой уверенностью;
+- минимальный порог качества скрытых находок;
+- исключение блокбастеров и коррекцию популярности;
+- исключение продолжений франшиз;
+- контракт источника кандидатов и кеша;
+- контракты лент и телеметрии.
+
+Популярность не должна доминировать над качеством рекомендации.
 
 ---
 
-# 13. Phase J — Diversity Reranker 3.0
+# 10. Этап G — Новые и сезонные тайтлы
 
-Status: **implemented / CI green**
+**Статус в подробной части документа:** реализовано, CI зелёный.
 
-Goal:
-rerank the already relevance-scored candidate head so the feed does not collapse
-into one franchise, genre, studio, format, era, reason source or popularity band,
-while preserving the strongest personal matches.
+## Цель
 
-Versions:
-- recommendation model / final pipeline: `22.6-v1`;
-- ranking contract: `22.6-v1`;
-- diversity contract: `22.6-diversity-v3`;
-- explainability contract remains `22.5-explain-v1`.
+Показывать сильные тайтлы текущего сезона, не превращая новизну в универсальный бонус ранжирования.
 
-Pipeline:
-`candidate retrieval`
-→ `scoreRecommendation()`
-→ relevance-sorted pool
-→ franchise safety
-→ `diversifyRecommendations()`
-→ multi-rail composition.
+## Модель сезонности
 
-Core rule:
-diversity is a **post-ranking reranker**, not an alternative relevance model.
-It may reorder candidates that are close enough in relevance, but it cannot
-promote a materially weaker title merely to make the feed look varied.
+- текущий сезон аниме определяется общей функцией сезона каталога;
+- сезон кандидата вычисляется по полю `startDate` из AniList;
+- отношения к текущему сезону: `current`, `previous`, `recent`, `older`, `unknown`;
+- бонус текущего сезона затухает в течение сезона и не остаётся постоянным;
+- у предыдущего сезона сохраняется лишь небольшой затухающий бонус;
+- старые тайтлы каталога не получают сезонный бонус за актуальность.
 
-Relevance guard:
-- slot 1 is locked to the raw relevance winner;
-- every later selection is compared with the strongest remaining raw score;
-- a dynamic relevance floor combines an absolute and relative drop budget;
-- strong personalization therefore keeps priority over cosmetic diversity;
-- a last-resort no-floor pass exists only to avoid empty output under extremely
-  sparse candidate pools;
-- diagnostics expose whether constraint relaxation was required.
+## Ограничение по соответствию вкусу
 
-Candidate window:
-- diversity works on a bounded head of the relevance-sorted pool;
-- minimum window: 72 candidates;
-- normal window: up to 6× requested output size;
-- no unbounded whole-catalogue reranking is introduced.
+- свежесть сама по себе не даёт баллов;
+- тайтл должен пройти минимальный порог соответствия вкусам;
+- итоговый сезонный балл равен свежести, умноженной на нормализованное соответствие вкусу;
+- явный отрицательный сигнал уменьшает оценку;
+- усталость от повторных показов уменьшает оценку;
+- популярность не определяет право тайтла попасть в сезонную подборку.
 
-Franchise concentration:
-- canonical franchise family remains the primary dedupe identity;
-- one family is preferred per diversified feed head;
-- repeated family receives the strongest repetition penalty;
-- if every available candidate belongs to the same family, the hard cap can
-  relax rather than returning empty slots;
-- continuation eligibility still comes from Phase E prerequisite logic.
+## Кандидаты и ранжирование
 
-Genre concentration:
-- overlapping genre sets receive a recent-window similarity penalty;
-- the system also tracks cumulative predicted genre share;
-- cold-start feeds receive a stricter genre concentration target;
-- high-confidence Taste Graph users may retain slightly more genre focus;
-- a hard concentration guard activates only after enough cards have already
-  been selected, avoiding unstable behaviour in the first few slots.
+- добавлен публичный и кешируемый источник `seasonal`;
+- текущие сезон и год явно входят во входные данные общего кеша кандидатов;
+- идентификатор пользователя/сеанса не попадает в ключ публичного кеша;
+- источник чередуется с пулами рейтинговых, популярных, тематических, скрытых и выходящих тайтлов;
+- после получения результатов обязательно проверяется доступность.
 
-Studio concentration:
-- studio identity is normalized independently from display copy;
-- repeated studio appearances receive both repetition and share penalties;
-- missing studio metadata is ignored instead of being grouped into one fake
-  "unknown" studio bucket.
+Версия модели/алгоритма: `22.3-v1`. Компонент `seasonalFreshness` ограничен. Сезонная свежесть намеренно не включается в отображаемый процент совпадения вкуса: пометка «новое» не должна притворяться более сильным личным совпадением. Общая релевантность, вероятность завершения, отрицательные сигналы, усталость и логика франшиз сохраняются.
 
-Format concentration:
-- repeated TV / movie / OVA / ONA / special patterns receive a small penalty;
-- format remains a soft constraint because a user's actual format preference
-  must still be allowed to dominate when relevance is strong.
+## Представление, объяснение и телеметрия
 
-Era concentration:
-- release years are grouped by decade;
-- repeated decade concentration is penalized;
-- adjacent individual years are not treated as unrelated eras;
-- missing/invalid release years do not create an "unknown era" penalty.
+Создаётся отдельная лента «Из этого сезона для тебя». Она отображается только при связи тайтла с текущим сезоном и достаточном персональном сезонном балле. Карточки резервируются до заполнения общей ленты Top Match; закрепление за лентами и ограниченная виртуализация DOM сохраняются.
 
-Source concentration:
-- the primary explainability source is tracked across selected cards;
-- repeated `taste_graph`, `watch_history`, `discovery`, `franchise`,
-  `taste_mood` or `engagement` sources receive a bounded penalty;
-- this prevents the visible feed from being explained by exactly one signal
-  family even when multiple strong evidence paths exist.
+Допустимое объяснение: «Из текущего сезона — совпадает с твоим вкусом». Оно показывается только если тот же сезонный балл, который повлиял на ранжирование, пересёк заданный порог.
 
-Popularity concentration:
-- Phase F popularity bands are reused:
-  niche / mid / mainstream / blockbuster;
-- unknown popularity is not penalized;
-- repeated popularity bands receive repetition and share penalties;
-- this stops the head from becoming only blockbusters or only niche titles.
+Телеметрия включает сезонный балл, исходный балл свежести, отношение к сезону, сезон и год. Регрессионные проверки гарантируют, что сильное соответствие текущему сезону получает ограниченный бонус, нулевое соответствие — нулевой бонус, предыдущий сезон слабее текущего, старый каталог не получает бонуса, а отрицательные сигналы и усталость подавляют свежесть.
 
-Confidence-aware share targets:
-- cold-start users get broader genre/studio/source/popularity sampling;
-- high-confidence users may keep more concentration because repetition is more
-  likely to represent an actual preference;
-- these targets do not change raw relevance scores.
-
-Exploration mix:
-- existing safe / adjacent / explore quotas remain;
-- the class currently below its desired position receives a bounded boost;
-- classes already at target receive a small over-target penalty;
-- franchise continuations remain `safe`;
-- diversity cannot use exploration mix to bypass the relevance floor.
-
-Constraint passes:
-1. relevance floor + franchise cap + concentration hard guards;
-2. relevance floor + franchise cap + soft concentration only;
-3. relevance floor + relaxed franchise cap;
-4. final scarcity fill with all hard constraints relaxed.
-
-This staged relaxation guarantees that diversity never silently converts a
-limited candidate pool into missing cards.
-
-Diagnostics:
-every returned recommendation receives a bounded `diversity` object:
-- `version`;
-- raw/original rank;
-- final reranked rank;
-- raw relevance score;
-- diversified comparison score;
-- relevance floor;
-- total diversity penalty;
-- total diversity boost;
-- exact per-dimension penalty/boost map;
-- exploration class;
-- whether hard constraints were relaxed.
-
-The raw recommendation `score` itself is never overwritten. Diversity metadata
-therefore explains ordering without corrupting the underlying relevance score.
-
-Long-session behaviour:
-- a newly fetched recommendation page is no longer diversified only inside that
-  page and then appended unchanged;
-- the newly loaded candidates are merged with the already loaded anime pool;
-- the entire loaded pool is reranked in-memory again;
-- this prevents page 2 / page 3 from gradually rebuilding the same genre/studio
-  concentration that page 1 had already diversified;
-- rail ownership remains sticky, so visible cards do not teleport between rows.
-
-Telemetry:
-impression, click, dwell, feedback and downstream playback attribution now carry:
-- `diversity_version`;
-- `diversity_original_rank`;
-- `diversity_reranked_rank`;
-- `diversity_penalty`;
-- `diversity_boost`;
-- `diversity_relaxed`.
-
-The context survives recommendation click → player start → 15m → 30m →
-completion, allowing Phase K to measure whether diversity moves improve actual
-watch depth rather than only card variety.
-
-Performance:
-- no API call;
-- no Supabase call;
-- no provider call;
-- no model inference;
-- bounded in-memory candidate head only;
-- no change to ScrollRow virtualization;
-- no change to public candidate cache semantics.
-
-Regression coverage:
-- top relevance winner cannot be displaced;
-- weak diverse candidates cannot jump through the relevance floor;
-- franchise cap works when alternatives exist;
-- scarcity relaxation still fills all requested slots;
-- cold-start share targets are broader than high-confidence targets;
-- studio concentration is actually reduced;
-- controlled exploration remains present;
-- diagnostics are attached to every reranked result;
-- loaded-page merges trigger global loaded-pool reranking;
-- diversity telemetry persists into playback attribution.
-
-Never sacrifice a strong user match solely for diversity.
+Нельзя безусловно считать, что «новое = высокий балл».
 
 ---
 
-# 14. Phase K — Recommendation Analytics 3.0
+# 11. Этап H — Структурированная обратная связь 2.0
 
-Status: **implemented / CI green**
+**Статус в подробной части документа:** реализовано, CI зелёный.
 
-Goal:
-turn recommendation telemetry into a trustworthy exposure-level decision system,
-not a raw counter dashboard. The primary unit is one stable
-`recommendation_id` exposure, so duplicate client events cannot inflate funnel
-conversion.
+## Цель
 
-Versions:
-- recommendation ranking remains `22.6-v1`;
-- analytics contract: `22.7-analytics-v3`;
-- diversity contract remains `22.6-diversity-v3`;
-- explainability contract remains `22.5-explain-v1`.
+Заменить одну неоднозначную отрицательную кнопку явными причинами с разными областями действия, силой, затуханием и влиянием на ранжирование.
 
-Funnel semantics:
-- only recommendation IDs with an in-range `recommendation_impression` enter
-  the conversion cohort;
-- downstream click/play/depth events without an in-range impression are kept in
-  attribution coverage but excluded from funnel conversion;
-- every funnel stage is a boolean per recommendation ID;
-- duplicate impression / click / watch milestone events therefore count once;
-- raw `product_events` remains the first-party source of truth.
+## Политика обратной связи
 
-Outcome maturity:
-- conversion denominators are now observation-window aware;
-- a brand-new impression is not immediately counted as a CTR failure;
-- a playback started two minutes ago is not counted as a failed 15m/30m watch;
-- CTR becomes eligible after 2 minutes;
-- click → play after 10 minutes;
-- click → 15m after 25 minutes;
-- play → 15m after 20 minutes;
-- play → 30m after 40 minutes;
-- play → episode completion after 90 minutes;
-- play → meaningful multi-episode continuation after 180 minutes;
-- raw event counts remain visible, while conversion rates use only mature
-  denominators;
-- this prevents the newest traffic from systematically depressing deep-watch
-  conversion.
+- `like_more` — явное положительное предпочтение;
+- `not_interested` — постоянное исключение тайтла и умеренный общий отрицательный сигнал;
+- `less_like_this` — более слабый общий отрицательный сигнал;
+- `already_watched` — постоянное исключение тайтла без отрицательного штрафа вкуса;
+- `too_long` — исключение тайтла и сигнал неприятия большого числа эпизодов без штрафа жанрам или студиям;
+- `dislike_genre` — сильный долгосрочный отрицательный сигнал только для жанра;
+- `dislike_setting` — сигнал для студии, формата, эпохи или статуса, описывающих стиль/контекст, без сильного штрафа жанру;
+- `not_now` — временная пауза на 14 дней с очень маленьким краткосрочным штрафом вовлечённости и без ущерба долгосрочному вкусу;
+- `hidden` — совместимый со старой версией сильный сигнал скрытия.
 
-Telemetry quality diagnostics:
-- orphan recommendation exposures: downstream events whose impression is not in
-  the selected cohort window;
-- started-without-click;
-- 15m-without-start;
-- 30m-without-15m;
-- multi-episode-without-start;
-- completion-without-start;
-- invalid timestamps;
-- events more than five minutes in the future;
-- oldest/newest sampled event and effective sampled-hour window are surfaced in
-  the admin dashboard;
-- truncation and attribution coverage remain explicit instead of silently
-  presenting partial data as complete.
+## Версии и хранение
 
-Primary outcomes:
-- impression → click;
-- click → playback;
-- click → 15m;
-- playback → 15m;
-- playback → 30m;
-- playback → episode completion;
-- playback → meaningful multi-episode continuation;
-- dismiss rate;
-- repeated-impression rate.
+- версия модели/алгоритма рекомендаций: `22.4-v1`;
+- версия политики обратной связи: `22.4-feedback-v2`;
+- общий модуль политики используется и клиентским ранжированием, и серверным Графом вкусов;
+- прежний контракт хранения одной строки обратной связи на пользователя и тайтл сохраняется.
 
-Multi-episode outcome:
-- new event: `recommendation_multi_episode`;
-- attribution survives across episodes for the same anime;
-- the event is emitted only after entering a different episode from the first
-  attributed episode;
-- at least 90 seconds of active viewing in the continuation episode are
-  required;
-- autoplay / accidental next-episode transitions therefore do not count as a
-  meaningful continuation;
-- the event is emitted once per recommendation attribution.
+`recommendation_feedback.signal` принимает новые структурированные причины. Индекс по пользователю, сигналу и времени обновления готовит данные к будущим аналитическим срезам этапа K. Версия политики записывается в ограниченные метаданные. Последняя обратная связь по тайтлу остаётся источником истины.
 
-Calibration:
-- displayed Match Score is grouped into 58–69 / 70–79 / 80–89 / 90+ / unknown;
-- Completion Score is grouped into <0.40 / 0.40–0.59 / 0.60–0.74 / 0.75+ /
-  unknown;
-- each bucket reports the same downstream funnel;
-- scores remain ranking features, **not literal probabilities**;
-- Phase K measures whether higher buckets actually correlate with deeper watch
-  outcomes before any probability language is allowed.
+## Временная пауза
 
-Taste confidence:
-- each ranked recommendation now carries the private Taste Graph confidence that
-  existed when it was scored;
-- confidence is attached to impression/click attribution and survives into
-  playback outcomes;
-- dashboard buckets: cold / learning / confident / high / unknown;
-- this allows cold-start performance to be separated from mature personalization
-  instead of averaging them together.
+- `not_now` хранится локально со временем истечения;
+- локальное ранжирование сразу исключает активные паузы;
+- серверный Граф вкусов исключает `not_now` только в пределах 14-дневного окна;
+- после истечения срока тайтл снова доступен;
+- `not_now` не меняет долгосрочные веса жанров.
 
-Fatigue:
-- fresh / light / medium / high exposure-fatigue buckets;
-- each bucket reports CTR, play, 15m and dismiss behaviour;
-- repeated-impression KPI uses the recommendation's pre-impression
-  `exposure_count_7d`;
-- repeated exposure can therefore be evaluated against actual conversion decay.
+## Граф вкусов и оценка длины
 
-Controlled exploration:
-- safe / adjacent / explore classes receive separate funnel slices;
-- dashboard exposes exploration → playback and watch-depth outcomes;
-- hidden-gem qualified impressions receive their own conversion KPI;
-- the goal is to learn whether exploration creates meaningful watches, not only
-  clicks.
+Обработка обратной связи учитывает отдельные измерения, а не применяет один вес ко всем метаданным. Жанры, студии, формат, эпоха и статус «завершён/выходит» получают независимые положительные и отрицательные веса. `dislike_genre` меняет только вектор жанров; `dislike_setting` — оси студии, формата, эпохи и статуса. `already_watched` исключает только конкретный тайтл. У каждого сигнала собственное время полураспада и минимальный уровень затухания. После успешного сохранения обратной связи приватный Граф вкусов обновляется сразу, чтобы сигнал учитывался уже в текущем сеансе.
 
-Explainability:
-- primary `explanation_key` from Phase I becomes an analytics dimension;
-- `source` continues to mean UI/event source (for example a concrete rail);
-- `evidence_source` separately records the model's primary evidence family:
-  `taste_graph`, `watch_history`, `franchise`, `taste_mood`,
-  `engagement` or `discovery`;
-- dashboard source conversion uses `evidence_source` for new Phase K events
-  and retains legacy event-source fallback for old rows;
-- each reason family can be compared by CTR, playback, 15m, 30m,
-  multi-episode continuation and completion;
-- no copy-string parsing is required;
-- future copy changes do not break historical reason-family attribution.
+`too_long` формирует ограниченный порог `tooLongEpisodeCountThreshold`. Для него используется нижняя часть примеров «слишком длинно», чтобы единичный экстремально длинный тайтл не сделал сигнал бесполезным. Отдельная `episodeLengthNegativeAffinity` снижает оценки тайтлов, которые достигают или превышают порог. Явный отказ по длине отделён от положительного предпочтения определённой длины и не меняет предпочтения жанров/студий.
 
-Diversity:
-- Phase J original rank and reranked rank are compared per exposure;
-- metrics include eligible / moved / promoted / demoted / unchanged;
-- average absolute rank movement is reported;
-- relaxed-constraint exposures are tracked separately;
-- movement slices use the same downstream funnel, so diversity can be judged by
-  actual watch quality rather than visual variety.
+## Ранжирование, интерфейс и отмена
 
-Structured feedback:
-- dismiss events are broken down by `feedback_signal`;
-- `too_long`, `not_now`, `dislike_genre`, `dislike_setting`,
-  `not_interested`, etc. are measured independently;
-- reason counts are exposure-deduplicated.
+Структурированные отрицательные сигналы больше не получают одинаковый штраф `-1`. `already_watched` не штрафует вовлечённость; `not_now` намеренно слабый; `dislike_genre` значительно сильнее общего `not_interested`; отвращение к длине даёт отдельный ограниченный отрицательный компонент. Локальные временные паузы фильтруются до расчёта оценок.
 
-Rail health:
-- existing per-rail end/load/error diagnostics are preserved;
-- load fill rate, total additions, pages scanned, virtualized loads,
-  max logical rail depth and max rendered DOM depth remain visible;
-- conversion and runtime health now share the same row table.
+Старая кнопка X больше не превращает действие немедленно в неоднозначный дизлайк. X открывает структурированный диалог на верхнем слое интерфейса. Действие «Уже смотрел» остаётся быстрым действием в один клик. Причины объясняют последствия каждого выбора; на мобильных они располагаются одним столбцом. Поддерживаются светлая и тёмная темы.
 
-Attribution coverage:
-dashboard explicitly reports coverage for:
-- recommendation ID;
-- recommendation session;
-- algorithm version;
-- row;
-- position;
-- explanation key;
-- diversity version;
-- taste confidence;
-- match score;
-- completion score;
-- exploration class.
+Каждое отрицательное или нейтральное скрытие показывает уведомление с отменой на 6,5 секунды. При отмене восстанавливается предыдущий локальный снимок вкуса, тайтл возвращается в загруженный пул и оценивается повторно, а сохранённая обратная связь удаляется на сервере. Отмена дожидается завершения выполняющегося POST перед DELETE, чтобы избежать гонки, когда POST завершается после DELETE.
 
-Admin UI:
-- Recommendation Analytics 3.0 header;
-- exposure-level KPI strip;
-- attribution-quality panel;
-- algorithm-version funnel;
-- Match Score calibration;
-- Completion Score calibration;
-- fatigue breakdown;
-- Taste Graph confidence breakdown;
-- safe / adjacent / explore breakdown;
-- explanation-family funnel;
-- diversity movement panel;
-- per-rail conversion + runtime health;
-- source funnel;
-- structured feedback reason list;
-- daily exposure trend.
+## Телеметрия и регрессионные проверки
 
-Performance / scale:
-- pure aggregation lives in `lib/recommendation-analytics-core.ts`;
-- Supabase loader and analytics calculation are separated;
-- 7d / 30d API remains admin-only and `private, no-store`;
-- event scan remains bounded and explicitly exposes `truncated`;
-- a dedicated `(event_name, created_at desc)` covering index supports the
-  recommendation analytics scan;
-- no parallel analytics table is introduced;
-- no client-side analytics query;
-- no new provider request;
-- recommendation UX never depends on analytics availability.
+Используется существующий конвейер событий рекомендаций. Действия, похожие на скрытие, передаются как `recommendation_dismiss` с метаданными `feedback_signal`. Для `already_watched` остаётся отдельное событие. Для атрибуции модели добавляется `feedback_policy_version`; второй контур аналитики не создаётся.
 
-Privacy:
-- analytics reuses first-party AnimeBox product events;
-- no exact location;
-- no external browsing history;
-- no advertising profile;
-- no sensitive-category inference;
-- dashboard groups behavioural recommendation signals only.
+Проверки охватывают все новые сигналы БД, истечение временной паузы, политику осей жанра/настроения, нейтральный смысл «уже смотрел», изоляцию длины от жанров и студий, обновление Графа вкусов, локальный фильтр пауз, контракт диалога, мобильный интерфейс и светлую тему, безопасную отмену с учётом гонок, а также версии модели и политики.
 
-Regression coverage:
-- duplicate event dedupe by recommendation ID;
-- downstream-without-impression cohort exclusion;
-- multi-episode 90s continuation threshold;
-- match-score calibration buckets;
-- completion-score calibration buckets;
-- repeat-exposure KPI;
-- hidden-gem conversion;
-- safe / adjacent / explore conversion;
-- fatigue dismiss behaviour;
-- Taste Graph confidence buckets;
-- diversity movement and relaxed constraints;
-- explanation → deep-watch attribution;
-- structured feedback breakdown;
-- rail runtime diagnostics preservation;
-- extended attribution coverage.
-
-Analytics must measure **meaningful watch quality**, not optimize only for CTR.
+Не выводить долгосрочное неприятие из временного действия «не сейчас».
 
 ---
 
-# 15. Phase L — Home composition
+# 12. Этап I — Объяснимость 2.0
 
-Status: **implemented / under CI**
+**Статус в подробной части документа:** реализовано, CI зелёный.
 
-Home composition contract: `22.8-home-v1`.
+## Цель
 
-Target personalized Home order:
+Каждая видимая причина рекомендации должна детерминированно объяснять реальные взвешенные признаки, повлиявшие на ранжирование. Текст не должен утверждать предпочтение, которое не внесло положительный вклад в оценку кандидата.
 
-Hero
--> Continue Watching
--> Top Match / Для тебя
--> Current-session intent rail
--> Explicit mood rail (when selected)
--> Personal schedule
--> Story continues
--> Hidden gems
--> Outside your usual taste
--> Seasonal for you
--> Supporting taste / quick-watch rails
--> Catalog / community / retention surfaces
+Версии:
 
-Implemented:
-- Top Match is the first recommendation rail for a personalized viewer;
-- a dedicated `session_intent` rail is backed by the actual bounded
-  `sessionIntentScore` + `sessionIntentConfidence`, not by ad-hoc genre copy;
-- the session rail is omitted when current-session evidence is too weak;
-- explicit mood remains a separate short-lived intent surface;
-- personal schedule is interleaved after the primary recommendation rails;
-- the schedule is rendered inside the existing SmartRecommendationFeed flow
-  without mounting a second recommendation runtime;
-- candidate pagination, recommendation session ID, ownership map, fatigue,
-  diversity reranking and virtualization remain single-source-of-truth;
-- story continuation, hidden gems, exploration and seasonal discovery remain
-  below the primary intent block;
-- sparse/cold-start states retain a deterministic fallback composition;
-- if no personal airing schedule exists, the interleave slot collapses to
-  `null` without leaving an empty spacer.
+- модель/алгоритм рекомендаций: `22.5-v1`;
+- контракт ранжирования: `22.5-v1`;
+- контракт объяснений: `22.5-explain-v1`.
 
-The exact order still adapts by user state, but high-value resume/recommendation
-surfaces are always ahead of generic catalog/community content.
+Архитектура:
 
----
+`scoreRecommendation()`  
+→ взвешенные `RecommendationScoreComponents`  
+→ семантический контекст кандидата  
+→ `buildRecommendationExplanations()`  
+→ ограниченный список из трёх причин  
+→ основная причина и атрибуция источника  
+→ телеметрия показа, клика и просмотра.
 
-# 16. Performance budgets
+## Контракт достоверности
 
-- no recommendation model in Hero critical bundle;
-- heavy ranking stays deferred/idle;
-- no per-card network ranking calls;
-- exposure map computed once per ranking invocation;
-- candidate pagination stays public/cacheable;
-- long rails stay virtualized;
-- no full Taste Graph refresh after every impression;
-- feedback reranking operates on already loaded candidates first.
+- причина для пользователя может появиться только при положительном подтверждающем взвешенном компоненте выше порога для этой причины;
+- отрицательные компоненты нельзя превращать в положительный текст;
+- одна свежесть не может обосновать сезонную причину;
+- предпочтение по числу эпизодов не может обосновать причину о длине, если компонент ранжирования `episodeLength` дал нулевой вклад;
+- объяснение продолжения франшизы требует положительного компонента `franchiseContinuation`;
+- объяснение скрытой находки требует прохождения критериев и положительного компонента `hiddenGem`;
+- объяснение вовлечённости требует положительного компонента `engagementPositive`;
+- запасной вариант для общих открытий используется вместо выдуманного персонального объяснения.
 
----
+## Структура доказательств и выбор основной причины
 
-# 16.1 Phase M — Full production hardening
+Объект объяснения содержит:
 
-Status: **implemented / under CI**
+- `key` — стабильный идентификатор причины;
+- `text` — ограниченный текст для пользователя;
+- `components` — точные взвешенные компоненты, подтверждающие причину;
+- `contribution` — суммарный положительный вклад;
+- `contributionShare` — долю от всех положительных доказательств.
 
-Release contract: `22.9-release-v1`.
-Candidate transport contract: `22.9-candidate-v1`.
+Сырая приватная история просмотра не отправляется в аналитику.
 
-Production hardening requirements:
-- recommendation candidate retrieval remains public/cacheable and never accepts
-  user IDs, anonymous IDs or recommendation session IDs as cache inputs;
-- the client uses one shared in-flight request per public page cache key;
-- each candidate request has a 7-second timeout;
-- only transient 429 / 502 / 503 / 504 failures or a timeout receive one
-  bounded retry; there is no recursive or infinite retry loop;
-- malformed candidate payloads never enter memory/sessionStorage caches;
-- cached payloads are revalidated before reuse;
-- unmount and mood-swap abort the active recommendation request;
-- already rendered recommendations remain usable if later pagination fails;
-- rail failures stay local and expose the existing bounded retry UI;
-- per-rail rendered DOM remains capped at 36 items with virtualization;
-- sparse-rail bootstrap and empty-page hopping remain bounded;
-- server brownout keeps smaller pages, public cache semantics and disables
-  non-essential availability refresh work;
-- cursor input stays opaque, length-limited and page-bounded;
-- availability filtering remains mandatory before candidate responses;
-- recommendation telemetry continues to use the single first-party product
-  event pipeline and preserves algorithm/explanation/diversity/fatigue
-  attribution;
-- Home mounts exactly one SmartRecommendationFeed runtime;
-- Phase L schedule interleave does not duplicate recommendation sessions,
-  candidate pagination, impressions or rail ownership.
+Кандидатные объяснения сортируются по фактическому положительному вкладу. При равенстве используется приоритет семантики. Сохраняется не более трёх причин; первая становится видимой причиной карточки, а атрибуция источника формируется на её основе.
 
-Release gate:
-- `patch22:release-check` validates transport, cache, runtime and composition
-  invariants;
-- the legacy Home hydration gate now understands the Phase L interleave
-  architecture instead of requiring a second standalone schedule island;
-- full `patch22:check`, TypeScript, targeted lint and production build must
-  pass before merge/deploy.
+Поддерживаемые типы объяснений: явная ссылка на понравившийся тайтл, продолжение франшизы, жанры завершённых тайтлов, общие жанровые предпочтения, выбранное настроение, намерение сеанса, студия, формат, эпоха, соответствие числа эпизодов, история завершения, темп просмотра, сезонная свежесть с учётом вкуса, скрытая находка, переходный исследовательский вариант, предыдущее прямое взаимодействие, качество сообщества, короткая завершённая находка, выходящий тайтл и общий запасной вариант исследования.
 
-# 17. Privacy / data policy
+Упоминание конкретного тайтла «Похоже на „X“, который тебе понравился» разрешено только при наличии локального явного лайка/избранного AnimeBox и общих жанров. Обычная история просмотра не считается доказательством, что тайтл понравился. Без явного примера система использует жанры, завершение или другие измеримые признаки.
 
-Recommendation telemetry uses first-party AnimeBox product events.
+AnimeBox не показывает `completionScore` как буквальную вероятность. Текст описывает наблюдаемое поведение завершения просмотра. Формулировки вроде «ты точно досмотришь» запрещены до появления калибровки по результатам.
 
-Do not derive or store:
-- sensitive personal categories;
-- exact location;
-- external browsing history;
-- third-party advertising profile.
+Исследовательский кандидат может объяснять знакомую характеристику, которая сохранила его релевантность. Если действительно повлияло соответствие длины, можно упомянуть знакомую длительность; в остальных случаях вкусовые признаки называются только при положительном компоненте. Если новизна не имеет других подтверждений, используется явная причина «эксперимент».
 
-Session intent is based only on AnimeBox product activity.
+## Контракт интерфейса
+
+- `reason` — короткая видимая причина в одну строку;
+- `reasons` — совместимый со старой версией список строк;
+- `explanations` — структурированные объяснения с оценёнными доказательствами;
+- карточки предоставляют стабильные атрибуты данных с ключом/версией объяснения для диагностики;
+- подсказка оценки совпадения продолжает показывать ограниченный список причин;
+- дополнительные сетевые запросы для каждой карточки не вводятся.
+
+## Телеметрия, производительность и проверки
+
+События показов, задержки внимания, кликов, обратной связи и просмотра несут поля `explanation_version`, `explanation_key`, `explanation_components`, `explanation_contribution` и `explanation_contribution_share`. Контекст объяснения сохраняется от открытия карточки до запуска плеера, 15-й и 30-й минуты и завершения просмотра. Благодаря этому этап K измеряет конверсию по реальным группам причин, не восстанавливая их из текста.
+
+Объяснимость выполняется в памяти на основе уже рассчитанных сигналов. Нет запросов к провайдерам или Supabase, асинхронной работы для каждой карточки или более трёх объектов объяснений на кандидата. Виртуализация лент и кеширование не меняются.
+
+Регрессионные проверки: отсутствие старого пути `chooseReason()` и произвольного `reasons.push()`; отсутствие причины при нулевом или отрицательном вкладе; защита от выдуманного объяснения для франшиз, понравившихся тайтлов, сезонных вариантов и длины; подтверждение скрытых находок и исследовательских переходов; ограничение тремя причинами; сортировка по положительному вкладу; границы доли вклада; атрибуция источника; непрерывность телеметрии от карточки до плеера.
+
+Текст причины должен оставаться подтверждённым данными, даже если в будущем изменятся формулировки интерфейса.
 
 ---
 
-# 18. Regression matrix
+# 13. Этап J — Повторная сортировка по разнообразию 3.0
 
-1. cold-start guest;
-2. authenticated user with 1 watched title;
-3. high-confidence 100+ title history;
-4. repeated impression without click;
-5. repeated impression with recent click;
-6. positive feedback;
-7. dismiss;
-8. already watched;
-9. mood switch;
-10. session reset;
-11. 12-episode preference;
-12. long-form preference;
-13. ongoing-heavy viewer;
-14. finished-only viewer;
-15. same franchise candidates;
-16. hidden-gem candidate;
-17. seasonal candidate;
-18. candidate with no metadata;
-19. sparse candidate page;
-20. infinite rail pagination;
-21. virtual remount;
-22. anonymous/local-only mode;
-23. signed-in Taste Graph mode;
-24. availability-filtered candidate;
-25. mobile low-memory runtime.
+**Статус в подробной части документа:** реализовано, CI зелёный.
+
+## Цель
+
+Повторно отсортировать уже оценённый по релевантности набор, чтобы лента не сводилась к одной франшизе, жанру, студии, формату, эпохе, источнику объяснения или диапазону популярности — и при этом сохранить самые сильные персональные совпадения.
+
+Версии:
+
+- модель/итоговый конвейер: `22.6-v1`;
+- контракт ранжирования: `22.6-v1`;
+- контракт разнообразия: `22.6-diversity-v3`;
+- контракт объяснений остаётся `22.5-explain-v1`.
+
+Конвейер:
+
+`candidate retrieval`  
+→ `scoreRecommendation()`  
+→ пул, отсортированный по релевантности  
+→ проверка безопасности франшиз  
+→ `diversifyRecommendations()`  
+→ составление нескольких лент.
+
+Разнообразие — это повторная сортировка после ранжирования, а не альтернативная модель релевантности. Оно может менять порядок близких по оценке кандидатов, но не должно продвигать заметно более слабый тайтл только ради внешнего разнообразия.
+
+## Защита релевантности
+
+- первая позиция закреплена за лидером исходной релевантности;
+- каждый следующий выбор сравнивается с наилучшей исходной оценкой среди оставшихся;
+- динамический порог релевантности учитывает абсолютный и относительный допустимый спад;
+- сильная персонализация важнее косметического разнообразия;
+- резервный проход без порога применяется только для предотвращения пустого результата при крайне скудном пуле;
+- диагностика показывает, пришлось ли ослаблять ограничения.
+
+## Ограниченное окно кандидатов
+
+Разнообразие работает с ограниченной верхней частью исходного списка:
+
+- минимальное окно — 72 кандидата;
+- обычное окно — до 6 × требуемое количество результатов;
+- повторная сортировка всего каталога без ограничений не вводится.
+
+## Разнообразие по измерениям
+
+**Франшиза.** Основной идентификатор дедупликации — каноническое семейство франшизы. В верхней части разнообразной ленты предпочтительно по одному тайтлу на семейство. Повторное семейство получает самый сильный штраф. Если все доступные кандидаты относятся к одному семейству, жёсткий лимит можно ослабить, а не возвращать пустые слоты. Право на продолжение определяется правилами этапа E.
+
+**Жанры.** Пересекающиеся наборы жанров получают штраф за сходство в недавнем окне. Также отслеживается суммарная прогнозная доля жанров. Для холодного старта ограничение строже; пользователи с уверенным Графом вкусов могут получать немного больше контента любимых жанров. Жёсткая защита включается только после выбора достаточного количества карточек, чтобы избежать нестабильности в первых слотах.
+
+**Студии.** Идентификатор студии нормализуется независимо от текста карточки. Повторная студия получает штраф за повторы и долю. Отсутствующие данные студии игнорируются, а не объединяются в искусственную группу «неизвестная студия».
+
+**Форматы.** Повторы ТВ-сериалов, фильмов, OVA, ONA и специальных выпусков получают небольшой штраф. Формат остаётся мягким ограничением: реальное предпочтение пользователя должно доминировать при высокой релевантности.
+
+**Эпоха.** Годы выпуска группируются по десятилетиям. Повторы одного десятилетия штрафуются; соседние годы не считаются несвязанными эпохами. Отсутствующий или некорректный год не создаёт штрафа за «неизвестную эпоху».
+
+**Источники объяснения.** Отслеживается основной источник объяснения. Повторяющиеся источники `taste_graph`, `watch_history`, `discovery`, `franchise`, `taste_mood` или `engagement` получают ограниченный штраф. Так лента не объясняется одним типом сигналов, если существуют и другие сильные основания.
+
+**Популярность.** Повторно используются диапазоны этапа F: нишевый, средний, массовый и блокбастер. Неизвестная популярность не штрафуется; повторяющиеся диапазоны получают штрафы за повторы и долю. Это не позволяет верхней части ленты состоять только из блокбастеров или только из нишевых тайтлов.
+
+Целевые доли зависят от уверенности: холодный старт получает более широкую выборку жанров, студий, источников и популярности; уверенный профиль допускает больше повторов, если они действительно отражают предпочтения. Эти цели не меняют исходные оценки релевантности.
+
+## Исследовательские квоты и ослабление ограничений
+
+Сохраняются квоты `safe` / `adjacent` / `explore`. Класс, который отстаёт от желаемой позиции, получает ограниченный бонус; уже достигший цели класс получает небольшой штраф за превышение. Продолжения франшиз остаются `safe`. Квоты исследования не могут обходить порог релевантности.
+
+Порядок попыток:
+
+1. порог релевантности + лимит франшизы + жёсткие ограничения концентрации;
+2. порог релевантности + лимит франшизы + только мягкие ограничения концентрации;
+3. порог релевантности + ослабленный лимит франшизы;
+4. заполнение оставшихся слотов с ослаблением всех жёстких ограничений.
+
+Поэтапное ослабление не даёт ограниченному пулу кандидатов незаметно превратиться в набор отсутствующих карточек.
+
+## Диагностика, длинные сеансы и телеметрия
+
+Каждая рекомендация получает ограниченный объект `diversity`:
+
+- версия;
+- исходный/первоначальный ранг;
+- итоговый ранг после пересортировки;
+- исходная оценка релевантности;
+- сравнительная оценка после разнообразия;
+- порог релевантности;
+- общий штраф и общий бонус за разнообразие;
+- точная карта штрафов/бонусов по измерениям;
+- класс исследования;
+- признак ослабления жёстких ограничений.
+
+Исходная оценка рекомендации `score` никогда не перезаписывается. Метаданные объясняют порядок карточек, не искажая релевантность.
+
+При загрузке новой страницы рекомендации больше не сортируются только внутри этой страницы с последующим неизменным добавлением в конец. Новые кандидаты объединяются с уже загруженным пулом аниме, после чего весь загруженный пул снова сортируется в памяти. Это предотвращает постепенное возвращение концентрации жанров/студий на страницах 2 и 3. Принадлежность карточек лентам остаётся закреплённой: видимые карточки не перескакивают между рядами.
+
+Телеметрия показа, клика, задержки внимания, обратной связи и последующего просмотра содержит версию разнообразия, исходный ранг, итоговый ранг, штраф, бонус и признак ослабления ограничений. Контекст сохраняется до запуска плеера, 15-й и 30-й минуты и завершения, чтобы оценивать глубину просмотра, а не только внешнее разнообразие.
+
+Производительность: нет вызовов API, Supabase или провайдеров, нет вывода модели; обрабатывается только ограниченная верхняя часть кандидатов в памяти. Виртуализация ScrollRow и семантика публичного кеша не меняются.
+
+Регрессионные проверки подтверждают, что лидер исходной релевантности не вытесняется, слабые варианты не обходят порог, лимит франшиз действует при наличии альтернатив, ослабление ограничений всё ещё заполняет слоты, цели холодного старта шире, концентрация студий действительно уменьшается, контролируемое исследование сохраняется, диагностика добавляется к каждому результату, новые страницы запускают повторную сортировку всего загруженного пула, а телеметрия разнообразия сохраняется до просмотра.
+
+Нельзя жертвовать сильным совпадением с интересами пользователя только ради разнообразия.
 
 ---
 
-# 19. Release phases
+# 14. Этап K — Аналитика рекомендаций 3.0
 
-A. Exposure / fatigue foundation.
-B. Session intent.
-C. Completion score.
-D. Taste Graph 7.
-E. Franchise intelligence.
-F. Exploration + hidden gems.
-G. Seasonal freshness.
-H. Structured feedback.
-I. Explainability.
-J. Diversity reranker.
-K. Analytics 3.0.
-L. Home composition + final UX.
-M. Full production hardening.
+**Статус в подробной части документа:** реализовано, CI зелёный.
+
+## Цель
+
+Превратить телеметрию рекомендаций в надёжную систему оценки показов, а не в панель сырых счётчиков. Основная единица — один стабильный показ с `recommendation_id`: так дублирующие клиентские события не завышают конверсию воронки.
+
+Версии:
+
+- ранжирование: `22.6-v1`;
+- контракт аналитики: `22.7-analytics-v3`;
+- разнообразие: `22.6-diversity-v3`;
+- объяснения: `22.5-explain-v1`.
+
+## Семантика воронки
+
+- в когорту конверсии попадают только идентификаторы рекомендаций с `recommendation_impression` внутри выбранного временного окна;
+- последующие события клика/воспроизведения/глубины без подходящего показа остаются в статистике полноты атрибуции, но не участвуют в конверсии;
+- каждый этап воронки для конкретного `recommendation_id` — булев признак;
+- повторные события показа, клика и этапов просмотра учитываются один раз;
+- исходная таблица `product_events` остаётся источником истины.
+
+## Зрелость результата
+
+Знаменатели конверсии учитывают достаточность окна наблюдения:
+
+- новый показ сразу не считается неудачей по CTR;
+- воспроизведение, начатое две минуты назад, не считается провалом 15- или 30-минутного просмотра;
+- CTR становится пригоден для расчёта через 2 минуты;
+- клик → воспроизведение — через 10 минут;
+- клик → 15 минут просмотра — через 25 минут;
+- воспроизведение → 15 минут — через 20 минут;
+- воспроизведение → 30 минут — через 40 минут;
+- воспроизведение → завершение эпизода — через 90 минут;
+- воспроизведение → содержательное продолжение на несколько эпизодов — через 180 минут.
+
+Сырые количества событий остаются видимыми, но коэффициенты конверсии считают только достаточно зрелые наблюдения. Это не позволяет новому трафику систематически занижать показатели глубины просмотра.
+
+## Диагностика качества телеметрии
+
+Отслеживаются:
+
+- осиротевшие показы: последующие события без показа в выбранной когорте;
+- запуск без клика;
+- 15 минут просмотра без зарегистрированного запуска;
+- 30 минут без этапа 15 минут;
+- несколько эпизодов без запуска;
+- завершение без запуска;
+- некорректные временные метки;
+- события более чем на пять минут в будущем.
+
+В административной панели видны самый старый и самый новый выбранный образец события, эффективное временное окно в часах, обрезание выборки и полнота атрибуции. Частичные данные не должны незаметно отображаться как полные.
+
+Основные результаты: показ → клик; клик → воспроизведение; клик → 15 минут; воспроизведение → 15 минут; воспроизведение → 30 минут; воспроизведение → завершение эпизода; воспроизведение → содержательное продолжение на несколько эпизодов; доля скрытий; доля повторных показов.
+
+## Событие просмотра нескольких эпизодов
+
+Новое событие — `recommendation_multi_episode`. Атрибуция сохраняется между эпизодами одного аниме. Событие создаётся только после перехода на другой эпизод относительно первого эпизода с атрибуцией и после не менее 90 секунд активного просмотра продолженного эпизода. Поэтому автопереход или случайный запуск следующего эпизода не считаются содержательным продолжением. На одну атрибуцию рекомендации событие отправляется один раз.
+
+## Калибровка оценок и уверенности вкуса
+
+Отображаемая оценка совпадения группируется по диапазонам 58–69 / 70–79 / 80–89 / 90+ / неизвестно. Оценка завершения группируется по диапазонам менее 0,40 / 0,40–0,59 / 0,60–0,74 / 0,75+ / неизвестно. Для каждой группы показывается одинаковая воронка. Эти оценки остаются признаками ранжирования, а не буквальными вероятностями. Прежде чем разрешать вероятностные формулировки, этап K проверяет, связаны ли высокие диапазоны с более глубоким просмотром.
+
+Каждая рекомендация несёт приватную уверенность Графа вкусов, существовавшую в момент оценки. Она прикрепляется к атрибуции показа и клика и сохраняется до результатов просмотра. В панели есть группы: холодный старт, обучение, уверенный профиль, высокая уверенность и неизвестно. Это позволяет отделить холодный старт от зрелой персонализации.
+
+Усталость группируется как свежая, низкая, средняя и высокая. Для каждой группы показываются CTR, запуск просмотра, 15 минут и скрытия. Показатель повторов использует значение `exposure_count_7d` до текущего показа, чтобы сопоставлять повторы с фактическим снижением конверсии.
+
+Классы контролируемого исследования `safe` / `adjacent` / `explore` получают отдельные воронки. Панель показывает переход исследования к воспроизведению и глубине просмотра; квалифицированные показы скрытых находок имеют собственный показатель конверсии. Цель — понять, создаёт ли исследование содержательные просмотры, а не только клики.
+
+## Аналитика объяснений, разнообразия и обратной связи
+
+Основной `explanation_key` этапа I становится измерением аналитики. `source` по-прежнему обозначает источник события/элемент интерфейса, например конкретную ленту. `evidence_source` отдельно фиксирует основное семейство доказательств модели: `taste_graph`, `watch_history`, `franchise`, `taste_mood`, `engagement` или `discovery`. Для новых событий используется `evidence_source`, а для старых записей сохраняется резервное использование прежнего источника события.
+
+Для каждого семейства причин сравниваются CTR, воспроизведение, 15 и 30 минут, продолжение нескольких эпизодов и завершение. Разбор строк интерфейса не требуется, поэтому будущие изменения текста не ломают историческую атрибуцию.
+
+Для разнообразия сравниваются первоначальный и пересортированный ранг по каждому показу. Метрики включают количество подходящих, перемещённых, повышенных, пониженных и неизменившихся карточек, среднее абсолютное изменение ранга и отдельно показы с ослабленными ограничениями. Для каждого среза используется та же воронка, чтобы оценивать качество просмотра, а не визуальные различия.
+
+Скрытия разбиваются по `feedback_signal`: `too_long`, `not_now`, `dislike_genre`, `dislike_setting`, `not_interested` и другие причины анализируются независимо, а число причин не завышается повторными событиями показа.
+
+Существующая диагностика каждой ленты сохраняется: доля заполнения, число добавленных карточек, просмотренные страницы, виртуализированные загрузки, максимальная логическая глубина ленты и максимальная глубина отрисованного DOM. Конверсия и состояние рантайма показываются в одной таблице.
+
+## Покрытие атрибуции и интерфейс администратора
+
+Покрытие явно отображается для идентификатора рекомендации, сеанса, версии алгоритма, ленты, позиции, ключа объяснения, версии разнообразия, уверенности вкуса, оценки совпадения, оценки завершения и класса исследования.
+
+Панель включает заголовок «Аналитика рекомендаций 3.0», KPI по отдельным показам, качество атрибуции, воронку по версиям алгоритма, калибровку оценки совпадения и завершения, разбивку усталости и уверенности Графа вкусов, доли `safe` / `adjacent` / `explore`, воронку по семействам объяснений, перемещения от разнообразия, конверсию и рантайм по лентам, воронку источников, причины структурированной обратной связи и дневной тренд показов.
+
+## Производительность, масштабирование, приватность
+
+Чистая агрегация находится в `lib/recommendation-analytics-core.ts`; загрузка данных из Supabase отделена от расчёта аналитики. API за 7/30 дней доступен только администратору и использует `private, no-store`. Сканирование событий ограничено и явно сообщает `truncated`. Для него предусмотрен покрывающий индекс `(event_name, created_at desc)`. Вторая параллельная таблица аналитики не вводится, клиент не запрашивает аналитику напрямую, новые запросы к провайдерам не добавляются, а интерфейс рекомендаций не зависит от доступности аналитики.
+
+Аналитика использует собственные события AnimeBox. Не собираются точное местоположение, история просмотра сайтов за пределами сервиса, рекламный профиль или чувствительные категории. Панель группирует только поведенческие сигналы взаимодействия с рекомендациями.
+
+Регрессионные проверки покрывают дедупликацию по идентификатору рекомендации, исключение последующих событий без подходящего показа, порог в 90 секунд для продолжения нескольких эпизодов, диапазоны калибровки, повторы, конверсию скрытых находок, конверсию классов исследования, поведение скрытий при усталости, группы уверенности Графа вкусов, перемещения разнообразия и ослабление ограничений, связь объяснения с глубоким просмотром, причины обратной связи, диагностику лент и расширенное покрытие атрибуции.
+
+Аналитика должна измерять **качество содержательного просмотра**, а не оптимизировать только CTR.
 
 ---
 
-# 20. Definition of Done
+# 15. Этап L — Компоновка главной страницы
 
-Patch 22 is complete when:
+**Статус в подробной части документа:** реализовано, ожидает/проходит CI.
 
-- repeated ignored cards measurably decay;
-- recommendation version is fully attributable;
-- session intent cannot permanently poison long-term taste;
-- completion-oriented ranking is present;
-- sequel/franchise ordering is safe;
-- exploration is bounded and measurable;
-- recommendation reasons are evidence-based;
-- candidate retrieval remains cacheable;
-- no N+1 recommendation API pattern exists;
-- infinite rails remain stable;
-- all recommendation regression gates pass;
-- production build passes;
-- admin analytics can compare recommendation quality by algorithm version.
+Контракт компоновки главной: `22.8-home-v1`.
 
+Целевой порядок персонализированной главной страницы:
+
+Hero  
+→ Продолжить просмотр  
+→ Top Match / «Для тебя»  
+→ Лента намерения текущего сеанса  
+→ Лента явно выбранного настроения (если выбрано)  
+→ Персональное расписание  
+→ История продолжается  
+→ Скрытые находки  
+→ За пределами привычного  
+→ Сезонные тайтлы для пользователя  
+→ Вспомогательные ленты по вкусу и для быстрого просмотра  
+→ Каталог, сообщество и элементы удержания.
+
+Реализовано:
+
+- Top Match становится первой лентой рекомендаций для пользователя с персонализацией;
+- отдельная лента `session_intent` опирается на реальные ограниченные `sessionIntentScore` и `sessionIntentConfidence`, а не на произвольный текст о жанрах;
+- лента сеанса не показывается, если текущих доказательств недостаточно;
+- явно выбранное настроение остаётся отдельным краткосрочным сигналом;
+- персональное расписание вставлено после основных лент рекомендаций;
+- расписание выводится в существующем потоке `SmartRecommendationFeed` и не запускает второй рантайм рекомендаций;
+- пагинация кандидатов, идентификатор сеанса, карта принадлежности лентам, усталость, пересортировка по разнообразию и виртуализация остаются единым источником истины;
+- продолжение истории, скрытые находки, исследование и сезонные подборки остаются ниже основного блока намерений;
+- для пустого профиля и нехватки данных сохраняется детерминированная компоновка по умолчанию;
+- если личного расписания нет, слот становится `null` и не оставляет пустого промежутка.
+
+Порядок может адаптироваться к состоянию пользователя, но важные элементы продолжения и рекомендаций всегда идут раньше общего каталога и сообщества.
 
 ---
 
-## 21. Current implementation status
+# 16. Бюджеты производительности
 
-### Phase A — Exposure / Fatigue Foundation
-Status: **implemented / under CI**
+- модель рекомендаций не попадает в критический бандл Hero;
+- тяжёлое ранжирование откладывается до свободного времени;
+- нет сетевых запросов ранжирования для каждой карточки;
+- карта показов вычисляется один раз за вызов ранжирования;
+- пагинация кандидатов остаётся публичной и кешируемой;
+- длинные ленты используют виртуализацию;
+- Граф вкусов не обновляется полностью после каждого показа;
+- после обратной связи сначала повторно оцениваются уже загруженные кандидаты.
 
-Implemented:
-- `22.0-v1` recommendation model/version attribution;
-- bounded 30-day exposure model;
-- 7-day and 30-day impression counters;
-- six-day half-life recency decay;
-- first impression is free from fatigue;
-- repeated unanswered impressions create a bounded ranking penalty;
-- recent opens reduce fatigue;
-- positive actions clear fatigue;
-- exposure map is built once per ranking invocation;
-- fatigue diagnostics are propagated into recommendation events;
-- runtime regression matrix added to `patch22:check`.
+## 16.1. Этап M — Полная подготовка к production
 
-### Phase B — Session Intent
-Status: **implemented foundation / under CI**
+**Статус в подробной части документа:** реализовано, ожидает/проходит CI.
 
-Implemented:
-- 72-hour recent-watch session window;
-- 18-hour half-life;
-- maximum eight recent titles;
-- bounded recent genre vector;
-- recent preferred episode-count estimate;
-- ongoing-vs-finished preference;
-- session confidence;
-- per-candidate session-intent affinity;
-- separate versioned ranking component;
-- evidence-based "Похоже на то, что ты смотришь сейчас" explanation;
-- telemetry for session-intent score/confidence;
-- runtime regression matrix.
+Контракт выпуска: `22.9-release-v1`.  
+Контракт передачи кандидатов: `22.9-candidate-v1`.
 
-### Phase C — Completion-oriented ranking
-Status: **implemented foundation / under CI**
+Требования:
 
-Implemented:
-- bounded continuation/completion heuristic score;
-- completed-affinity, taste-fit, length-fit, community quality,
-  user completion, binge-fit and finished-title inputs;
-- long-title and negative-taste penalties;
-- separate `completionLikelihood` ranking component;
-- completion score attribution in recommendation telemetry;
-- calibration intentionally deferred until production outcome data is available;
-- runtime regression matrix.
+- получение кандидатов остаётся публичным/кешируемым и не принимает пользовательские, анонимные или сессионные идентификаторы как входные параметры кеша;
+- клиент использует один общий выполняющийся запрос для каждого публичного ключа страницы кеша;
+- запрос кандидатов ограничен тайм-аутом 7 секунд;
+- один ограниченный повтор разрешён только для временных ошибок 429/502/503/504 или тайм-аута; рекурсивных и бесконечных повторов нет;
+- некорректные ответы кандидатов не попадают в кеш памяти или `sessionStorage`;
+- кешированные ответы повторно проверяются до использования;
+- размонтирование компонента и смена настроения отменяют активный запрос рекомендаций;
+- уже отрисованные рекомендации остаются доступными, даже если последующая пагинация завершилась ошибкой;
+- ошибки отдельных лент не распространяются на другие и показывают существующий ограниченный интерфейс повтора;
+- DOM каждой ленты ограничен 36 отрисованными элементами и использует виртуализацию;
+- начальная загрузка малозаполненных лент и переход через пустые страницы ограничены;
+- при сбоях сервера используются меньшие страницы, сохраняется публичный кеш и отключается необязательное обновление доступности;
+- курсор остаётся непрозрачным, ограниченным по длине и числу страниц;
+- доступность проверяется до возврата кандидатов;
+- телеметрия продолжает использовать единый конвейер событий продукта с атрибуцией алгоритма, объяснений, разнообразия и усталости;
+- на главной монтируется ровно один рантайм `SmartRecommendationFeed`;
+- вставка расписания на этапе L не создаёт дополнительные сеансы рекомендаций, пагинацию, показы или карту принадлежности лентам.
 
-### Phase D — Taste Graph 7
-Status: **implemented / under CI**
+## Условие выпуска
 
-Implemented:
-- Taste Graph cache/version bump to `taste-v7`;
-- persistent catalog recommendation metadata: studios, format, release year;
-- one-time `recommendation_metadata_version` enrichment marker;
-- legacy catalog rows lazily enrich on the next normal `ensureAnime()` refresh;
-- no mass provider backfill and no recommendation-time N+1 provider requests;
-- long-term positive/negative studio vectors;
-- long-term positive/negative format vectors;
-- long-term positive/negative era/decade vectors;
-- finished-vs-ongoing preference;
-- metadata coverage counters so missing provider metadata is distinguishable from preference;
-- studio / format / era / finished affinities in the client ranker;
-- bounded negative metadata affinity;
-- evidence-based studio / format / era recommendation reasons;
-- Taste Graph 7 runtime regression matrix added to `patch22:check`.
+- `patch22:release-check` проверяет контракты передачи данных, кеша, рантайма и компоновки;
+- старый тест гидратации главной учитывает вставку расписания на этапе L и не требует второго отдельного островка расписания;
+- перед слиянием и деплоем должны пройти `patch22:check`, TypeScript, целевой lint и production build.
 
-Notes:
-- existing catalog rows start at metadata version 0 and are enriched lazily;
-- legitimate empty studio metadata is not refreshed forever because the version
-  marker records that enrichment was attempted;
-- Taste Graph construction reads metadata in the existing batched
-  `anime_catalog` query only.
+---
 
-### Phase E — Franchise Intelligence
-Status: **implemented foundation / under CI**
+# 17. Политика приватности и данных
 
-Implemented:
-- client-safe franchise family normalization for Russian/English/Romaji titles;
-- explicit season/part prerequisite gate for generic discovery;
-- exact-next-season continuation detection from bounded local watch history;
-- split-cour / Part 2 continuation handling;
-- one-family dedupe before the global diversity pass;
-- diversity reranker consumes the same canonical franchise key and never counts a continuation as an exploration slot;
-- continuation candidates win family dedupe over generic franchise entries;
-- bounded `franchiseContinuation` ranking component;
-- evidence-based continuation reason;
-- franchise continuation/season attribution in recommendation product telemetry;
-- dedicated `История продолжается` rail that claims continuation candidates before generic rails;
-- recommendation algorithm/ranking version bumped to `22.1-v1`;
-- dedicated Phase E runtime regression matrix added to `patch22:check`.
+Телеметрия рекомендаций использует собственные продуктовые события AnimeBox.
 
-Notes:
-- Phase E intentionally adds no per-card provider requests;
-- public candidate caching stays unchanged;
-- the existing AniList franchise resolver remains available for detail-page franchise navigation;
-- candidate-side gating uses metadata already present in the recommendation payload.
+Нельзя выводить или хранить:
 
-### Phase F — Exploration + Hidden Gems
-Status: **planned**
+- чувствительные категории личных данных;
+- точное местоположение;
+- историю просмотра за пределами AnimeBox;
+- сторонний рекламный профиль.
 
-### Phase G — Seasonal Freshness
-Status: **planned**
+Намерение сеанса строится только на активности пользователя внутри AnimeBox.
 
-### Phase H — Structured Feedback 2.0
-Status: **planned**
+---
 
-### Phase I — Explainability 2.0
-Status: **planned**
+# 18. Матрица регрессионных сценариев
 
-### Phase J — Diversity Reranker 3.0
-Status: **planned**
+1. гость с пустой историей;
+2. вошедший пользователь с одним просмотренным тайтлом;
+3. профиль с высокой уверенностью и историей более 100 тайтлов;
+4. повторный показ без клика;
+5. повторный показ после недавнего клика;
+6. положительная обратная связь;
+7. скрытие;
+8. уже просмотренный тайтл;
+9. смена настроения;
+10. сброс сеанса;
+11. предпочтение 12 эпизодов;
+12. предпочтение длинных тайтлов;
+13. пользователь, предпочитающий выходящие тайтлы;
+14. пользователь, предпочитающий завершённые тайтлы;
+15. кандидаты из одной франшизы;
+16. кандидат-скрытая находка;
+17. сезонный кандидат;
+18. кандидат без метаданных;
+19. страница с малым числом кандидатов;
+20. пагинация бесконечной ленты;
+21. повторное монтирование виртуализированной карточки;
+22. анонимный режим / только локальные данные;
+23. режим с авторизацией и Графом вкусов;
+24. кандидат после фильтрации доступности;
+25. мобильный рантайм с ограниченной памятью.
 
-### Phase K — Analytics 3.0
-Status: **planned**
+---
 
-### Phase L — Personalized Home Composition
-Status: **planned**
+# 19. Этапы выпуска
 
-### Phase M — Production hardening
-Status: **planned**
+A. Основа учёта показов и усталости.  
+B. Намерение текущего сеанса.  
+C. Оценка продолжения и завершения.  
+D. Граф вкусов 7.  
+E. Интеллектуальная работа с франшизами.  
+F. Исследование новых вариантов и скрытые находки.  
+G. Сезонная актуальность.  
+H. Структурированная обратная связь.  
+I. Объяснимость.  
+J. Повторная сортировка по разнообразию.  
+K. Аналитика 3.0.  
+L. Компоновка главной страницы и финальная UX-проверка.  
+M. Полная подготовка к production.
+
+---
+
+# 20. Критерии готовности
+
+Патч 22 завершён, когда:
+
+- оценки карточек, которые игнорируют повторно, измеримо снижаются;
+- версия рекомендаций полностью отслеживается в событиях;
+- намерение текущего сеанса не может навсегда испортить долгосрочный вкус;
+- работает ранжирование с учётом вероятности продолжения просмотра;
+- порядок сезонов и продолжений франшиз безопасен;
+- исследование новых вариантов ограничено и измеримо;
+- причины рекомендаций подтверждаются данными;
+- получение кандидатов остаётся кешируемым;
+- отсутствует шаблон N+1 запросов к API рекомендаций;
+- бесконечные ленты стабильны;
+- проходят все регрессионные проверки рекомендаций;
+- production build проходит;
+- административная аналитика сравнивает качество рекомендаций по версиям алгоритма.
+
+---
+
+## 21. Статус реализации на момент составления исходного документа
+
+Этот раздел сохранён как исторический снимок и требует сверки с кодом.
+
+### Этап A — Основа учёта показов и усталости
+
+**Статус, указанный в исходнике:** реализовано, ожидает/проходит CI.
+
+- версия модели и атрибуция `22.0-v1`;
+- ограниченная 30-дневная модель показов;
+- счётчики показов за 7 и 30 дней;
+- затухание по давности с периодом полураспада 6 дней;
+- первый показ не штрафуется;
+- повторные показы без ответа создают ограниченный штраф;
+- недавние открытия снижают усталость;
+- положительные действия снимают усталость;
+- карта показов строится один раз за вызов ранжирования;
+- диагностика усталости передаётся в события рекомендаций;
+- матрица регрессионных проверок рантайма добавлена в `patch22:check`.
+
+### Этап B — Намерение текущего сеанса
+
+**Статус, указанный в исходнике:** основа реализована, ожидает/проходит CI.
+
+- окно недавнего просмотра 72 часа;
+- период полураспада 18 часов;
+- не более восьми недавних тайтлов;
+- ограниченный вектор недавних жанров;
+- оценка недавно предпочитаемого количества эпизодов;
+- предпочтение выходящих или завершённых тайтлов;
+- уверенность намерения текущего сеанса;
+- соответствие намерению для каждого кандидата;
+- отдельный версионируемый компонент ранжирования;
+- объяснение на основе данных «Похоже на то, что ты смотришь сейчас»;
+- телеметрия оценки и уверенности намерения;
+- регрессионная матрица рантайма.
+
+### Этап C — Ранжирование с учётом завершения просмотра
+
+**Статус, указанный в исходнике:** основа реализована, ожидает/проходит CI.
+
+- ограниченная эвристическая оценка продолжения и завершения;
+- используются завершённые тайтлы, соответствие вкусу и длине, качество сообщества, доля завершения просмотра пользователем, темп нескольких эпизодов и предпочтение завершённых тайтлов;
+- штрафы за длинные тайтлы и отрицательное соответствие вкусу;
+- отдельный компонент ранжирования `completionLikelihood`;
+- оценка завершения сохраняется в телеметрии;
+- калибровка отложена до появления production-данных о результатах просмотра;
+- матрица регрессионных проверок рантайма.
+
+### Этап D — Граф вкусов 7
+
+**Статус, указанный в исходнике:** реализовано, ожидает/проходит CI.
+
+- версия кеша Графа вкусов обновлена до `taste-v7`;
+- в метаданные рекомендаций каталога добавлены студии, формат и год выпуска;
+- одноразовый маркер обогащения `recommendation_metadata_version`;
+- старые строки каталога лениво дополняются при следующем обычном вызове `ensureAnime()`;
+- массовое обновление через провайдера и запросы N+1 во время рекомендаций не добавляются;
+- долгосрочные положительные и отрицательные векторы студий;
+- долгосрочные положительные и отрицательные векторы формата;
+- долгосрочные положительные и отрицательные векторы эпохи/десятилетия;
+- предпочтение завершённых и выходящих тайтлов;
+- счётчики покрытия метаданных, отличающие отсутствие данных от отсутствия предпочтения;
+- сходство по студии, формату, эпохе и статусу учитывается клиентским ранжированием;
+- ограниченный отрицательный вклад метаданных;
+- объяснимые причины по студии, формату и эпохе;
+- регрессионная матрица этапа D добавлена в `patch22:check`.
+
+Примечания:
+
+- существующие строки каталога начинают с версии метаданных 0 и обогащаются лениво;
+- отсутствие метаданных студии, если оно подтверждено, не вызывает бесконечных повторных обновлений: маркер фиксирует попытку обогащения;
+- построение Графа вкусов читает метаданные в существующем пакетном запросе к `anime_catalog`.
+
+### Этап E — Интеллектуальная работа с франшизами
+
+**Статус, указанный в исходнике:** основа реализована, ожидает/проходит CI.
+
+- безопасная для клиента нормализация семейства франшизы по русским, английским и ромадзи-названиям;
+- явная проверка предварительных сезонов/частей перед рекомендацией;
+- поиск следующего сезона по ограниченной локальной истории просмотра;
+- обработка разделённых куров и продолжений Part 2;
+- дедупликация одного семейства до общего этапа разнообразия;
+- сортировщик разнообразия использует тот же канонический ключ и не считает продолжение слотом исследования;
+- кандидаты-продолжения получают приоритет при дедупликации;
+- ограниченный компонент ранжирования `franchiseContinuation`;
+- подтверждённая данными причина продолжения;
+- атрибуция продолжения/сезона в продуктовой телеметрии рекомендаций;
+- отдельная лента «История продолжается», резервирующая такие кандидаты до общих лент;
+- версия алгоритма/ранжирования повышена до `22.1-v1`;
+- регрессионная матрица этапа E добавлена в `patch22:check`.
+
+Примечания:
+
+- этап E не добавляет запросы к провайдеру для каждой карточки;
+- публичное кеширование кандидатов не меняется;
+- существующий резолвер франшиз AniList остаётся для навигации по франшизам на странице тайтла;
+- проверка кандидатов использует метаданные, уже содержащиеся в ответе рекомендаций.
+
+### Статусы этапов F–M: требуется согласование
+
+В подробных разделах этого же документа этапы F, G, H, I, J и K помечены как **реализованные, CI зелёный**, этап L — как реализованный/под CI, а этап M — как реализованный/под CI. Однако в исходной финальной таблице этапы F–M помечены как запланированные.
+
+Это противоречие нельзя разрешить только переводом текста. До сверки с текущим кодом и актуальными проверками ни один из этих двух наборов статусов не следует считать подтверждённым источником истины. Обновите статусы отдельным изменением после проверки реализации и CI.
