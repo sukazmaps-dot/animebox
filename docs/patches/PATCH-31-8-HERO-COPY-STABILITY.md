@@ -1,115 +1,118 @@
-# AnimeBox Patch 31.8 — Hero Copy and Layout Stability
+# Патч AnimeBox 31.8 — стабильность текста Hero и компоновки
 
-**Status:** implementation in `fix/31-8-home-hero-copy-stability`, awaiting PR checks and physical-device verification.  
-**Scope:** home carousel only, desktop typography/summary and inherited mobile constraints.  
-**Baseline:** `main` @ `4df0fc9df753a5217d637933c0d0cb6a0e80f24b` (31.7.1, PR #249).  
-**No migrations / Worker / environment changes.**
+**Статус:** реализация в ветке fix/31-8-home-hero-copy-stability, ожидает проверок PR и проверки на физическом устройстве.  
+**Область:** только карусель главной страницы, десктопная типографика/описание и унаследованные мобильные ограничения.  
+**Основа:** main на коммите 4df0fc9df753a5217d637933c0d0cb6a0e80f24b (31.7.1, PR #249).  
+**Миграции, изменения Worker и окружения не требуются.**
 
-## 1. User-visible problem
+## 1. Проблема для пользователя
 
-On the home-page feature carousel, long anime titles can consume four to six lines and push the description, CTA row, and social link away from their intended location. The hero has a generous minimum height, but `height:auto` alone is not a substitute for bounded copy: each slide may have dramatically different visual geometry. Long words, very long localized names, narrow desktop columns, and browser text zoom make this more obvious.
+В карусели главной страницы длинные названия аниме занимают четыре–шесть строк и сдвигают описание, ряд основных действий и ссылку на сообщество. У Hero большая минимальная высота, но height: auto сам по себе не решает проблему неограниченного текста: у разных слайдов может резко отличаться геометрия. Особенно заметны длинные слова, очень длинные локализованные названия, узкие десктопные колонки и увеличение текста в браузере.
 
-Desired:
-- Desktop feature title is at most **3 visible lines**; phone feature title remains at most **2 visible lines**.
-- The entire accessible title remains in the DOM and the `title` attribute; no source-text cutting or route changes.
-- Desktop description remains a short excerpt (`truncateSeoText(cleanSeoText(...), 160)` already does this), with a second **3-line CSS clamp**.
-- Actions and social link remain below visible copy and **above pagination**, without overlap.
-- The slide keeps the existing minimum-height contract; do **not** reintroduce `height: fixed` or `max-height` that cuts off buttons during browser zoom.
-- Mobile hero still uses the existing full-bleed artwork, title scrim, 2-line clamp, primary/secondary CTAs, 44px targets and safe margins.
+Ожидаемый результат:
 
-## 2. Root cause and owners
+- На десктопе название занимает не более **3 видимых строк**, на телефоне — не более **2**.
+- Полное доступное название остаётся в DOM и атрибуте title; исходный текст не обрезается JavaScript и маршруты не меняются.
+- Десктопное описание остаётся коротким фрагментом (truncateSeoText(cleanSeoText(...), 160) уже ограничивает его длину) и дополнительно обрезается CSS до **3 строк**.
+- Действия и ссылка на сообщество располагаются после видимого текста и **выше пагинации**, без перекрытия.
+- Сохраняется действующий контракт минимальной высоты Hero. Нельзя возвращать фиксированный height или max-height, обрезающий кнопки при увеличении масштаба браузера.
+- На мобильных сохраняются полноэкранный арт, затемнение под текстом, ограничение заголовка двумя строками, основные/вторичные действия, цели размером 44px и безопасные отступы.
 
-### Reproduce
+## 2. Первопричина и владельцы стилей
 
-1. Open `/` and select an anime whose Russian display name exceeds 55 characters; also test a 130–160-character name.
-2. On 1440×900, 1920×1080 and 2560×1440, compare its hero against a 15-character title.
-3. Inspect the computed properties of the `h1`: previously `display:block`, `overflow:visible`, `-webkit-line-clamp:unset` were inherited from `app/home-editorial-hero.css`.
-4. Observe the CTA and summary descend when the title wraps.
-5. Confirm phone widths are already clamped by `app/patch29-1-home-mobile.css` and should not be regressed.
+### Как воспроизвести
 
-### CSS ownership audit
+1. Открыть / и выбрать аниме с русским отображаемым названием длиннее 55 символов; отдельно проверить название длиной 130–160 символов.
+2. На разрешениях 1440×900, 1920×1080 и 2560×1440 сравнить Hero с названием в 15 символов.
+3. Изучить вычисленные свойства h1: ранее из app/home-editorial-hero.css наследовались display: block, overflow: visible и -webkit-line-clamp: unset.
+4. Убедиться, что при переносе названия вниз смещаются основное действие и описание.
+5. Проверить, что мобильные ширины уже ограничиваются app/patch29-1-home-mobile.css и эти правила нельзя ломать.
 
-- `components/HomeHeroCarousel.tsx`: source of the complete title, `is-long-title` classification, excerpt, actions, social link and pagination.
-- `app/home-editorial-hero.css`: legacy visual foundation whose title deliberately removed the clamp. It is imported from `app/layout.tsx` *before* later home styles.
-- `app/hero-teaser-v6.css`: earlier, lower-specificity 2-line title clamp that was subsequently overridden.
-- `app/patch29-1-home-mobile.css`: source of truth for 2-line mobile title, content-sized mobile hero and landscape safe spacing.
-- `app/patch30-1-home-visual.css`: page-scoped, last-imported desktop style; this is the correct owner for the final desktop title and excerpt. No new global CSS overlay should be added.
-- `app/page.tsx`: imports route-scoped CSS in the order `home-visual-repair`, `patch29-1-home-mobile`, `patch30-0-home-streaming`, `patch30-1-home-visual`. The real hero wrapper has `home-page home-visual-v31`.
+### Аудит ответственности CSS
 
-Crucial detail: the `!important` in `home-editorial-hero.css` cannot be defeated just with a later low-specificity declaration. The 31.8 title rule is scoped to the actual route root and uses the already established, more-specific desktop selector.
+- components/HomeHeroCarousel.tsx — источник полного названия, классификации is-long-title, фрагмента описания, действий, ссылки на сообщество и пагинации.
+- app/home-editorial-hero.css — старая визуальная основа, в которой намеренно убрали ограничение строк заголовка. Подключается из app/layout.tsx до более поздних стилей главной.
+- app/hero-teaser-v6.css — прежнее менее специфичное ограничение заголовка двумя строками, позднее переопределённое.
+- app/patch29-1-home-mobile.css — источник истины для двух строк мобильного заголовка, высоты Hero по содержимому и безопасных промежутков в альбомной ориентации.
+- app/patch30-1-home-visual.css — стили десктопа в области конкретной страницы, подключаемые последними; это правильное место для итогового десктопного ограничения названия и описания. Новый глобальный CSS-слой не добавлять.
+- app/page.tsx подключает маршрутные CSS в порядке home-visual-repair, patch29-1-home-mobile, patch30-0-home-streaming, patch30-1-home-visual. У настоящей оболочки Hero есть классы home-page home-visual-v31.
 
-## 3. Implementation
+Важная деталь: !important в home-editorial-hero.css нельзя перебить просто более поздним селектором с низкой специфичностью. Правило 31.8 ограничивается корнем настоящего маршрута и использует уже установленный более специфичный десктопный селектор.
 
-### 3.1 Title, desktop ≥769px
+## 3. Реализация
 
-In the existing rule
-`.home-page.home-visual-v31 .home-grid .home-hero-carousel .home-hero-carousel__content h1`:
-- `display: -webkit-box !important`
-- `-webkit-box-orient: vertical !important`
-- `-webkit-line-clamp: 3 !important`
-- `overflow: hidden !important`
-- `overflow-wrap: anywhere`
-- `text-wrap: balance`
-- `min-width: 0`
+### 3.1. Заголовок на десктопе, от 769px
 
-Do **not** replace the heading text with a JS substring. The existing responsive type scale and `is-long-title` lower-size treatment remain intact. `title={title}` remains present for pointer users; assistive technology reads the full heading text.
+В существующем правиле .home-page.home-visual-v31 .home-grid .home-hero-carousel .home-hero-carousel__content h1:
 
-### 3.2 Summary, desktop ≥769px
+- display: -webkit-box !important;
+- -webkit-box-orient: vertical !important;
+- -webkit-line-clamp: 3 !important;
+- overflow: hidden !important;
+- overflow-wrap: anywhere;
+- text-wrap: balance;
+- min-width: 0.
 
-In the existing `.home-hero-scene__summary` rule:
-- Keep the existing width, margin, font and semantic paragraph.
-- Change block to `display: -webkit-box !important`, `-webkit-line-clamp: 3 !important` and vertical box orientation.
-- Use `overflow:hidden` and `max-height:4.65em` (3 × 1.55 line-height) as secondary safety rails.
-- Keep line breaking tolerant of long words and non-spaced titles.
+Не заменять текст заголовка JavaScript-подстрокой. Существующая адаптивная шкала шрифта и уменьшение размера для is-long-title сохраняются. Атрибут title={title} остаётся для пользователей мыши; средства доступности читают заголовок полностью.
 
-The excerpt cap of 160 characters remains; this change is layout-only and does not alter the source or SEO text.
+### 3.2. Описание на десктопе, от 769px
 
-### 3.3 Preserve actions, slide height and mobile
+В существующем правиле .home-hero-scene__summary:
 
-- Keep the hero `height:auto; min-height:520px` on ordinary desktop, `min-height:480px` on 769–1100px and `min-height:390px` at short desktop viewports. Increased user font-size is allowed to grow the slide, rather than clipping a control.
-- Keep `padding-bottom` reserved for pagination, and the CTA social link within normal flow.
-- Preserve the mobile `height:auto`, minimum height 380px–460px, safe top/bottom padding, two-line title clamp, mobile hidden summary, full-bleed art and the native safe-area rules.
-- Do not modify images, source selection, image proxy, prefetch, carousel timer, autoplay unlock, recommendations, Telegram SDK or playback.
+- сохранить ширину, внешние отступы, шрифт и семантический абзац;
+- использовать display: -webkit-box !important, -webkit-line-clamp: 3 !important и вертикальную ориентацию блока;
+- использовать overflow: hidden и max-height: 4.65em (3 × межстрочный интервал 1.55) как дополнительную защиту;
+- обеспечить перенос длинных слов и названий без пробелов.
 
-## 4. Automated verification
+Ограничение фрагмента в 160 символов сохраняется. Изменение касается только компоновки, а исходный текст и SEO-содержимое не меняются.
 
-`scripts/home-hero-pagination-smoke.cjs` already runs as `npm run hero-pagination:browser` in AnimeBox Quality Gate. Extend **that existing browser matrix**, not a separate mocked CSS harness:
+### 3.3. Сохранение действий, высоты слайда и мобильной версии
 
-- Use the actual wrapper class `home-visual-v31`, so the real desktop style participates.
-- A title longer than 130 characters, with `is-long-title`, and a realistic description paragraph.
-- Width×height cases: 320×700, 360×800, 375×812, 390×844, 412×915, 430×932, 600×900, 768×1024, 844×390, 1024×520, 1440×900, 1920×1080, **2560×1440**.
-- Dark and light themes, and selected slide 0, 2 and 4.
-- Desktop: computed `h1` clamp **3**, `display:-webkit-box`, `overflow:hidden`; paragraph clamp **3**, `overflow:hidden`, paragraph height ≤ three computed line heights; CTA starts below paragraph.
-- Mobile: computed `h1` clamp **2**, `overflow:hidden`; description hidden; artwork fills the hero.
-- All viewports: no horizontal document overflow; pagination does not overlap social action; five visible targets ≥44×44; selected state correct; focus visible; counter correct; markers visible and minimum contrast 3:1.
-- Reduced-motion fixture still disables nonessential animation; pagination React callbacks remain exercised by the original harness.
-- Important limitation: this is Chromium with production CSS and a source-equivalent hero shell, not an authorized Telegram Mini App run and not a real network image test.
+- Оставить height: auto и минимальную высоту Hero 520px на обычном десктопе, 480px при ширине 769–1100px и 390px в низких десктопных окнах. При увеличении шрифта пользователя слайд может вырасти по высоте вместо обрезания элементов управления.
+- Сохранить нижний отступ для пагинации; CTA и ссылка на сообщество остаются в обычном потоке.
+- Сохранить на мобильных height: auto, минимальную высоту 380–460px, безопасные верхние/нижние отступы, двухстрочное ограничение названия, скрытое описание, полноэкранный арт и нативные правила safe area.
+- Не менять изображения, выбор источника, прокси изображений, prefetch, таймер карусели, разблокировку автопрокрутки, рекомендации, Telegram SDK или воспроизведение.
 
-CI should also run TypeScript, lint, project prebuild, production build, targeted tests and CSS cascade ownership checks.
+## 4. Автоматическая проверка
 
-## 5. Manual device and accessibility checklist
+scripts/home-hero-pagination-smoke.cjs уже выполняется в AnimeBox Quality Gate как npm run hero-pagination:browser. Нужно расширить **существующую браузерную матрицу**, а не создавать отдельную имитацию CSS:
 
-| Case | Required outcome |
-|---|---|
-| 320, 360, 390, 412px portrait | ≤2 title lines; both buttons visible; no cropped letters or horizontal scrollbar |
-| 844×390 rotated phone | desktop breakpoint does not overlap social/pagination; controls remain usable |
-| 768px narrow tablet | mobile art and 2-line title still render over scrim |
-| 769, 1024px desktop/tablet | 3-line title; excerpt 3 lines or fewer; CTA after excerpt |
-| 1440, 1920, 2560px desktop | similar content geometry across short and long titles |
-| Dark and light theme | legible text, artwork overlay, visible keyboard focus |
-| 200% browser text zoom | hero may grow vertically but may not cut off interactive controls |
-| Continuous 100+ character word / Cyrillic / Japanese title | wraps instead of widening viewport |
-| Missing excerpt / missing metadata | no empty placeholder or broken action alignment |
-| Failed/absent artwork | text and links remain usable against fallback surface |
-| Telegram Android portrait and landscape | no WebView-specific clipping and no vertical gesture hijack |
-| Actual device | test click, swipe, keyboard, theme switching, first-load LCP and layout shift |
+- использовать настоящие классы оболочки home-visual-v31, чтобы участвовали реальные десктопные стили;
+- добавить название длиннее 130 символов с is-long-title и реалистичный абзац описания;
+- проверить размеры: 320×700, 360×800, 375×812, 390×844, 412×915, 430×932, 600×900, 768×1024, 844×390, 1024×520, 1440×900, 1920×1080 и **2560×1440**;
+- проверить светлую/тёмную тему и выбранные слайды 0, 2 и 4;
+- на десктопе: вычисленное ограничение h1 равно **3**, display: -webkit-box, overflow: hidden; у абзаца ограничение **3 строки**, высота не превышает три межстрочных интервала, CTA начинается ниже абзаца;
+- на мобильных: ограничение h1 равно **2**, overflow: hidden, описание скрыто, арт заполняет Hero;
+- на всех размерах: нет горизонтального переполнения документа; пагинация не перекрывает ссылку на сообщество; пять видимых целей имеют размер не меньше 44×44; корректны выбранное состояние, видимость фокуса и счётчик, маркеры видны и имеют контраст не менее 3:1;
+- фикстура reduced-motion отключает необязательные анимации; исходный тестовый стенд по-прежнему проверяет React-обработчики пагинации.
 
-## 6. Risk and rollback
+Ограничение: это Chromium с production CSS и оболочкой Hero, эквивалентной исходнику, а не авторизованный запуск Telegram Mini App и не тест реальной сетевой загрузки изображений.
 
-Main risk: a higher-specificity global rule (or a future import-order change) could silently undo the desktop clamp. This is why the browser matrix now includes `home-visual-v31` and reads computed styles rather than checking selector presence.
+CI также должен запускать TypeScript, lint, проектный prebuild, production build, целевые тесты и проверки владения CSS-каскадом.
 
-Secondary risk: text zoom can require the hero to exceed its minimum height; that is acceptable. It must not hide actions or overlap pagination. The page should preserve keyboard navigation and reading order, and it must not suppress full content for accessibility.
+## 5. Ручная проверка устройства и доступности
 
-No API, migration, storage, Worker, server config, service secret, cache schema, image transform or data-model change.
+| Сценарий | Требуемый результат |
+| --- | --- |
+| 320, 360, 390, 412px, портрет | не более 2 строк заголовка; обе кнопки видны; буквы не обрезаны; нет горизонтальной прокрутки |
+| 844×390, повёрнутый телефон | десктопный breakpoint не перекрывает ссылку на сообщество/пагинацию; действия доступны |
+| 768px, узкий планшет | мобильный арт и заголовок в две строки остаются поверх затемнения |
+| 769, 1024px, десктоп/планшет | заголовок до 3 строк; описание до 3 строк; CTA под описанием |
+| 1440, 1920, 2560px, десктоп | сходная геометрия содержимого у коротких и длинных названий |
+| Светлая и тёмная тема | читаемый текст, затемнение арта, видимый клавиатурный фокус |
+| Масштаб текста браузера 200% | Hero может стать выше, но интерактивные элементы не обрезаются |
+| Слово длиной 100+ символов / кириллица / японское название | текст переносится, не расширяя viewport |
+| Нет описания или метаданных | нет пустых заглушек и поломанного расположения действий |
+| Ошибка/отсутствие арта | текст и ссылки остаются доступны на резервной поверхности |
+| Telegram Android: портрет и альбомная ориентация | нет обрезания WebView и перехвата вертикальных жестов |
+| Физическое устройство | проверить клики, свайпы, клавиатуру, темы, LCP при первой загрузке и сдвиги макета |
 
-**Release gate:** green AnimeBox Quality Gate → PR review → merge only when approved → Railway deployment success on both services → smoke test on actual Chrome/Telegram. The PR itself is not a production release.
+## 6. Риски и откат
+
+Главный риск — более специфичное глобальное правило или изменение порядка импортов может незаметно отменить ограничение заголовка. Поэтому матрица проверяет home-visual-v31 и вычисленные браузером стили, а не просто наличие селектора.
+
+Вторичный риск: увеличение текста может потребовать более высокого Hero — это допустимо. Нельзя скрывать действия или перекрывать пагинацию. Порядок чтения и клавиатурная навигация сохраняются; полное содержимое не должно подавляться ради визуального ограничения.
+
+Изменения API, миграций, хранилища, Worker, серверной конфигурации, секретов, схемы кеша, преобразования изображений и модели данных не нужны.
+
+**Условие выпуска:** успешный AnimeBox Quality Gate → ревью PR → слияние только после одобрения → успешный Railway deployment обоих сервисов → smoke-тест в реальном Chrome/Telegram. Сам PR не является выпуском в production.
