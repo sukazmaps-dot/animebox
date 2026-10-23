@@ -691,6 +691,8 @@ async function refreshOneCoordinated(
   signal?: AbortSignal,
 ): Promise<CatalogAvailabilityRow | null> {
   return withProbeSlot(async () => {
+    if (signal?.aborted) return null;
+
     const cacheKey = String(anime.id);
     const lease = await tryAcquireRuntimeRefreshLease(
       'catalog_availability',
@@ -722,6 +724,7 @@ async function refreshOneCoordinated(
     }
   }, signal);
 }
+
 export async function refreshCatalogAvailability(
   anime: Anime,
   options: { force?: boolean; signal?: AbortSignal } = {},
