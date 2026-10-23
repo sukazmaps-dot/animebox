@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { notFound, permanentRedirect } from 'next/navigation';
 
 import AnimeEpisodePage from '@/components/AnimeEpisodePage';
@@ -263,18 +264,6 @@ export default async function EpisodePage({
   }
 
   const canonical = `${SITE_URL}${animeHref(anime)}/episode/${number}`;
-  const indexable =
-    shouldIndexAnime(anime) &&
-    await isEpisodeIndexable(anime.id, number).catch((error) => {
-      console.warn('[Episode route] SEO availability lookup failed:', error);
-      return false;
-    });
-  const [indexedEpisode, videoMeta] = indexable
-    ? await Promise.all([
-        getSeoEpisodeIndexEntry(anime.id, number).catch(() => null),
-        getEpisodeTimelineForSeo(anime.id, number).catch(() => null),
-      ])
-    : [null, null];
   const identity = getAnimeSeoIdentity(anime);
 
   const breadcrumbStructuredData = {
@@ -302,6 +291,48 @@ export default async function EpisodePage({
     ],
   };
 
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbStructuredData).replace(/</g, '\\u003c'),
+        }}
+      />
+
+      <Suspense fallback={null}>
+        <EpisodeVideoSeo anime={anime} number={number} canonical={canonical} />
+      </Suspense>
+
+      <AnimeEpisodePage
+        key={anime.slug}
+        anime={anime}
+        requestedEpisode={number}
+      />
+    </>
+  );
+}
+
+/** Optional structured data streams independently of the playback interface. */
+async function EpisodeVideoSeo({ anime, number, canonical }: {
+  anime: NonNullable<Awaited<ReturnType<typeof resolveAnimeRoute>>>;
+  number: number;
+  canonical: string;
+}) {
+  const indexable =
+    shouldIndexAnime(anime) &&
+    await isEpisodeIndexable(anime.id, number).catch((error) => {
+      console.warn('[Episode route] SEO availability lookup failed:', error);
+      return false;
+    });
+  const [indexedEpisode, videoMeta] = indexable
+    ? await Promise.all([
+        getSeoEpisodeIndexEntry(anime.id, number).catch(() => null),
+        getEpisodeTimelineForSeo(anime.id, number).catch(() => null),
+      ])
+    : [null, null];
+
   const videoStructuredData =
     indexable && indexedEpisode?.firstAvailableAt
       ? buildEpisodeVideoStructuredData(anime, number, canonical, {
@@ -313,29 +344,13 @@ export default async function EpisodePage({
         })
       : null;
 
+  if (!videoStructuredData) return null;
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbStructuredData).replace(/</g, '\\u003c'),
-        }}
-      />
-
-      {videoStructuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(videoStructuredData).replace(/</g, '\\u003c'),
-          }}
-        />
-      )}
-
-      <AnimeEpisodePage
-        key={anime.slug}
-        anime={anime}
-        requestedEpisode={number}
-      />
-    </>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(videoStructuredData).replace(/</g, '\\u003c'),
+      }}
+    />
   );
 }
