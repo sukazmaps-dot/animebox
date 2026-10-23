@@ -20,6 +20,8 @@ import {
 
 const CONFIRMED_MISS_THRESHOLD = 3;
 const PROBE_CONCURRENCY = 4;
+const PROBE_QUEUE_LIMIT = 16;
+const PROBE_QUEUE_WAIT_MS = 8_000;
 const UNKNOWN_TTL_MS = 30 * 60 * 1000;
 const UNAVAILABLE_TTL_MS = 24 * 60 * 60 * 1000;
 const PLAYABLE_ONGOING_TTL_MS = 12 * 60 * 60 * 1000;
@@ -31,6 +33,7 @@ const REGISTRY_DB_TIMEOUT_MS = 1_800;
 const registryReadCircuit = createPublicReadCircuit(12_000);
 const REGISTRY_MISSING_TTL_MS = 20_000;
 const REGISTRY_READ_CACHE_LIMIT = 4_000;
+const REGISTRY_READ_IN_FLIGHT_LIMIT = 32;
 const REMOTE_REFRESH_SETTLE_MS = 180;
 const AVAILABILITY_REFRESH_LEASE_SECONDS = 20;
 
@@ -51,8 +54,16 @@ const registryReadInFlight = new Map<
 const verifiedSnapshot = new Map<number, CatalogAvailabilityRow>();
 const VERIFIED_SNAPSHOT_LIMIT = 2_000;
 const inFlight = new Map<number, Promise<CatalogAvailabilityRow | null>>();
+type ProbeWaiter = {
+  resolve: (acquired: boolean) => void;
+  timeout: ReturnType<typeof setTimeout> | null;
+  signal?: AbortSignal;
+  abort?: () => void;
+  settled: boolean;
+};
+
 let activeProbes = 0;
-const probeWaiters: Array<() => void> = [];
+const probeWaiters: ProbeWaiter[] = [];
 
 function registryUnavailable(message: string) {
   return (
@@ -61,17 +72,81 @@ function registryUnavailable(message: string) {
   );
 }
 
-async function withProbeSlot<T>(work: () => Promise<T>): Promise<T> {
-  if (activeProbes >= PROBE_CONCURRENCY) {
-    await new Promise<void>((resolve) => probeWaiters.push(resolve));
+function removeProbeWaiter(waiter: ProbeWaiter) {
+  const index = probeWaiters.indexOf(waiter);
+  if (index >= 0) probeWaiters.splice(index, 1);
+}
+
+function settleProbeWaiter(waiter: ProbeWaiter, acquired: boolean) {
+  if (waiter.settled) return;
+  waiter.settled = true;
+  if (waiter.timeout) {
+    clearTimeout(waiter.timeout);
+    waiter.timeout = null;
+  }
+  if (waiter.abort) {
+    waiter.signal?.removeEventListener('abort', waiter.abort);
+  }
+  waiter.resolve(acquired);
+}
+
+async function acquireProbeSlot(signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted) return false;
+  if (activeProbes < PROBE_CONCURRENCY) {
+    activeProbes += 1;
+    return true;
+  }
+  if (probeWaiters.length >= PROBE_QUEUE_LIMIT) return false;
+
+  return new Promise<boolean>((resolve) => {
+    const waiter: ProbeWaiter = {
+      resolve,
+      timeout: null,
+      signal,
+      settled: false,
+    };
+
+    const abort = () => {
+      removeProbeWaiter(waiter);
+      settleProbeWaiter(waiter, false);
+    };
+    waiter.abort = abort;
+    waiter.timeout = setTimeout(() => {
+      removeProbeWaiter(waiter);
+      settleProbeWaiter(waiter, false);
+    }, PROBE_QUEUE_WAIT_MS);
+
+    probeWaiters.push(waiter);
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) abort();
+  });
+}
+
+function releaseProbeSlot() {
+  while (probeWaiters.length > 0) {
+    const waiter = probeWaiters.shift();
+    if (!waiter || waiter.settled) continue;
+
+    // Hand the released slot directly to the next waiter without briefly
+    // advertising free capacity and allowing an extra task to start.
+    settleProbeWaiter(waiter, true);
+    return;
   }
 
-  activeProbes += 1;
+  activeProbes = Math.max(0, activeProbes - 1);
+}
+
+async function withProbeSlot<T>(
+  work: () => Promise<T>,
+  signal?: AbortSignal,
+): Promise<T | null> {
+  const acquired = await acquireProbeSlot(signal);
+  if (!acquired) return null;
+
   try {
     return await work();
   } finally {
-    activeProbes = Math.max(0, activeProbes - 1);
-    probeWaiters.shift()?.();
+    releaseProbeSlot();
   }
 }
 
@@ -410,6 +485,14 @@ async function readRows(ids: number[]): Promise<{
   const batchKey = misses.join(',');
   let pending = registryReadInFlight.get(batchKey);
 
+  if (!pending && registryReadInFlight.size >= REGISTRY_READ_IN_FLIGHT_LIMIT) {
+    for (const animeId of misses) {
+      const snapshot = verifiedSnapshot.get(animeId);
+      if (snapshot) rows.set(animeId, snapshot);
+    }
+    return { rows, healthy: false };
+  }
+
   if (!pending) {
     pending = readRowsFromRegistry(misses).finally(() => {
       registryReadInFlight.delete(batchKey);
@@ -491,117 +574,115 @@ async function refreshOne(
   previous?: CatalogAvailabilityRow,
   signal?: AbortSignal,
 ): Promise<CatalogAvailabilityRow | null> {
-  return withProbeSlot(async () => {
-    const kodik = await probeKodik(anime, signal);
+  const kodik = await probeKodik(anime, signal);
 
-    // Kodik is the primary AnimeBox playback source. A confirmed Kodik hit is
-    // already enough to prove PLAYABLE, so avoid spending extra provider
-    // requests on the common hot path. Secondary providers are probed only
-    // when Kodik cannot prove availability.
-    const [aniliberty, direct] =
-      kodik.status === 'available'
-        ? [
-            {
-              status: previous?.aniliberty_status ?? 'unknown',
-              reason: 'skipped_after_primary_hit',
-            },
-            {
-              status: previous?.direct_status ?? 'unknown',
-              reason: 'skipped_after_primary_hit',
-            },
-          ] satisfies Array<{
-            status: CatalogProviderAvailabilityStatus;
-            reason: string;
-          }>
-        : await Promise.all([
-            probeAniLiberty(anime, signal),
-            probeDirect(anime, signal),
-          ]);
+  // Kodik is the primary AnimeBox playback source. A confirmed Kodik hit is
+  // already enough to prove PLAYABLE, so avoid spending extra provider
+  // requests on the common hot path. Secondary providers are probed only
+  // when Kodik cannot prove availability.
+  const [aniliberty, direct] =
+    kodik.status === 'available'
+      ? [
+          {
+            status: previous?.aniliberty_status ?? 'unknown',
+            reason: 'skipped_after_primary_hit',
+          },
+          {
+            status: previous?.direct_status ?? 'unknown',
+            reason: 'skipped_after_primary_hit',
+          },
+        ] satisfies Array<{
+          status: CatalogProviderAvailabilityStatus;
+          reason: string;
+        }>
+      : await Promise.all([
+          probeAniLiberty(anime, signal),
+          probeDirect(anime, signal),
+        ]);
 
-    const statuses = [kodik.status, aniliberty.status, direct.status];
-    const anyAvailable = statuses.includes('available');
-    const anyUnknown = statuses.includes('unknown');
+  const statuses = [kodik.status, aniliberty.status, direct.status];
+  const anyAvailable = statuses.includes('available');
+  const anyUnknown = statuses.includes('unknown');
 
-    let consecutiveMisses = previous?.consecutive_misses ?? 0;
-    let availabilityStatus: CatalogAvailabilityStatus;
-    const wasEverPlayable = Boolean(
-      previous?.last_success_at ||
-      previous?.availability_status === 'playable',
-    );
+  let consecutiveMisses = previous?.consecutive_misses ?? 0;
+  let availabilityStatus: CatalogAvailabilityStatus;
+  const wasEverPlayable = Boolean(
+    previous?.last_success_at ||
+    previous?.availability_status === 'playable',
+  );
 
-    if (anyAvailable) {
-      consecutiveMisses = 0;
-      availabilityStatus = 'playable';
-    } else if (anyUnknown) {
-      // A timeout/429/provider outage is not proof of absence. Never-verified
-      // titles stay pending and remain hidden; previously playable titles can
-      // use the bounded degraded grace window in exposureState().
-      availabilityStatus = 'unknown';
-    } else {
-      consecutiveMisses += 1;
+  if (anyAvailable) {
+    consecutiveMisses = 0;
+    availabilityStatus = 'playable';
+  } else if (anyUnknown) {
+    // A timeout/429/provider outage is not proof of absence. Never-verified
+    // titles stay pending and remain hidden; previously playable titles can
+    // use the bounded degraded grace window in exposureState().
+    availabilityStatus = 'unknown';
+  } else {
+    consecutiveMisses += 1;
 
-      // A brand-new candidate with three confirmed provider misses does not
-      // need three user-facing probe cycles: there is no evidence it has ever
-      // been playable on AnimeBox. Previously playable titles retain the
-      // multi-miss shield to avoid disappearing on one provider-side change.
-      availabilityStatus =
-        !wasEverPlayable || consecutiveMisses >= CONFIRMED_MISS_THRESHOLD
-          ? 'unavailable'
-          : 'unknown';
+    // A brand-new candidate with three confirmed provider misses does not
+    // need three user-facing probe cycles: there is no evidence it has ever
+    // been playable on AnimeBox. Previously playable titles retain the
+    // multi-miss shield to avoid disappearing on one provider-side change.
+    availabilityStatus =
+      !wasEverPlayable || consecutiveMisses >= CONFIRMED_MISS_THRESHOLD
+        ? 'unavailable'
+        : 'unknown';
+  }
+
+  const now = new Date().toISOString();
+  const reasons = [
+    providerReason('kodik', kodik.status, kodik.reason),
+    providerReason('aniliberty', aniliberty.status, aniliberty.reason),
+    providerReason('direct', direct.status, direct.reason),
+  ].join(' | ');
+
+  const payload: CatalogAvailabilityRow = {
+    anime_id: anime.id,
+    mal_id: positiveInteger(anime.idMal ?? anime.mal_id),
+    availability_status: availabilityStatus,
+    kodik_status: kodik.status,
+    aniliberty_status: aniliberty.status,
+    direct_status: direct.status,
+    max_episode: kodik.maxEpisode,
+    consecutive_misses: consecutiveMisses,
+    last_checked_at: now,
+    next_check_at: nextCheckAt(availabilityStatus, anime),
+    last_success_at:
+      availabilityStatus === 'playable'
+        ? now
+        : previous?.last_success_at ?? null,
+    last_failure_at:
+      !anyAvailable && !anyUnknown
+        ? now
+        : previous?.last_failure_at ?? null,
+    last_reason: reasons.slice(0, 900),
+    updated_at: now,
+  };
+
+  try {
+    const { data, error } = await createSupabaseAdmin()
+      .from('anime_availability')
+      .upsert(payload)
+      .select(
+        'anime_id,mal_id,availability_status,kodik_status,aniliberty_status,direct_status,max_episode,consecutive_misses,last_checked_at,next_check_at,last_success_at,last_failure_at,last_reason,updated_at',
+      )
+      .single();
+
+    if (error) throw error;
+    const saved = data as CatalogAvailabilityRow;
+    rememberVerifiedRow(saved);
+    rememberRegistryRead(saved.anime_id, saved);
+    return saved;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!registryUnavailable(message)) {
+      console.warn('[Catalog Availability] registry write failed:', error);
     }
-
-    const now = new Date().toISOString();
-    const reasons = [
-      providerReason('kodik', kodik.status, kodik.reason),
-      providerReason('aniliberty', aniliberty.status, aniliberty.reason),
-      providerReason('direct', direct.status, direct.reason),
-    ].join(' | ');
-
-    const payload: CatalogAvailabilityRow = {
-      anime_id: anime.id,
-      mal_id: positiveInteger(anime.idMal ?? anime.mal_id),
-      availability_status: availabilityStatus,
-      kodik_status: kodik.status,
-      aniliberty_status: aniliberty.status,
-      direct_status: direct.status,
-      max_episode: kodik.maxEpisode,
-      consecutive_misses: consecutiveMisses,
-      last_checked_at: now,
-      next_check_at: nextCheckAt(availabilityStatus, anime),
-      last_success_at:
-        availabilityStatus === 'playable'
-          ? now
-          : previous?.last_success_at ?? null,
-      last_failure_at:
-        !anyAvailable && !anyUnknown
-          ? now
-          : previous?.last_failure_at ?? null,
-      last_reason: reasons.slice(0, 900),
-      updated_at: now,
-    };
-
-    try {
-      const { data, error } = await createSupabaseAdmin()
-        .from('anime_availability')
-        .upsert(payload)
-        .select(
-          'anime_id,mal_id,availability_status,kodik_status,aniliberty_status,direct_status,max_episode,consecutive_misses,last_checked_at,next_check_at,last_success_at,last_failure_at,last_reason,updated_at',
-        )
-        .single();
-
-      if (error) throw error;
-      const saved = data as CatalogAvailabilityRow;
-      rememberVerifiedRow(saved);
-      rememberRegistryRead(saved.anime_id, saved);
-      return saved;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!registryUnavailable(message)) {
-        console.warn('[Catalog Availability] registry write failed:', error);
-      }
-      return null;
-    }
-  });
+    return null;
+  }
 }
 
 async function refreshOneCoordinated(
@@ -609,35 +690,39 @@ async function refreshOneCoordinated(
   previous?: CatalogAvailabilityRow,
   signal?: AbortSignal,
 ): Promise<CatalogAvailabilityRow | null> {
-  const cacheKey = String(anime.id);
-  const lease = await tryAcquireRuntimeRefreshLease(
-    'catalog_availability',
-    cacheKey,
-    AVAILABILITY_REFRESH_LEASE_SECONDS,
-  );
+  return withProbeSlot(async () => {
+    if (signal?.aborted) return null;
 
-  if (!lease.acquired) {
-    // Another serverless instance is already probing this title. Do not fan
-    // out to Kodik/AniLiberty/direct again. Give the owner a short head start,
-    // then bypass this process' read cache once and reuse either the freshly
-    // persisted row or our previous verified state.
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, REMOTE_REFRESH_SETTLE_MS);
-    });
-
-    const remote = await readRowsFromRegistry([anime.id]);
-    return remote.rows.get(anime.id) ?? previous ?? null;
-  }
-
-  try {
-    return await refreshOne(anime, previous, signal);
-  } finally {
-    await releaseRuntimeRefreshLease(
+    const cacheKey = String(anime.id);
+    const lease = await tryAcquireRuntimeRefreshLease(
       'catalog_availability',
       cacheKey,
-      lease.ownerToken,
+      AVAILABILITY_REFRESH_LEASE_SECONDS,
     );
-  }
+
+    if (!lease.acquired) {
+      // Another serverless instance is already probing this title. Do not fan
+      // out to Kodik/AniLiberty/direct again. Give the owner a short head start,
+      // then bypass this process' read cache once and reuse either the freshly
+      // persisted row or our previous verified state.
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, REMOTE_REFRESH_SETTLE_MS);
+      });
+
+      const remote = await readRowsFromRegistry([anime.id]);
+      return remote.rows.get(anime.id) ?? previous ?? null;
+    }
+
+    try {
+      return await refreshOne(anime, previous, signal);
+    } finally {
+      await releaseRuntimeRefreshLease(
+        'catalog_availability',
+        cacheKey,
+        lease.ownerToken,
+      );
+    }
+  }, signal);
 }
 
 export async function refreshCatalogAvailability(
