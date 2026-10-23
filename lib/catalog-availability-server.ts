@@ -203,7 +203,7 @@ async function probeKodik(
 }> {
   const malId = positiveInteger(anime.idMal ?? anime.mal_id);
   if (!malId) {
-    return { status: 'unavailable', maxEpisode: null, reason: 'no_mal_id' };
+    return { status: 'unknown', maxEpisode: null, reason: 'no_mal_id' };
   }
 
   try {
@@ -229,7 +229,7 @@ async function probeKodik(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (/KODIK_TOKEN is not configured/i.test(message)) {
-      return { status: 'unavailable', maxEpisode: null, reason: 'provider_not_configured' };
+      return { status: 'unknown', maxEpisode: null, reason: 'provider_not_configured' };
     }
 
     return {
@@ -277,7 +277,7 @@ async function probeDirect(
 }> {
   const malId = positiveInteger(anime.idMal ?? anime.mal_id);
   if (!malId) {
-    return { status: 'unavailable', reason: 'no_mal_id' };
+    return { status: 'unknown', reason: 'no_mal_id' };
   }
 
   try {
@@ -293,6 +293,8 @@ async function probeDirect(
 
     if (
       result.reason === 'provider_unavailable' ||
+      result.reason === 'provider_not_configured' ||
+      result.reason === 'server_busy' ||
       result.reason === 'invalid_provider_endpoint' ||
       result.reason?.startsWith('provider_http_')
     ) {
@@ -564,7 +566,12 @@ async function refreshOne(
       kodik_status: kodik.status,
       aniliberty_status: aniliberty.status,
       direct_status: direct.status,
-      max_episode: kodik.maxEpisode,
+      max_episode: kodik.maxEpisode ?? (
+        kodik.status === 'unknown' &&
+        previous?.mal_id === positiveInteger(anime.idMal ?? anime.mal_id)
+          ? previous?.max_episode ?? null
+          : null
+      ),
       consecutive_misses: consecutiveMisses,
       last_checked_at: now,
       next_check_at: nextCheckAt(availabilityStatus, anime),
