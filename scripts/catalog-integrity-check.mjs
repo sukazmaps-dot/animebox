@@ -44,14 +44,23 @@ if (
 }
 
 const probeGateIndex = availability.indexOf(
-  'return withProbeSlot(async () => {\n    const cacheKey = String(anime.id);',
+  'return withProbeSlot(async () => {',
+);
+const abortGuardIndex = availability.indexOf(
+  'if (signal?.aborted) return null;',
+  probeGateIndex,
 );
 const leaseIndex = availability.indexOf(
   'const lease = await tryAcquireRuntimeRefreshLease(',
   probeGateIndex,
 );
-if (probeGateIndex < 0 || leaseIndex < probeGateIndex) {
-  failures.push('catalog probe admission must be bounded before taking a distributed refresh lease');
+if (
+  probeGateIndex < 0 ||
+  abortGuardIndex < 0 ||
+  leaseIndex < 0 ||
+  abortGuardIndex > leaseIndex
+) {
+  failures.push('catalog probe admission must be bounded and cancellation checked before taking a distributed refresh lease');
 }
 
 for (const needle of [
