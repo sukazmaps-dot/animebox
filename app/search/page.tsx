@@ -61,7 +61,7 @@ export async function generateMetadata({
 }
 
 async function loadInitialCatalog(filters: CatalogFiltersState): Promise<{
-  anime: Anime[]; source: 'saved' | 'provider'; hasNextPage: boolean;
+  anime: Anime[]; source: 'saved' | 'provider'; hasNextPage: boolean; complete?: boolean;
 }> {
   const providerFilters = catalogFiltersToProviderOptions(filters);
   const options: GetAnimesOptions = {
@@ -81,7 +81,8 @@ async function loadInitialCatalog(filters: CatalogFiltersState): Promise<{
   // trip. The client will refresh through /api/anime with the same filters.
   try {
     const saved = await getSavedCatalogPage(options);
-    if (saved.anime.length > 0) return {anime: saved.anime, source: 'saved', hasNextPage: saved.hasNextPage};
+    if (saved.anime.length > 0) return {anime: saved.anime, source: 'saved', hasNextPage: saved.hasNextPage,
+      complete: !saved.scanLimited && !saved.compatibility && saved.unsupportedFilters.length === 0};
   } catch (error) {
     console.warn('[Catalog SSR] saved snapshot unavailable:', error);
   }
@@ -204,6 +205,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           initialFilters={initialFilters}
           initialSource={initialCatalog?.source}
           initialHasNextPage={initialCatalog?.hasNextPage}
+          initialSnapshotComplete={initialCatalog?.complete ?? false}
         />
       </Suspense>
       <CatalogDiscoveryLinks />

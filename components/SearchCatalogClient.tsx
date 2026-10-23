@@ -239,6 +239,7 @@ export default function SearchCatalogClient({
   initialFilters = DEFAULT_CATALOG_FILTERS,
   initialSource = 'provider',
   initialHasNextPage,
+  initialSnapshotComplete = false,
 }: {
   initialResults: Anime[];
   initialQuery?: string;
@@ -246,6 +247,7 @@ export default function SearchCatalogClient({
   initialFilters?: CatalogFiltersState;
   initialSource?: 'provider' | 'saved';
   initialHasNextPage?: boolean;
+  initialSnapshotComplete?: boolean;
 }) {
   const normalizedInitialQuery = initialQuery.trim();
   const [view, setView] = useState<CatalogView>(initialView);
@@ -381,7 +383,8 @@ export default function SearchCatalogClient({
     }
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
-      if (!query && catalogFiltersAreDefault(filters) && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
+      if (!query && (catalogFiltersAreDefault(filters) ||
+          (initialSnapshotComplete && initialSource === 'saved' && catalogFiltersEqual(filters, initialFilters))) && selectedMood === 'any' && page === 1 && initialResults.length > 0) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(false);
         return;
@@ -682,7 +685,7 @@ export default function SearchCatalogClient({
         activeCatalogControllerRef.current = null;
       }
     };
-  }, [discoveryIntent, filters, initialResults, page, query, retryNonce, selectedMood, tasteGraph, view, pageGate, searchClassification?.mode]);
+  }, [discoveryIntent, filters, initialResults, initialFilters, initialSnapshotComplete, initialSource, page, query, retryNonce, selectedMood, tasteGraph, view, pageGate, searchClassification?.mode]);
 
   function retryCatalog() {
     pageGate.block();
