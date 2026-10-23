@@ -17,22 +17,35 @@ Investigation traced candidate resolution from card components (`AnimeCard`) thr
    This avoids surfacing disruptive 502/504 errors in browser consoles and allows `<img>` error cascades (`naturalWidth === 0`) to seamlessly advance to the next fallback candidate.
    When paired with inverted candidate ranking, a 204 soft-fail on primary media could cause cascades to prematurely settle on thumbnail-grade candidates (`/medium/`, 230px).
 
-3. **External Provider Upstream Constraints:**
-   Inspection of actual upstream AniList GraphQL payloads confirmed that AniList's `extraLarge` property consistently maps to CDN paths containing `/cover/large/`. AniList does not maintain a distinct `/cover/extraLarge/` folder path.
-   The ranking adjustment ensures that if distinct `extraLarge` or custom uncompressed sources are provided, they retain strict priority over smaller pre-scaled versions.
+3. **External Provider Upstream Constraints & Contract:**
+   Inspection of actual upstream AniList GraphQL payloads confirmed the provider's exact layout:
+   - `coverImage.extraLarge` -> `.../cover/large/...` (the highest resolution available on their CDN, ~460x650)
+   - `coverImage.large` -> `.../cover/medium/...` (downscaled thumbnail, ~230x325)
+   - `coverImage.medium` -> `.../cover/small/...` (icon thumbnail, ~100x150)
+   AniList does not maintain a distinct `/cover/extraLarge/` folder path on their CDN.
+
+4. **Impact of 204 Soft-Fail on Fallback Cascade (Client-Side Consumer Fix):**
+   The Cloudflare Media Worker code itself (`infra/cloudflare/media-worker.js`) remains intentionally unchanged: its 204 soft-fail contract is necessary to avoid 502/504 errors on external origin outages.
+   What this fix repairs is the **client-side consumer behavior** (`lib/image-service.ts` -> `buildImageCandidateChain`):
+   - When the primary media endpoint returns 204, the browser image cascade (`AnimeImage.tsx`) detects `naturalWidth === 0` and advances to candidate #2.
+   - Under the unified candidate chain, candidate #2 is the same best-known original routed through `/api/image?url=...&optimize=webp`, rather than immediately downgrading to a 230px thumbnail (`/medium/`).
+   - Non-AniList sources (Shikimori `/original/` vs `/preview/`, MyAnimeList/Jikan uncompressed vs `t.jpg`) preserve their highest-quality original at the front of the chain, preventing degradation across all providers.
 
 ## Implementation
 
 - Adjusted `posterSourceQuality` in `lib/image-service.ts`:
-  - Assigned rank 3 to paths matching `/cover/extraLarge/i`.
+  - Assigned rank 3 to paths matching `/cover/extraLarge/i` (if provided by mirrors or custom overrides).
   - Normalized `/cover/large/` to rank 2.
-  - Preserved existing rank 1 for `/cover/medium/` and rank 0 for `/cover/small/` and preview thumbnails.
+  - Preserved existing rank 1 for `/cover/medium/` and rank 0 for `/cover/small/` and preview thumbnails (`/preview/`, `/x48/`, `/x96/`).
+  - Unmatched uncompressed origins (such as Shikimori `/original/` or MAL full paths) retain default rank 2, ensuring parity with AniList originals without artificial down-ranking.
 - Preserved existing same-origin proxy fallbacks (`/api/image?url=...&optimize=webp`) and bounded candidate chains.
-- Added explicit regression assertion in `tests/poster-responsive-recovery.cjs` ensuring `extraLarge` candidates remain prioritized above `large` for card presets.
+- Updated `tests/poster-responsive-recovery.cjs`:
+  - Added regression test reflecting real AniList GraphQL payload (`extraLarge` -> `/cover/large/` vs `large` -> `/cover/medium/`).
+  - Added regression test for explicit `/cover/extraLarge/` mirror overrides.
 
 ## Acceptance and checks
 
 - `npm run poster-reliability:check`: **PASS** (all 4 suites: `poster-visible-recovery`, `poster-responsive-recovery`, `poster-source-reliability`, and `patch32-1-1-reliability`).
 - `npm run security:check`: **PASS** (all 6 static boundary and invariant checkers).
 - `npm run css:inventory:check`: **PASS** (218 stylesheets verified).
-- Local branch: `fix/poster-quality-recovery`.
+- Local branch: `fix/poster-resolution-ranking`.

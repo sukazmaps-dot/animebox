@@ -75,16 +75,30 @@ const thumbnailOnly = service.getImageCandidates({ extraLarge: mislabeled.extraL
 assert.ok(thumbnailOnly.every(value => value.startsWith('/') || value === mislabeled.extraLarge ||
   new URL(value).searchParams.get('url') === mislabeled.extraLarge), 'missing high-resolution URLs are never invented');
 
-// Regression test: extraLarge resolution must not be downgraded to large
-const multiQualityPoster = {
+// Regression test: real AniList upstream contract and explicit extraLarge
+// AniList GraphQL assigns coverImage.extraLarge to /cover/large/ (original) and
+// coverImage.large to /cover/medium/ (thumbnail). The candidate chain must prioritize
+// the best resolution (/cover/large/) over the downscaled thumbnail (/cover/medium/).
+const realAnilistCover = {
+  extraLarge: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20-dE6UHbFFg1A5.jpg',
+  large: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx20-dE6UHbFFg1A5.jpg',
+  medium: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx20-dE6UHbFFg1A5.jpg',
+};
+const realCandidates = service.getImageCandidates(realAnilistCover, 'compact', { preset: 'card' });
+assert.equal(new URL(realCandidates[0], 'https://youranimebox.com').searchParams.get('url'), realAnilistCover.extraLarge,
+  'real AniList coverImage.extraLarge (/cover/large/) must be prioritized over downscaled thumbnail (/cover/medium/)');
+assert.ok(realCandidates.indexOf(realCandidates[0]) < realCandidates.indexOf(realAnilistCover.large));
+
+// Also verify that if a provider/mirror supplies a distinct /cover/extraLarge/ path, it is prioritized above /cover/large/
+const distinctExtraLarge = {
   extraLarge: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/extraLarge/anime1.jpg',
   large: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/anime1.jpg',
   medium: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/anime1.jpg',
 };
-const qualityCandidates = service.getImageCandidates(multiQualityPoster, 'compact', { preset: 'card' });
-assert.equal(new URL(qualityCandidates[0], 'https://youranimebox.com').searchParams.get('url'), multiQualityPoster.extraLarge,
-  'extraLarge must be preferred over large for card preset');
-assert.ok(qualityCandidates.indexOf(qualityCandidates[0]) < qualityCandidates.indexOf(multiQualityPoster.large));
+const qualityCandidates = service.getImageCandidates(distinctExtraLarge, 'compact', { preset: 'card' });
+assert.equal(new URL(qualityCandidates[0], 'https://youranimebox.com').searchParams.get('url'), distinctExtraLarge.extraLarge,
+  'distinct extraLarge path must be preferred over large for card preset');
+assert.ok(qualityCandidates.indexOf(qualityCandidates[0]) < qualityCandidates.indexOf(distinctExtraLarge.large));
 
 
 // Actual mounted components: onError must switch BOTH src and srcset. Neither
