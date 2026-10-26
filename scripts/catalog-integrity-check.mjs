@@ -33,9 +33,42 @@ for (const needle of [
   if (!migration.includes(needle)) failures.push(`migration missing: ${needle}`);
 }
 
+if (
+  !availability.includes('probeWaiters.length >= PROBE_QUEUE_LIMIT') ||
+  !availability.includes('clearTimeout(waiter.timeout)') ||
+  !availability.includes("signal?.addEventListener('abort', abort, { once: true })") ||
+  !availability.includes('registryReadInFlight.size >= REGISTRY_READ_IN_FLIGHT_LIMIT') ||
+  availability.includes('const probeWaiters: Array<() => void> = []')
+) {
+  failures.push('catalog availability queues must be bounded and clean up timeout/abort waiters');
+}
+
+const probeGateIndex = availability.indexOf(
+  'return withProbeSlot(async () => {',
+);
+const abortGuardIndex = availability.indexOf(
+  'if (signal?.aborted) return null;',
+  probeGateIndex,
+);
+const leaseIndex = availability.indexOf(
+  'const lease = await tryAcquireRuntimeRefreshLease(',
+  probeGateIndex,
+);
+if (
+  probeGateIndex < 0 ||
+  abortGuardIndex < 0 ||
+  leaseIndex < 0 ||
+  abortGuardIndex > leaseIndex
+) {
+  failures.push('catalog probe admission must be bounded and cancellation checked before taking a distributed refresh lease');
+}
+
 for (const needle of [
   'CONFIRMED_MISS_THRESHOLD = 3',
   'PROBE_CONCURRENCY = 4',
+  'PROBE_QUEUE_LIMIT = 16',
+  'PROBE_QUEUE_WAIT_MS = 8_000',
+  'REGISTRY_READ_IN_FLIGHT_LIMIT = 32',
   'DEGRADED_ONGOING_GRACE_MS',
   'DEGRADED_FINISHED_GRACE_MS',
   "type ExposureState = 'playable' | 'degraded' | 'pending' | 'unavailable'",
