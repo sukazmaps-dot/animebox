@@ -97,7 +97,8 @@ function posterSourceQuality(value: string): number {
     if (url.hostname === 'anilist.co' || url.hostname.endsWith('.anilist.co')) {
       if (/\/cover\/small\//.test(url.pathname)) return 0;
       if (/\/cover\/medium\//.test(url.pathname)) return 1;
-      if (/\/cover\/large\//.test(url.pathname)) return 3;
+      if (/\/cover\/large\//.test(url.pathname)) return 2;
+      if (/\/cover\/extraLarge\//i.test(url.pathname)) return 3;
     }
     if (prefersLegacyProxy(value) && /\/(?:preview|x48|x96)\//.test(url.pathname)) return 0;
   } catch { /* Local candidates preserve their existing relative order. */ }
