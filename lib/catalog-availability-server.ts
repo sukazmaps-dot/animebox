@@ -22,6 +22,7 @@ const CONFIRMED_MISS_THRESHOLD = 3;
 const PROBE_CONCURRENCY = 4;
 const PROBE_QUEUE_LIMIT = 16;
 const PROBE_QUEUE_WAIT_MS = 8_000;
+const PROBE_BATCH_LIMIT = PROBE_CONCURRENCY + PROBE_QUEUE_LIMIT;
 const UNKNOWN_TTL_MS = 30 * 60 * 1000;
 const UNAVAILABLE_TTL_MS = 24 * 60 * 60 * 1000;
 const PLAYABLE_ONGOING_TTL_MS = 12 * 60 * 60 * 1000;
@@ -758,8 +759,18 @@ export async function refreshCatalogAvailabilityBatch(
   anime: Anime[],
   options: { limit?: number; force?: boolean } = {},
 ) {
+  const requestedLimit =
+    options.limit == null || !Number.isFinite(options.limit)
+      ? 8
+      : Math.floor(options.limit);
+  // Keep one batch within the total local admission budget. Larger refresh jobs
+  // can continue on the next cron pass instead of allocating unbounded work.
+  const batchLimit = Math.min(
+    PROBE_BATCH_LIMIT,
+    Math.max(1, requestedLimit),
+  );
   const unique = [...new Map(anime.map((item) => [item.id, item])).values()]
-    .slice(0, Math.max(1, options.limit ?? 8));
+    .slice(0, batchLimit);
 
   if (!unique.length) return [];
 
@@ -816,7 +827,7 @@ export async function refreshStaleCatalogAvailability(limit = 24) {
 
     return {
       checked: ids.length,
-      refreshed: results.filter((item) => item.status === 'fulfilled').length,
+      refreshed: results.filter((item) => item.status === 'fulfilled' && item.value !== null).length,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
