@@ -15,7 +15,19 @@ export const dynamic = 'force-dynamic';
 
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT = 40;
+const MAX_REQUEST_BUCKETS = 2_000;
+const REQUEST_BUCKET_SWEEP_MS = 30_000;
 const requestBuckets = new Map<string, { count: number; resetAt: number }>();
+let nextRequestBucketSweepAt = 0;
+
+function sweepExpiredRequestBuckets(now: number) {
+  if (now < nextRequestBucketSweepAt) return;
+  nextRequestBucketSweepAt = now + REQUEST_BUCKET_SWEEP_MS;
+
+  for (const [key, bucket] of requestBuckets) {
+    if (bucket.resetAt <= now) requestBuckets.delete(key);
+  }
+}
 
 function clientKey(request: NextRequest) {
   return (
@@ -31,23 +43,26 @@ function clientKey(request: NextRequest) {
 
 function rateLimited(request: NextRequest) {
   const now = Date.now();
+  sweepExpiredRequestBuckets(now);
+
   const key = clientKey(request);
   const current = requestBuckets.get(key);
 
-  if (!current || current.resetAt <= now) {
-    requestBuckets.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
+  if (current && current.resetAt > now) {
+    current.count += 1;
+    return current.count > RATE_LIMIT;
   }
 
-  current.count += 1;
+  if (current) requestBuckets.delete(key);
 
-  if (requestBuckets.size > 2_000) {
-    for (const [bucketKey, bucket] of requestBuckets) {
-      if (bucket.resetAt <= now) requestBuckets.delete(bucketKey);
-    }
+  if (requestBuckets.size >= MAX_REQUEST_BUCKETS) {
+    // Keep the saturated path O(1): the regular sweep above owns cleanup.
+    // Reject new identities until expired buckets are removed by that sweep.
+    if (requestBuckets.size >= MAX_REQUEST_BUCKETS) return true;
   }
 
-  return current.count > RATE_LIMIT;
+  requestBuckets.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+  return false;
 }
 
 async function observedGET(request: NextRequest) {

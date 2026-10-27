@@ -548,10 +548,46 @@ type CatalogAvailabilityCacheEntry = {
   expiresAt: number;
 };
 
+const CATALOG_AVAILABILITY_CACHE_LIMIT = 2_000;
+const CATALOG_AVAILABILITY_CACHE_SWEEP_MS = 30_000;
 const catalogAvailabilityCache = new Map<
   string,
   CatalogAvailabilityCacheEntry
 >();
+let nextCatalogAvailabilityCacheSweepAt = 0;
+
+/** Expired keys must be removed even when crawlers never request them again. */
+function sweepCatalogAvailabilityCache(now: number) {
+  if (now < nextCatalogAvailabilityCacheSweepAt) return;
+  nextCatalogAvailabilityCacheSweepAt = now + CATALOG_AVAILABILITY_CACHE_SWEEP_MS;
+
+  for (const [key, entry] of catalogAvailabilityCache) {
+    if (entry.expiresAt <= now) catalogAvailabilityCache.delete(key);
+  }
+
+  while (catalogAvailabilityCache.size > CATALOG_AVAILABILITY_CACHE_LIMIT) {
+    const oldest = catalogAvailabilityCache.keys().next().value as string | undefined;
+    if (oldest === undefined) break;
+    catalogAvailabilityCache.delete(oldest);
+  }
+}
+
+function rememberCatalogAvailability(
+  key: string,
+  result: SourceAvailability,
+  expiresAt: number,
+) {
+  // Map insertion order is used as a small LRU: replace/promote the current key,
+  // then evict the oldest entries before this process cache can grow without bound.
+  catalogAvailabilityCache.delete(key);
+  catalogAvailabilityCache.set(key, { result, expiresAt });
+
+  while (catalogAvailabilityCache.size > CATALOG_AVAILABILITY_CACHE_LIMIT) {
+    const oldest = catalogAvailabilityCache.keys().next().value as string | undefined;
+    if (oldest === undefined) break;
+    catalogAvailabilityCache.delete(oldest);
+  }
+}
 
 function getCatalogAvailabilityKey(anime: Anime): string {
   const stableId =
@@ -574,11 +610,17 @@ export async function checkAnimeCatalogAvailability(
 ): Promise<SourceAvailability> {
   const key = getCatalogAvailabilityKey(anime);
   const now = Date.now();
+  sweepCatalogAvailabilityCache(now);
   const cached = catalogAvailabilityCache.get(key);
 
   if (cached && cached.expiresAt > now) {
+    // Refresh recency on a hit so active titles survive bounded-cache pressure.
+    catalogAvailabilityCache.delete(key);
+    catalogAvailabilityCache.set(key, cached);
     return cached.result;
   }
+
+  if (cached) catalogAvailabilityCache.delete(key);
 
   // Для каталога достаточно проверить первую серию.
   // Если релиз существует, но серия не подтверждена, основной алгоритм
@@ -598,10 +640,9 @@ export async function checkAnimeCatalogAvailability(
       ? 90_000
       : 6 * 60 * 60 * 1000;
 
-  catalogAvailabilityCache.set(key, {
-    result,
-    expiresAt: now + ttlMs,
-  });
+  const completedAt = Date.now();
+  sweepCatalogAvailabilityCache(completedAt);
+  rememberCatalogAvailability(key, result, completedAt + ttlMs);
 
   return result;
 }
