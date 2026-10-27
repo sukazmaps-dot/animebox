@@ -20,8 +20,8 @@ const REQUEST_BUCKET_SWEEP_MS = 30_000;
 const requestBuckets = new Map<string, { count: number; resetAt: number }>();
 let nextRequestBucketSweepAt = 0;
 
-function sweepExpiredRequestBuckets(now: number, force = false) {
-  if (!force && now < nextRequestBucketSweepAt) return;
+function sweepExpiredRequestBuckets(now: number) {
+  if (now < nextRequestBucketSweepAt) return;
   nextRequestBucketSweepAt = now + REQUEST_BUCKET_SWEEP_MS;
 
   for (const [key, bucket] of requestBuckets) {
@@ -56,9 +56,8 @@ function rateLimited(request: NextRequest) {
   if (current) requestBuckets.delete(key);
 
   if (requestBuckets.size >= MAX_REQUEST_BUCKETS) {
-    // Under unique-IP pressure, scan only when the map is saturated. Never
-    // admit another key if all retained buckets are still active.
-    sweepExpiredRequestBuckets(now, true);
+    // Keep the saturated path O(1): the regular sweep above owns cleanup.
+    // Reject new identities until expired buckets are removed by that sweep.
     if (requestBuckets.size >= MAX_REQUEST_BUCKETS) return true;
   }
 
