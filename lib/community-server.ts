@@ -393,8 +393,8 @@ async function refreshAnimeCatalogMetadata(
           .select(
             'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
           )
-          .single()
-          .abortSignal(AbortSignal.timeout(ANIME_CATALOG_REFRESH_WRITE_TIMEOUT_MS));
+          .abortSignal(AbortSignal.timeout(ANIME_CATALOG_REFRESH_WRITE_TIMEOUT_MS))
+          .single();
 
         if (saveError) throw saveError;
 
