@@ -17,6 +17,7 @@ export type RuntimeRefreshLease = {
 const DEFAULT_LEASE_TTL_SECONDS = 15;
 const MIN_LEASE_TTL_SECONDS = 5;
 const MAX_LEASE_TTL_SECONDS = 120;
+const LEASE_RPC_TIMEOUT_MS = 1_200;
 
 function normalizedLeaseTtl(ttlSeconds: number) {
   if (!Number.isFinite(ttlSeconds)) return DEFAULT_LEASE_TTL_SECONDS;
@@ -54,7 +55,7 @@ export async function tryAcquireRuntimeRefreshLease(
         p_owner_token: ownerToken,
         p_ttl_seconds: normalizedLeaseTtl(ttlSeconds),
       },
-    );
+    ).abortSignal(AbortSignal.timeout(LEASE_RPC_TIMEOUT_MS));
 
     if (error) throw error;
 
@@ -96,7 +97,7 @@ export async function releaseRuntimeRefreshLease(
         p_cache_key: normalizedKey,
         p_owner_token: ownerToken,
       },
-    );
+    ).abortSignal(AbortSignal.timeout(LEASE_RPC_TIMEOUT_MS));
 
     if (error) throw error;
   } catch (error) {
