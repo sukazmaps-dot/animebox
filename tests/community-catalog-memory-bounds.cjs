@@ -81,24 +81,32 @@ function createHarness({
           select() { return this; },
           in(_column, values) { ids = values; return this; },
           upsert(value) { payload = value; return this; },
-          single() { return this; },
+          single() {
+            if (!payload) return Promise.resolve({ data: [], error: null });
+            refreshWrites += 1;
+            return Promise.resolve({ data: payload, error: null });
+          },
           abortSignal(signal) {
-            if (payload) {
-              refreshWrites += 1;
-              return Promise.resolve({ data: payload, error: null });
+            if (!payload) {
+              readCalls += 1;
+              activeReads += 1;
+              peakActiveReads = Math.max(peakActiveReads, activeReads);
+              this.readRows = returnReadRows ? ids.map(catalogRow) : [];
+              this.readSignal = signal;
             }
-
-            readCalls += 1;
-            activeReads += 1;
-            peakActiveReads = Math.max(peakActiveReads, activeReads);
-            const rows = returnReadRows ? ids.map(catalogRow) : [];
-
+            // Supabase's abortSignal is a chain modifier; execution occurs when
+            // the thenable query is awaited, or when single() finalizes the write.
+            return this;
+          },
+          then(resolve, reject) {
+            const rows = this.readRows ?? [];
+            const signal = this.readSignal;
+            if (!signal) return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
             if (!holdReads) {
               activeReads -= 1;
-              return Promise.resolve({ data: rows, error: null });
+              return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
             }
-
-            return new Promise((resolve, reject) => {
+            return new Promise((done, fail) => {
               let settled = false;
               const finish = callback => {
                 if (settled) return;
@@ -108,15 +116,15 @@ function createHarness({
               };
               const onAbort = () => finish(() => {
                 activeReads -= 1;
-                reject(signal.reason);
+                fail(signal.reason);
               });
               signal.addEventListener('abort', onAbort, { once: true });
               readReleases.push(() => finish(() => {
                 activeReads -= 1;
-                resolve({ data: rows, error: null });
+                done({ data: rows, error: null });
               }));
               if (signal.aborted) onAbort();
-            });
+            }).then(resolve, reject);
           },
         };
       },
