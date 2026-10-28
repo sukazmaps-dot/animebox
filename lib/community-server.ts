@@ -1,4 +1,5 @@
 import 'server-only';
+import { createBoundedWork } from '@/lib/bounded-work';
 import { isAllowedBrowserOrigin } from '@/lib/browser-request-origin';
 import { optionalServerSecret } from '@/lib/env/server';
 import { createClient } from '@/lib/supabase/server';
@@ -124,6 +125,18 @@ type AnimeCatalogMetadata = {
 
 const ANIME_CATALOG_READ_TTL_MS = 60_000;
 const ANIME_CATALOG_READ_CACHE_LIMIT = 2_000;
+const ANIME_CATALOG_READ_IN_FLIGHT_LIMIT = 32;
+const ANIME_CATALOG_READ_TIMEOUT_MS = 1_800;
+const ANIME_CATALOG_REFRESH_ACTIVE_LIMIT = 4;
+const ANIME_CATALOG_REFRESH_QUEUE_LIMIT = 16;
+const ANIME_CATALOG_REFRESH_QUEUE_WAIT_MS = 8_000;
+const ANIME_CATALOG_REFRESH_IN_FLIGHT_LIMIT =
+  ANIME_CATALOG_REFRESH_ACTIVE_LIMIT + ANIME_CATALOG_REFRESH_QUEUE_LIMIT;
+const ANIME_CATALOG_REFRESH_WRITE_TIMEOUT_MS = 1_800;
+const animeCatalogRefreshWork = createBoundedWork(
+  ANIME_CATALOG_REFRESH_ACTIVE_LIMIT,
+  ANIME_CATALOG_REFRESH_QUEUE_LIMIT,
+);
 
 type AnimeCatalogCacheEntry = {
   row: AnimeCatalogMetadata;
@@ -185,6 +198,9 @@ async function readAnimeCatalogRows(ids: number[]) {
   const batchKey = sorted.join(',');
   const existingRequest = animeCatalogReadInFlight.get(batchKey);
   if (existingRequest) return existingRequest;
+  if (animeCatalogReadInFlight.size >= ANIME_CATALOG_READ_IN_FLIGHT_LIMIT) {
+    throw new ApiError(503, 'Каталог временно перегружен. Попробуй ещё раз.');
+  }
 
   const request = (async () => {
     const { data, error } = await adminClient()
@@ -192,7 +208,8 @@ async function readAnimeCatalogRows(ids: number[]) {
       .select(
         'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
       )
-      .in('id', sorted);
+      .in('id', sorted)
+      .abortSignal(AbortSignal.timeout(ANIME_CATALOG_READ_TIMEOUT_MS));
 
     if (error) throw error;
 
@@ -332,58 +349,82 @@ async function refreshAnimeCatalogMetadata(
   const pending = animeCatalogRefreshInFlight.get(animeId);
   if (pending) return pending;
 
-  const request = (async () => {
-    const cacheKey = String(animeId);
-    const lease = await tryAcquireRuntimeRefreshLease(
-      'anime_catalog_metadata',
-      cacheKey,
-      ANIME_CATALOG_REFRESH_LEASE_SECONDS,
+  if (animeCatalogRefreshInFlight.size >= ANIME_CATALOG_REFRESH_IN_FLIGHT_LIMIT) {
+    // A previously verified catalog row is safer than starting unbounded work.
+    // First-time titles fail explicitly rather than becoming false 404s.
+    if (previous) return previous;
+    throw new ApiError(503, 'Каталог временно перегружен. Попробуй ещё раз.');
+  }
+
+  const request = animeCatalogRefreshWork.run(
+    AbortSignal.timeout(ANIME_CATALOG_REFRESH_QUEUE_WAIT_MS),
+    async () => {
+      const cacheKey = String(animeId);
+      const lease = await tryAcquireRuntimeRefreshLease(
+        'anime_catalog_metadata',
+        cacheKey,
+        ANIME_CATALOG_REFRESH_LEASE_SECONDS,
+      );
+
+      if (!lease.acquired) {
+        // Stale metadata is safe for this short window and avoids an upstream
+        // stampede across serverless instances.
+        if (previous) return previous;
+
+        // A first-ever row cannot safely become a fake 404 just because another
+        // instance owns the lease. Give that owner a bounded chance to persist
+        // the row, then fail open if the upstream is simply slower than our
+        // user-facing wait budget.
+        const remote = await waitForRemoteAnimeCatalogRow(animeId);
+        if (remote) return remote;
+      }
+
+      try {
+        const anime = await getAnimeByIdWithShikimori(animeId);
+        if (!anime || anime.id !== animeId) {
+          throw new ApiError(404, 'Аниме не найдено.');
+        }
+
+        const { data: saved, error: saveError } = await adminClient()
+          .from('anime_catalog')
+          .upsert(
+            animeCatalogPayload(anime, previous),
+          )
+          .select(
+            'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
+          )
+          .abortSignal(AbortSignal.timeout(ANIME_CATALOG_REFRESH_WRITE_TIMEOUT_MS))
+          .single();
+
+        if (saveError) throw saveError;
+
+        const row = saved as AnimeCatalogMetadata;
+        rememberAnimeCatalogRow(row);
+        return row;
+      } finally {
+        if (lease.acquired) {
+          await releaseRuntimeRefreshLease(
+            'anime_catalog_metadata',
+            cacheKey,
+            lease.ownerToken,
+          );
+        }
+      }
+    },
+  ).catch((error: unknown) => {
+    const boundedWorkError = error instanceof Error && (
+      error.message === 'origin-busy' ||
+      error.name === 'TimeoutError' ||
+      error.name === 'AbortError'
     );
 
-    if (!lease.acquired) {
-      // Stale metadata is safe for this short window and avoids an upstream
-      // stampede across serverless instances.
+    if (boundedWorkError) {
       if (previous) return previous;
-
-      // A first-ever row cannot safely become a fake 404 just because another
-      // instance owns the lease. Give that owner a bounded chance to persist
-      // the row, then fail open if the upstream is simply slower than our
-      // user-facing wait budget.
-      const remote = await waitForRemoteAnimeCatalogRow(animeId);
-      if (remote) return remote;
+      throw new ApiError(503, 'Каталог временно перегружен. Попробуй ещё раз.');
     }
 
-    try {
-      const anime = await getAnimeByIdWithShikimori(animeId);
-      if (!anime || anime.id !== animeId) {
-        throw new ApiError(404, 'Аниме не найдено.');
-      }
-
-      const { data: saved, error: saveError } = await adminClient()
-        .from('anime_catalog')
-        .upsert(
-          animeCatalogPayload(anime, previous),
-        )
-        .select(
-          'id,title,total_episodes,finished,genres,studios,format,start_year,recommendation_metadata_version,poster_url,slug,updated_at',
-        )
-        .single();
-
-      if (saveError) throw saveError;
-
-      const row = saved as AnimeCatalogMetadata;
-      rememberAnimeCatalogRow(row);
-      return row;
-    } finally {
-      if (lease.acquired) {
-        await releaseRuntimeRefreshLease(
-          'anime_catalog_metadata',
-          cacheKey,
-          lease.ownerToken,
-        );
-      }
-    }
-  })().finally(() => {
+    throw error;
+  }).finally(() => {
     animeCatalogRefreshInFlight.delete(animeId);
   });
 

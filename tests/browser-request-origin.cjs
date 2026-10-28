@@ -12,7 +12,11 @@ function compile(path, imports = {}) {
 }
 
 const policy = compile('lib/browser-request-origin.ts');
-const community = compile('lib/community-server.ts', { '@/lib/browser-request-origin': policy });
+const boundedWork = compile('lib/bounded-work.ts');
+const community = compile('lib/community-server.ts', {
+  '@/lib/browser-request-origin': policy,
+  '@/lib/bounded-work': boundedWork,
+});
 const { proxy } = compile('proxy.ts', {
   '@/lib/browser-request-origin': policy,
   '@/lib/edge-cache-policy': { isPublicCacheableApiRequest: () => false },
