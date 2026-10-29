@@ -21,6 +21,17 @@ const player = read('components/AnimePlayer.tsx');
 
 mustInclude(
   theaterCss,
+  'grid-template-rows: minmax(0, 1fr) auto auto auto auto;',
+  'desktop theater grid assigns remaining height to the video stage, not the toolbar',
+);
+mustNotInclude(
+  theaterCss,
+  'grid-template-rows: auto minmax(0, 1fr) auto auto;',
+  'desktop theater grid must not stretch the player toolbar',
+);
+
+mustInclude(
+  theaterCss,
   '@media (max-width: 768px) and (orientation: portrait)',
   'portrait mobile player breakpoint',
 );
