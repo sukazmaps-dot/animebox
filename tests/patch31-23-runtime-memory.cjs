@@ -77,7 +77,7 @@ assert.ok(snapshotStart >= 0 && memorySample > snapshotStart && adminInit > memo
   'memory must be sampled before diagnostics issue DB queries');
 assert.match(server, /\\n    processMemory,/);
 assert.match(route, /requireAdmin\\(\\['owner', 'admin'\\]\\)/);
-assert.match(route, /Cache-Control': 'private, no-store'/);
+assert.ok(route.includes("'Cache-Control': 'private, no-store'"));
 
 for (const label of ['RSS процесса', 'Heap used / total', 'External', 'ArrayBuffers']) {
   assert.ok(dashboard.includes(label), 'dashboard must render ' + label);
