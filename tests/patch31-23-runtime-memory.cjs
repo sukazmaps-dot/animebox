@@ -46,7 +46,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(snapshot)), {
   externalBytes: 48_000_000,
   arrayBuffersBytes: 32_000_000,
 });
-assert.match(snapshot.sampledAt, /^\\d{4}-\\d{2}-\\d{2}T/);
+assert.equal(new Date(snapshot.sampledAt).toISOString(), snapshot.sampledAt);
 
 const sanitized = loadMemoryModule({
   rss: Number.NaN,
@@ -68,15 +68,15 @@ const dashboard = read('components/admin/SystemHealthDashboard.tsx');
 const packageJson = JSON.parse(read('package.json'));
 const workflow = read('.github/workflows/animebox-quality.yml');
 
-assert.match(types, /processMemory:\\s*SystemProcessMemoryHealth/);
-assert.match(server, /import \\{ getProcessMemorySnapshot \\} from '@\\/lib\\/process-memory';/);
+assert.ok(types.includes('processMemory: SystemProcessMemoryHealth'));
+assert.ok(server.includes("import { getProcessMemorySnapshot } from '@/lib/process-memory';"));
 const snapshotStart = server.indexOf('export async function getSystemHealthSnapshot()');
 const memorySample = server.indexOf('const processMemory = getProcessMemorySnapshot();', snapshotStart);
 const adminInit = server.indexOf('const admin = createSupabaseAdmin();', snapshotStart);
 assert.ok(snapshotStart >= 0 && memorySample > snapshotStart && adminInit > memorySample,
   'memory must be sampled before diagnostics issue DB queries');
-assert.match(server, /\\n    processMemory,/);
-assert.match(route, /requireAdmin\\(\\['owner', 'admin'\\]\\)/);
+assert.ok(server.includes('    processMemory,'));
+assert.ok(route.includes("requireAdmin(['owner', 'admin'])"));
 assert.ok(route.includes("'Cache-Control': 'private, no-store'"));
 
 for (const label of ['RSS процесса', 'Heap used / total', 'External', 'ArrayBuffers']) {
