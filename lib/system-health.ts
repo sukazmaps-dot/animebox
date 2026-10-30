@@ -52,6 +52,16 @@ export type NotificationHealth = {
   lastErrorCode: string | null;
 };
 
+export type SystemProcessMemoryHealth = {
+  sampledAt: string;
+  uptimeSeconds: number;
+  rssBytes: number;
+  heapTotalBytes: number;
+  heapUsedBytes: number;
+  externalBytes: number;
+  arrayBuffersBytes: number;
+};
+
 export type DeploymentHealth = {
   environment: string;
   gitSha: string | null;
@@ -216,6 +226,7 @@ export type SystemHealthSnapshot = {
   status: SystemHealthTone;
   production: ProductionHealthSnapshot;
   deployment: DeploymentHealth;
+  processMemory: SystemProcessMemoryHealth;
   providers: SystemProviderHealth[];
   jobs: SystemJobHealth[];
   incidents: SystemIncident[];

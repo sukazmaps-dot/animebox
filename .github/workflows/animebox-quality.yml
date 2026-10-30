@@ -61,6 +61,9 @@ jobs:
       - name: Railway cost optimization lint
         run: npx eslint lib/public-result-cache.ts lib/bounded-work.ts lib/image-upstream-server.ts app/api/image/route.ts app/api/jikan/anime/route.ts
 
+      - name: Patch 31.23 runtime memory diagnostics
+        run: npm run patch31-23:check
+
       - name: Poster sources, bounded relay compression and no-storage defaults
         run: npm run poster-reliability:check
 
@@ -277,6 +280,7 @@ jobs:
           lib/playback-observability.ts
           lib/system-health.ts
           lib/system-health-server.ts
+          lib/process-memory.ts
           components/HomeHeroCarousel.tsx
           lib/seo-episodes.ts
           lib/seo-episode-index.ts

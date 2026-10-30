@@ -39,6 +39,22 @@ function duration(value: number | null | undefined) {
   })} s`;
 }
 
+function mib(value: number) {
+  return number(value / (1024 * 1024), 1) + ' MiB';
+}
+
+function uptime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  const total = Math.floor(seconds);
+  const days = Math.floor(total / 86_400);
+  const hours = Math.floor((total % 86_400) / 3_600);
+  const minutes = Math.floor((total % 3_600) / 60);
+  if (days) return days + 'д ' + hours + 'ч';
+  if (hours) return hours + 'ч ' + minutes + 'м';
+  if (minutes) return minutes + 'м';
+  return 'меньше минуты';
+}
+
 function statusCopy(status: SystemHealthTone) {
   if (status === 'critical') return 'Требуется вмешательство';
   if (status === 'degraded') return 'Есть деградация';
@@ -424,6 +440,44 @@ export default function SystemHealthDashboard() {
               </small>
             </article>
           </div>
+
+
+          <section className={styles.panel + ' ' + styles.widePanel}>
+            <div className={styles.panelHead}>
+              <div>
+                <span>NODE PROCESS MEMORY</span>
+                <strong>Память текущего Node.js-процесса</strong>
+              </div>
+              <small>
+                uptime {uptime(health.processMemory.uptimeSeconds)} · снимок {time(health.processMemory.sampledAt)}
+              </small>
+            </div>
+            <dl className={styles.metrics}>
+              <div>
+                <dt>RSS процесса</dt>
+                <dd>{mib(health.processMemory.rssBytes)}</dd>
+              </div>
+              <div>
+                <dt>Heap used / total</dt>
+                <dd>
+                  {mib(health.processMemory.heapUsedBytes)}
+                  {' / '}
+                  {mib(health.processMemory.heapTotalBytes)}
+                </dd>
+              </div>
+              <div>
+                <dt>External</dt>
+                <dd>{mib(health.processMemory.externalBytes)}</dd>
+              </div>
+              <div>
+                <dt>ArrayBuffers</dt>
+                <dd>{mib(health.processMemory.arrayBuffersBytes)}</dd>
+              </div>
+            </dl>
+            <div className={styles.empty}>
+              Снимок одного Node.js-процесса в начале запроса диагностики. RSS включает heap и нативную память; ArrayBuffers уже входят в External — значения нельзя складывать.
+            </div>
+          </section>
 
           <div className={styles.grid}>
             <section className={`${styles.panel} ${styles.widePanel}`}>

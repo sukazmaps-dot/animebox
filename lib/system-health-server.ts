@@ -20,6 +20,7 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { getSeoIndexHealth } from '@/lib/seo-anime-index-server';
 import { getRuntimeControlSnapshot } from '@/lib/runtime-controls-server';
 import { getUpstreamRuntimeSnapshot } from '@/lib/upstream-resilience-server';
+import { getProcessMemorySnapshot } from '@/lib/process-memory';
 
 type ProviderSettingsRow = {
   provider_key: string;
@@ -530,6 +531,8 @@ function buildCapacityHealth(input: {
 }
 
 export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
+  // Sample before diagnostic queries allocate their result arrays.
+  const processMemory = getProcessMemorySnapshot();
   const admin = createSupabaseAdmin();
   const productionPromise = getProductionHealthSnapshot();
   const seoPromise = getSeoIndexHealth();
@@ -821,6 +824,7 @@ export async function getSystemHealthSnapshot(): Promise<SystemHealthSnapshot> {
   return {
     generatedAt: new Date().toISOString(),
     status,
+    processMemory,
     production,
     deployment: {
       environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'unknown',
