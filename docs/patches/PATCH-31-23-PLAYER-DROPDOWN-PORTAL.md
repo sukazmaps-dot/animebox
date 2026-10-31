@@ -8,7 +8,7 @@ Episode and voice selectors in `AnimePlayer` render their menus as absolutely po
 - Render the menu through a portal into `document.body`; while native fullscreen is active, portal into the fullscreen element so the menu remains visible there too.
 - Position the menu relative to the trigger using fixed viewport coordinates. Open upward when the lower space is insufficient, downward when there is room, and clamp horizontally.
 - Limit the option list to the available vertical space and keep it independently scrollable.
-- Preserve existing option data, selection callbacks, mobile native select, outside-click close, Escape close and focus return.
+- Preserve existing option data, selection callbacks, mobile native select, outside-click close, Escape close, focus return and synced Premium theme variables.
 
 ## Scope
 No database/API changes, migrations, dependencies, player source changes, Watch Together synchronization changes or global overflow overrides.
