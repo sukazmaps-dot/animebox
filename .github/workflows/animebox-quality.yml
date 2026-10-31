@@ -155,6 +155,15 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run css-cascade:check && npm run css-cascade:browser
 
+      - name: Player dropdown portal and viewport placement regression
+        env:
+          ESBUILD_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/esbuild
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
+        run: |
+          npm run player-dropdown:check
+          npx eslint components/AnimePlayer.tsx components/PlayerDropdown.tsx lib/player-dropdown-position.ts
+          node scripts/player-dropdown-portal-browser-smoke.cjs
+
       - name: Episode mobile player controls at 360px
         env:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
