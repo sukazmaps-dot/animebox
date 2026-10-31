@@ -24,6 +24,7 @@ async function main(){
       }
       createRoot(document.getElementById('app')).render(<React.StrictMode><Fixture/></React.StrictMode>);
     `,resolveDir:process.cwd(),loader:'tsx'},
+    alias:{'@':process.cwd()},
     bundle:true,write:false,outdir:'/tmp/player-dropdown-portal',format:'iife',
     define:{'process.env.NODE_ENV':'"development"'},
   });
