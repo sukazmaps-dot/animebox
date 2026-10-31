@@ -2319,6 +2319,7 @@ export default function AnimePlayer({
 
       <div className="watch-together-mobile-player-selectors">
         <PlayerDropdown
+          themeStyle={syncedPremiumTheme ? brandStyles : undefined}
           label="Серия"
           value={String(episodeNumber)}
           options={episodeOptions}
@@ -2328,6 +2329,7 @@ export default function AnimePlayer({
 
         {translationOptions.length > 0 && (
           <PlayerDropdown
+            themeStyle={syncedPremiumTheme ? brandStyles : undefined}
             label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
             value={String(activeTranslationIndex)}
             options={translationOptions}
@@ -2883,6 +2885,7 @@ export default function AnimePlayer({
 
           {showEpisodeSelector && (
             <PlayerDropdown
+              themeStyle={syncedPremiumTheme ? brandStyles : undefined}
               label="Серия"
               value={String(episodeNumber)}
               options={episodeOptions}
@@ -2893,6 +2896,7 @@ export default function AnimePlayer({
 
           {translationOptions.length > 0 && (
             <PlayerDropdown
+              themeStyle={syncedPremiumTheme ? brandStyles : undefined}
               label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
               value={String(activeTranslationIndex)}
               options={translationOptions}
