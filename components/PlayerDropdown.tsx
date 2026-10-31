@@ -105,7 +105,7 @@ export default function PlayerDropdown({label,value,options,onChange,icon,align=
   const menu=(
     <div ref={menuRef} id={menuId} role="listbox" aria-label={label}
       data-player-dropdown-menu data-placement={position.placement}
-      className={`player-dropdown-menu ${themeStyle?'is-premium-themed':''} fixed z-[11020] overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-surface)]/[0.98] shadow-[0_24px_70px_rgba(0,0,0,0.52),0_0_0_1px_rgba(255,255,255,0.025)] backdrop-blur-xl"
+      className={`player-dropdown-menu ${themeStyle?'is-premium-themed':''} fixed z-[11020] overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-surface)]/[0.98] shadow-[0_24px_70px_rgba(0,0,0,0.52),0_0_0_1px_rgba(255,255,255,0.025)] backdrop-blur-xl`}
       style={menuStyle}>
       <div className="border-b border-white/[0.05] px-3.5 py-3">
         <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/30">{label}</p>
