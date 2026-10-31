@@ -40,4 +40,14 @@ const cramped=calculatePlayerDropdownPosition({
 });
 assert.equal(cramped.placement,'top','when neither side fits, choose the larger side');
 assert(cramped.top>=0&&cramped.top+cramped.maxHeight<=260,'cramped viewport remains contained');
+const dropdownComponent=fs.readFileSync('components/PlayerDropdown.tsx','utf8');
+const animePlayer=fs.readFileSync('components/AnimePlayer.tsx','utf8');
+const premiumStyles=fs.readFileSync('app/premium-studio-v12.css','utf8');
+assert(dropdownComponent.includes('...themeStyle'),'portal must receive player theme variables');
+assert(dropdownComponent.includes("themeStyle?'is-premium-themed':''"),'portal should expose premium theme state');
+assert(animePlayer.includes('themeStyle={syncedPremiumTheme ? brandStyles : undefined}'),
+  'AnimePlayer must pass synced premium variables into dropdown portals');
+assert(premiumStyles.includes('.player-dropdown-menu.is-premium-themed .premium-player-dropdown-option.is-active'),
+  'premium active-option styling must also cover the portalled menu');
+
 console.log('PASS player dropdown geometry: upward/downward placement, viewport clamping and cramped heights.');
