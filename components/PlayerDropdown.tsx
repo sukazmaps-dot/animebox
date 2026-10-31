@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ReactNode, type CSSProperties } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { calculatePlayerDropdownPosition, type PlayerDropdownPosition } from '@/lib/player-dropdown-position';
 
@@ -25,7 +25,7 @@ export default function PlayerDropdown({label,value,options,onChange,icon,align=
   const menuId=useId();
   const selected=options.find(option=>option.id===value);
 
-  const updatePosition=()=>{
+  const updatePosition=useCallback(()=>{
     const rect=triggerRef.current?.getBoundingClientRect();
     if(!rect)return;
     setPosition(calculatePlayerDropdownPosition({
@@ -35,7 +35,7 @@ export default function PlayerDropdown({label,value,options,onChange,icon,align=
       viewportHeight:window.innerHeight,
       align,
     }));
-  };
+  },[align,options.length]);
 
   const openMenu=()=>{
     if(open){setOpen(false);return;}
@@ -92,7 +92,7 @@ export default function PlayerDropdown({label,value,options,onChange,icon,align=
       document.removeEventListener('keydown',onKeyDown);
       document.removeEventListener('fullscreenchange',onFullscreenChange);
     };
-  },[open,options.length,align]);
+  },[open,updatePosition]);
 
   const menuStyle:CSSProperties={
     position:'fixed',top:position.top,left:position.left,width:position.width,
