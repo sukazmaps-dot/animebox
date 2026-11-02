@@ -14,13 +14,12 @@ import Link from 'next/link';
 
 import AnimeImage from '@/components/AnimeImage';
 import Icon from '@/components/Icon';
-import AnimeBoxLoader from '@/components/ui/AnimeBoxLoader';
 import TelegramPromoCard from '@/components/TelegramPromoCard';
 import { useAuthState } from '@/components/AuthStateProvider';
 import { getPremiumMe } from '@/lib/entitlements-client';
 import { trackProductClientEvent } from '@/lib/product-events-client';
 import { getAnimes, isAbortError } from '@/lib/anime-client';
-import { getAnimeOriginalTitle, getAnimeTitle } from '@/lib/anime-display';
+import { getAnimeTitle } from '@/lib/anime-display';
 import { formatAnimeScore } from '@/lib/anime-score';
 import { parseAnimeSearchIntent } from '@/lib/search-intent';
 import {
@@ -98,6 +97,14 @@ type ResolveRoomResponse = {
 type RoomVisibility = 'public' | 'unlisted' | 'private';
 type RoomSort = 'popular' | 'recent' | 'available';
 
+const VISIBILITY_OPTIONS = [
+  ['unlisted', 'По ссылке', 'Видна только тем, у кого есть ссылка'],
+  ['public', 'Открытая', 'Появится в списке «Сейчас смотрят»'],
+  ['private', 'Приватная', 'Только по приглашению'],
+] as const;
+
+const LOGIN_HREF = '/login?next=' + encodeURIComponent('/watch-together');
+
 function roomStatusLabel(status: PublicWatchPartyRoom['status']) {
   if (status === 'watching') return 'Смотрят сейчас';
   if (status === 'paused') return 'На паузе';
@@ -145,7 +152,7 @@ function validInviteUrl(value: string) {
 }
 
 export default function WatchTogetherHub() {
-  const { user } = useAuthState();
+  const { user, loading: authLoading } = useAuthState();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Anime[]>([]);
   const [selected, setSelected] = useState<Anime | null>(null);
@@ -162,7 +169,6 @@ export default function WatchTogetherHub() {
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [roomsError, setRoomsError] = useState('');
   const [roomsNotice, setRoomsNotice] = useState('');
-  const [roomSearch, setRoomSearch] = useState('');
   const [roomSort, setRoomSort] = useState<RoomSort>('popular');
   const [createError, setCreateError] = useState('');
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
@@ -241,17 +247,7 @@ export default function WatchTogetherHub() {
   );
 
   const visibleRooms = useMemo(() => {
-    const needle = roomSearch.trim().toLocaleLowerCase('ru-RU');
-    const filtered = rooms.filter((room) => {
-      if (roomSort === 'available' && room.isFull) return false;
-      if (!needle) return true;
-      return [
-        room.animeTitle,
-        room.host.username,
-        room.roomCode,
-        String(room.episode),
-      ].some((value) => value.toLocaleLowerCase('ru-RU').includes(needle));
-    });
+    const filtered = rooms.filter((room) => roomSort !== 'available' || !room.isFull);
 
     return [...filtered].sort((left, right) => {
       if (roomSort === 'recent') {
@@ -269,7 +265,7 @@ export default function WatchTogetherHub() {
         Number(right.status === 'watching') - Number(left.status === 'watching') ||
         new Date(right.lastHeartbeatAt).getTime() - new Date(left.lastHeartbeatAt).getTime();
     });
-  }, [roomSearch, roomSort, rooms]);
+  }, [roomSort, rooms]);
 
   const viewerCount = useMemo(
     () => rooms.reduce((sum, room) => sum + room.participantCount, 0),
@@ -661,277 +657,71 @@ export default function WatchTogetherHub() {
     }
   }
 
+  const selectedVisibility = VISIBILITY_OPTIONS.find(([value]) => value === visibility);
+  const showRoomTabs = rooms.length > 3;
+  const showRoomsSection = (roomsLoading && rooms.length === 0) || rooms.length > 0 || Boolean(roomsError);
+
   return (
-    <main className={styles.page}>
-      <section className={styles.hero}>
-        <div className={styles.heroGlow} aria-hidden="true" />
-        <div className={styles.heroCopy}>
-          <span className={styles.eyebrow}>WATCH TOGETHER</span>
+    <main className={styles.v2Page} data-dock={selected ? 'open' : undefined}>
+      <header className={styles.v2Head}>
+        <div className={styles.v2HeadCopy}>
           <h1>Смотри аниме вместе с друзьями</h1>
-          <p>
-            Найди тайтл, выбери серию и создай комнату. Смотри
-            синхронно, общайся в чате и приглашай друзей по ссылке.
-          </p>
-          <div className={styles.features}>
-            <span><i />до 50 участников</span>
-            <span><i />чат комнаты</span>
-            <span><i />синхронное управление</span>
-          </div>
-          <div className={styles.heroActions}>
-            <a className={styles.heroPrimary} href="#create-room">
-              Создать комнату
-              <span aria-hidden="true">→</span>
-            </a>
-            <a className={styles.heroSecondary} href="#public-rooms">
-              Открытые комнаты
-              <span className={styles.liveDot} aria-hidden="true" />
-            </a>
-          </div>
+          <p>Выбери тайтл — и получи ссылку для друзей. Пауза и перемотка синхронны, есть чат.</p>
         </div>
 
-        <form className={styles.joinCard} onSubmit={joinInvite}>
-          <span className={styles.joinEyebrow}>Уже пригласили?</span>
-          <strong>Войти по ссылке или коду</strong>
-          <p>Вставь invite-ссылку или короткий код комнаты — AnimeBox откроет нужный просмотр.</p>
-          <div className={styles.joinInput}>
+        <form className={styles.v2Join} onSubmit={joinInvite}>
+          <label htmlFor="wt-invite">Есть ссылка или код?</label>
+          <div className={styles.v2JoinRow}>
             <input
+              id="wt-invite"
               aria-label="Ссылка или код комнаты"
-              aria-describedby={inviteError ? "room-invite-error" : undefined}
+              aria-describedby={inviteError ? 'room-invite-error' : undefined}
               aria-invalid={Boolean(inviteError)}
               maxLength={2048}
               value={inviteInput}
               onChange={(event) => setInviteInput(event.target.value)}
-              placeholder="ABC234 или https://youranimebox.com/watch-together/..."
+              placeholder="Код ABC234 или ссылка"
               autoComplete="off"
+              autoCapitalize="characters"
+              enterKeyHint="go"
             />
-            <button type="submit" disabled={joinPending}>
+            <button type="submit" disabled={joinPending || !inviteInput.trim()}>
               {joinPending ? 'Ищем…' : 'Войти'}
             </button>
           </div>
-          {inviteError && <span id="room-invite-error" role="alert" className={styles.error}>{inviteError}</span>}
+          {inviteError && (
+            <span id="room-invite-error" role="alert" className={styles.v2Error}>{inviteError}</span>
+          )}
           {lastRoom && (
-            <a className={styles.resume} href={lastRoom}>
+            <a className={styles.v2Resume} href={lastRoom}>
               Вернуться в последнюю комнату <Icon name="chevron" />
             </a>
           )}
         </form>
-      </section>
+      </header>
 
-      <section id="public-rooms" className={styles.publicRooms} aria-labelledby="public-rooms-title">
-        <div className={styles.publicRoomsTop}>
-          <div className={styles.sectionHead}>
-            <div>
-              <span>ОТКРЫТЫЕ КОМНАТЫ · LIVE</span>
-              <h2 id="public-rooms-title">Сейчас смотрят вместе</h2>
-            </div>
-            <button
-              type="button"
-              className={styles.refreshButton}
-              onClick={() => void loadPublicRooms(true)}
-              disabled={roomsLoading}
-            >
-              {roomsLoading ? 'Обновляем…' : 'Обновить'}
-            </button>
-          </div>
-
-          <div className={styles.lobbyStats} aria-label={`${viewerCount} зрителей в открытых комнатах`}>
-            <Icon name="users" width={18} height={18} />
-            <strong>{viewerCount}</strong>
-            <span>смотрят сейчас</span>
-          </div>
-        </div>
-
-        <div className={styles.lobbyToolbar}>
-          <div className={styles.lobbyTabs} role="tablist" aria-label="Сортировка комнат">
-            {([
-              ['popular', 'Популярные'],
-              ['recent', 'Новые'],
-              ['available', 'Есть места'],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={roomSort === value}
-                data-active={roomSort === value}
-                onClick={() => setRoomSort(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <label className={styles.roomSearch}>
+      <section id="create-room" className={styles.v2Pick} aria-labelledby="wt-pick-title">
+        <div className={styles.v2PickTop}>
+          <h2 id="wt-pick-title">Что будем смотреть?</h2>
+          <label className={styles.v2Search}>
             <Icon name="search" />
             <input
-              value={roomSearch}
-              onChange={(event) => setRoomSearch(event.target.value)}
-              placeholder="Аниме, host или код комнаты"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Название аниме"
               autoComplete="off"
-              aria-label="Поиск открытой комнаты"
+              enterKeyHint="search"
+              aria-label="Поиск аниме для совместного просмотра"
             />
-            {roomSearch && (
-              <button
-                type="button"
-                onClick={() => setRoomSearch('')}
-                aria-label="Очистить поиск комнат"
-              >
-                ×
-              </button>
+            {query && (
+              <button type="button" onClick={() => setQuery('')} aria-label="Очистить поиск">×</button>
             )}
           </label>
         </div>
 
-        {roomsNotice && <div className={styles.lobbyNotice}>{roomsNotice}</div>}
-
-        {roomsLoading && rooms.length === 0 ? (
-          <div className={styles.loading}>
-            <AnimeBoxLoader label="Ищем живые комнаты…" size={38} />
-          </div>
-        ) : roomsError && rooms.length === 0 ? (
-          <div className={styles.empty}>{roomsError}</div>
-        ) : rooms.length === 0 ? (
-          <div className={styles.publicEmpty}>
-            <span className={styles.emptyPulse} aria-hidden="true">✦</span>
-            <strong>Пока нет открытых комнат</strong>
-            <span>Запусти первую публичную комнату — она сразу появится в LIVE-лобби.</span>
-            <a href="#create-room">Создать публичную комнату →</a>
-          </div>
-        ) : visibleRooms.length === 0 ? (
-          <div className={styles.publicEmpty}>
-            <strong>Под этот фильтр комнат нет</strong>
-            <span>Сбрось поиск или переключись на другую подборку.</span>
-          </div>
-        ) : (
-          <div className={styles.publicRoomGrid}>
-            {visibleRooms.map((room) => {
-              const occupancy = Math.min(
-                100,
-                Math.round((room.participantCount / Math.max(1, room.maxParticipants)) * 100),
-              );
-
-              return (
-                <article
-                  className={styles.publicRoomCard}
-                  data-full={room.isFull ? 'true' : undefined}
-                  key={room.roomId}
-                >
-                  <div className={styles.publicRoomPoster}>
-                    {room.coverUrl ? (
-                      // Public room artwork can come from AniList/Shikimori/CDN
-                      // hosts that are not part of Next Image's static allowlist.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={room.coverUrl} alt="" loading="lazy" />
-                    ) : (
-                      <span>AB</span>
-                    )}
-                    <span className={styles.liveBadge}>
-                      <i />
-                      LIVE
-                    </span>
-                    <b>{room.participantCount}/{room.maxParticipants}</b>
-                  </div>
-
-                  <div className={styles.publicRoomCopy}>
-                    <div className={styles.roomMetaTop}>
-                      <span className={styles.roomStatus} data-status={room.status}>
-                        {roomStatusLabel(room.status)}
-                      </span>
-                      <span>{roomAgeLabel(room.createdAt)}</span>
-                    </div>
-
-                    <h3>{room.animeTitle}</h3>
-                    <p className={styles.roomEpisode}>Серия {room.episode}</p>
-
-                    <div className={styles.roomHostLine}>
-                      <span className={styles.roomHostAvatar}>
-                        {room.host.username.trim().slice(0, 1).toUpperCase() || '?'}
-                      </span>
-                      <span>
-                        <small>HOST</small>
-                        <strong>{room.host.username}</strong>
-                      </span>
-                    </div>
-
-                    <div className={styles.occupancy}>
-                      <div>
-                        <span style={{ width: `${occupancy}%` }} />
-                      </div>
-                      <small>
-                        {room.isFull
-                          ? 'Комната заполнена'
-                          : `Свободно ${room.maxParticipants - room.participantCount} мест`}
-                      </small>
-                    </div>
-
-                    <div className={styles.roomDetails}>
-                      <span>{room.language.toUpperCase()}</span>
-                      <span>Код {room.roomCode}</span>
-                      {room.roomTheme !== 'default' && (
-                        <span>✦ {WATCH_PARTY_THEME_META[room.roomTheme].label}</span>
-                      )}
-                    </div>
-
-                    <div className={styles.publicRoomActions}>
-                      {room.isFull ? (
-                        <span className={styles.fullRoomButton}>Заполнена</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => void joinPublicRoom(room)}
-                          disabled={joiningRoomId !== null}
-                        >
-                          {joiningRoomId === room.roomId
-                            ? 'Подключаем…'
-                            : 'Присоединиться'}
-                          <Icon name="chevron" />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => void reportRoom(room.roomId)}
-                        aria-label="Пожаловаться на комнату"
-                        title="Пожаловаться"
-                      >
-                        ···
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <TelegramPromoCard placement="watch_together" />
-
-      <section id="choose-anime" className={styles.builder}>
-        <div className={styles.sectionHead}>
-          <div>
-            <span>1 · ВЫБЕРИ АНИМЕ</span>
-            <h2>Что будем смотреть?</h2>
-          </div>
-          <Link href="/search">Открыть полный каталог →</Link>
-        </div>
-
-        <div className={styles.searchBox}>
-          <Icon name="search" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Например: Джоджо 5 сезон, One Piece, тщкфпфьш..."
-            autoComplete="off"
-            aria-label="Поиск аниме для совместного просмотра"
-          />
-          {query && (
-            <button type="button" onClick={() => setQuery('')} aria-label="Очистить поиск">×</button>
-          )}
-        </div>
-
         {intent && intent.titleQuery !== intent.normalized && (
-          <div className={styles.intent}>
-            AnimeBox понял: <strong>{intent.titleQuery}</strong>
+          <div className={styles.v2Intent}>
+            Ищем: <strong>{intent.titleQuery}</strong>
             {intent.seasonNumber ? <span>сезон {intent.seasonNumber}</span> : null}
             {intent.partNumber ? <span>часть {intent.partNumber}</span> : null}
             {intent.episodeNumber ? <span>серия {intent.episodeNumber}</span> : null}
@@ -939,254 +729,336 @@ export default function WatchTogetherHub() {
         )}
 
         {loading ? (
-          <div className={styles.loading}>
-            <AnimeBoxLoader label="Ищем подходящие тайтлы…" size={42} />
+          <div className={styles.v2Grid} aria-busy="true" aria-label="Загружаем тайтлы">
+            {Array.from({ length: 8 }, (_, index) => (
+              <span className={styles.v2Skeleton} key={index} />
+            ))}
           </div>
         ) : error ? (
-          <div className={styles.empty}>{error}</div>
+          <div className={styles.v2Empty}>{error}</div>
         ) : results.length ? (
-          <div className={styles.results}>
+          <div className={styles.v2Grid}>
             {results.map((anime) => {
               const title = getAnimeTitle(anime);
-              const originalTitle = getAnimeOriginalTitle(anime);
               const active = selected?.id === anime.id;
 
               return (
                 <button
                   type="button"
-                  className={styles.animeCard}
+                  className={styles.v2Card}
                   data-active={active ? 'true' : undefined}
+                  aria-pressed={active}
                   key={anime.id}
                   onClick={() => chooseAnime(anime)}
                 >
-                  <span className={styles.poster}>
+                  <span className={styles.v2Poster}>
                     <AnimeImage
                       image={anime.coverImage}
                       alt={title}
                       englishName={anime.title?.english || anime.title?.romaji}
                     />
                     <b>★ {formatAnimeScore(anime) ?? '—'}</b>
+                    {active && <i aria-hidden="true">✓</i>}
                   </span>
-                  <span className={styles.cardCopy}>
-                    <strong>{title}</strong>
-                    {originalTitle && <small>{originalTitle}</small>}
-                    <em>{anime.episodesAired || anime.episodes || '?'} эп.</em>
-                  </span>
-                  <span className={styles.check}>{active ? '✓' : '+'}</span>
+                  <strong>{title}</strong>
+                  <small>{anime.episodesAired || anime.episodes || '?'} эп.</small>
                 </button>
               );
             })}
           </div>
         ) : (
-          <div className={styles.empty}>Ничего не нашли. Попробуй написать название немного короче.</div>
+          <div className={styles.v2Empty}>Ничего не нашли. Попробуй написать название короче.</div>
         )}
+
+        <Link className={styles.v2More} href="/search">Весь каталог →</Link>
       </section>
 
-      <section id="create-room" className={styles.roomBuilder} data-ready={selected ? 'true' : undefined}>
-        <div className={styles.roomInfo}>
-          <span>2 · СОЗДАЙ КОМНАТУ</span>
-          <h2>{selected ? getAnimeTitle(selected) : 'Сначала выбери аниме'}</h2>
-          <p>
-            {selected
-              ? 'Выбери серию. После создания комнаты invite-ссылка автоматически скопируется, если браузер разрешит доступ к буферу.'
-              : 'После выбора тайтла здесь появятся настройки комнаты.'}
-          </p>
-        </div>
-
-        <div className={styles.visibilityPicker}>
-          <span>Кто может найти комнату</span>
-          <div>
-            {([
-              ['public', 'Открытая', 'Видна всем в разделе «Вместе»'],
-              ['unlisted', 'По ссылке', 'Не показывается в общем списке'],
-              ['private', 'Приватная', 'Только по приглашению'],
-            ] as const).map(([value, label, hint]) => (
-              <button
-                key={value}
-                type="button"
-                data-active={visibility === value}
-                onClick={() => setVisibility(value)}
-              >
-                <strong>{label}</strong>
-                <small>{hint}</small>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.premiumThemePicker}>
-          <div className={styles.premiumThemeHead}>
-            <span>Оформление комнаты</span>
-            <div>
-              <small>
-                {premiumStateLoading
-                  ? 'Проверяем Premium…'
-                  : premiumRoomThemes
-                    ? 'Premium Themes доступны'
-                    : 'Дополнительные темы — AnimeBox Premium'}
-              </small>
-              {!premiumStateLoading && !premiumRoomThemes && (
-                <Link href="/premium">Открыть Premium →</Link>
-              )}
+      {selected && (
+        <aside className={styles.v2Dock} aria-label="Настройки комнаты">
+          <div className={styles.v2DockHead}>
+            <span className={styles.v2DockPoster}>
+              <AnimeImage
+                image={selected.coverImage}
+                alt=""
+                englishName={selected.title?.english || selected.title?.romaji}
+              />
+            </span>
+            <div className={styles.v2DockTitle}>
+              <strong>{getAnimeTitle(selected)}</strong>
+              <small>Серия {episode} из {episodeLimit(selected)}</small>
             </div>
+            <button
+              type="button"
+              className={styles.v2DockClose}
+              onClick={() => setSelected(null)}
+              aria-label="Убрать выбор"
+            >
+              ×
+            </button>
           </div>
 
-          <div className={styles.premiumThemeGrid}>
-            {WATCH_PARTY_THEMES.map((theme) => {
-              const meta = WATCH_PARTY_THEME_META[theme];
-              const locked = meta.premium && !premiumRoomThemes;
-
-              return (
-                <button
-                  key={theme}
-                  type="button"
-                  data-theme={theme}
-                  data-active={roomTheme === theme}
-                  data-locked={locked || undefined}
-                  disabled={premiumStateLoading || locked}
-                  onClick={() => {
-                    setRoomTheme(theme);
-                    if (theme !== 'default') {
-                      trackProductClientEvent(
-                        'premium_watch_party_theme_selected',
-                        {
-                          source: 'watch_together_hub',
-                          path: '/watch-together',
-                          entityType: 'watch_party_theme',
-                          entityId: theme,
-                        },
-                      );
-                    }
-                  }}
-                >
-                  <i style={{ '--room-theme-accent': meta.accent } as CSSProperties} />
-                  <span>
-                    <strong>{meta.label}</strong>
-                    <small>{meta.description}</small>
-                  </span>
-                  {meta.premium && <em>✦ Premium</em>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={styles.roomControls}>
-          <label>
-            <span>Серия</span>
-            <div className={styles.episodeControl}>
+          <div className={styles.v2DockBody}>
+            <div className={styles.v2Stepper} role="group" aria-label="Серия">
               <button
                 type="button"
-                disabled={!selected || episode <= 1}
+                disabled={episode <= 1}
                 onClick={() => setEpisode((current) => Math.max(1, current - 1))}
+                aria-label="Предыдущая серия"
               >−</button>
               <input
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={episodeLimit(selected)}
                 value={episode}
-                disabled={!selected}
+                aria-label="Номер серии"
                 onChange={(event) => setEpisode(safeEpisode(Number(event.target.value), selected))}
               />
               <button
                 type="button"
-                disabled={!selected || episode >= episodeLimit(selected)}
+                disabled={episode >= episodeLimit(selected)}
                 onClick={() => setEpisode((current) => Math.min(episodeLimit(selected), current + 1))}
+                aria-label="Следующая серия"
               >+</button>
             </div>
-            <small>{selected ? `доступно до ${episodeLimit(selected)} серии` : '—'}</small>
-          </label>
 
-          <button
-            type="button"
-            className={styles.createButton}
-            disabled={!selected || creatingRoom}
-            onClick={() => void createRoom()}
-          >
-            <Icon name="users" />
-            <span>
-              <strong>{creatingRoom ? 'Создаём комнату…' : 'Создать комнату'}</strong>
-              <small>{visibility === 'public' ? 'появится в открытом lobby' : 'и пригласить друга'}</small>
-            </span>
-            <Icon name="chevron" />
-          </button>
-        </div>
-        {createError && <div className={styles.error}>{createError}</div>}
-      </section>
-      <section className={styles.seoContent} aria-labelledby="watch-together-guide">
-        <div className={styles.seoIntro}>
-          <span>СОВМЕСТНЫЙ ПРОСМОТР</span>
-          <h2 id="watch-together-guide">Как смотреть аниме вместе с другом онлайн</h2>
-          <p>
-            Watch Together в AnimeBox создан для совместного просмотра аниме через интернет.
-            Выберите тайтл и серию, создайте комнату и отправьте ссылку друзьям —
-            участники смогут смотреть одну серию вместе, даже находясь на расстоянии.
-          </p>
-        </div>
+            <div className={styles.v2Segment} role="radiogroup" aria-label="Кто может найти комнату">
+              {VISIBILITY_OPTIONS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={visibility === value}
+                  data-active={visibility === value}
+                  onClick={() => setVisibility(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
-        <div className={styles.stepGrid}>
-          <article>
-            <b>01</b>
-            <h3>Выберите аниме</h3>
-            <p>Найдите нужный тайтл в каталоге AnimeBox и укажите серию для совместного просмотра.</p>
-          </article>
-          <article>
-            <b>02</b>
-            <h3>Создайте комнату</h3>
-            <p>AnimeBox создаст Watch Together комнату выбранной видимости и подготовит invite-ссылку.</p>
-          </article>
-          <article>
-            <b>03</b>
-            <h3>Пригласите друзей</h3>
-            <p>Отправьте ссылку другу и смотрите аниме синхронно с общим управлением и чатом.</p>
-          </article>
-        </div>
-
-        <div className={styles.seoSplit}>
-          <article>
-            <h2>Смотреть аниме вместе, даже если вы далеко</h2>
-            <p>
-              Совместный просмотр не требует находиться рядом. Комната работает через интернет:
-              можно запустить аниме вдвоём или собрать друзей и продолжить просмотр с разных устройств.
-            </p>
-          </article>
-          <article>
-            <h2>Смотреть видео вместе с другом — без лишней настройки</h2>
-            <p>
-              Если речь об аниме из каталога AnimeBox, отдельный сервис не нужен. Watch Together
-              объединяет выбор серии, приватное приглашение, синхронное управление и чат в одном месте.
-            </p>
-          </article>
-        </div>
-
-        <div className={styles.faq}>
-          <span>FAQ</span>
-          <h2>Вопросы о Watch Together</h2>
-          <div className={styles.faqList}>
-            <details>
-              <summary>Как смотреть аниме вместе с другом онлайн?</summary>
-              <p>Откройте Watch Together, выберите аниме и серию, создайте комнату и отправьте друзьям invite-ссылку или откройте её в публичном lobby.</p>
-            </details>
-            <details>
-              <summary>Можно ли смотреть аниме вместе на расстоянии?</summary>
-              <p>Да. Комната работает через интернет, поэтому участники могут смотреть одну серию вместе, находясь в разных местах.</p>
-            </details>
-            <details>
-              <summary>Синхронизируются ли пауза и перемотка?</summary>
-              <p>Watch Together синхронизирует управление просмотром между участниками комнаты: воспроизведение, паузу и перемотку.</p>
-            </details>
-            <details>
-              <summary>Сколько человек может смотреть вместе?</summary>
-              <p>Одна комната AnimeBox Watch Together рассчитана максимум на 50 участников. Видео каждый зритель получает напрямую от плеера, а AnimeBox синхронизирует только лёгкие события комнаты.</p>
-            </details>
-            <details>
-              <summary>Нужен ли отдельный сервис, чтобы смотреть видео вместе с другом?</summary>
-              <p>Для аниме из каталога AnimeBox отдельный сервис не нужен: выберите тайтл в Watch Together и создайте комнату.</p>
-            </details>
+            {!authLoading && !user?.id ? (
+              <Link className={styles.v2Create} href={LOGIN_HREF}>
+                Войти и создать комнату
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className={styles.v2Create}
+                disabled={creatingRoom || authLoading}
+                onClick={() => void createRoom()}
+              >
+                {creatingRoom ? 'Создаём…' : authLoading ? 'Проверяем вход…' : 'Создать комнату'}
+              </button>
+            )}
           </div>
+
+          <p className={styles.v2Hint}>{selectedVisibility?.[2]}</p>
+          {createError && <div className={styles.v2Error} role="alert">{createError}</div>}
+
+          <details className={styles.v2Themes} data-component="premiumThemePicker">
+            <summary>
+              Оформление комнаты
+              {roomTheme !== 'default' && <em>{WATCH_PARTY_THEME_META[roomTheme].label}</em>}
+            </summary>
+
+            <div className={styles.v2ThemeGrid}>
+              {WATCH_PARTY_THEMES.map((theme) => {
+                const meta = WATCH_PARTY_THEME_META[theme];
+                const locked = meta.premium && !premiumRoomThemes;
+
+                return (
+                  <button
+                    key={theme}
+                    type="button"
+                    data-theme={theme}
+                    data-active={roomTheme === theme}
+                    data-locked={locked || undefined}
+                    disabled={premiumStateLoading || locked}
+                    title={meta.description}
+                    onClick={() => {
+                      setRoomTheme(theme);
+                      if (theme !== 'default') {
+                        trackProductClientEvent(
+                          'premium_watch_party_theme_selected',
+                          {
+                            source: 'watch_together_hub',
+                            path: '/watch-together',
+                            entityType: 'watch_party_theme',
+                            entityId: theme,
+                          },
+                        );
+                      }
+                    }}
+                  >
+                    <i style={{ '--room-theme-accent': meta.accent } as CSSProperties} />
+                    {meta.label}
+                    {locked && <b aria-hidden="true">✦</b>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {!premiumStateLoading && !premiumRoomThemes && (
+              <Link className={styles.v2Link} href="/premium">Больше тем — в AnimeBox Premium →</Link>
+            )}
+          </details>
+        </aside>
+      )}
+
+      {showRoomsSection && (
+        <section id="public-rooms" className={styles.v2Rooms} aria-labelledby="public-rooms-title">
+          <div className={styles.v2RoomsTop}>
+            <h2 id="public-rooms-title">
+              Сейчас смотрят вместе
+              {viewerCount > 0 && <span>{viewerCount}</span>}
+            </h2>
+            {showRoomTabs && (
+              <div className={styles.v2Tabs} role="group" aria-label="Сортировка комнат">
+                {([
+                  ['popular', 'Популярные'],
+                  ['recent', 'Новые'],
+                  ['available', 'Есть места'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={roomSort === value}
+                    data-active={roomSort === value}
+                    onClick={() => setRoomSort(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {roomsNotice && <div className={styles.v2Notice} role="status">{roomsNotice}</div>}
+
+          {roomsLoading && rooms.length === 0 ? (
+            <div className={styles.v2RoomList} aria-busy="true">
+              {Array.from({ length: 3 }, (_, index) => (
+                <span className={styles.v2RoomSkeleton} key={index} />
+              ))}
+            </div>
+          ) : roomsError && rooms.length === 0 ? (
+            <div className={styles.v2Empty}>
+              {roomsError}{' '}
+              <button type="button" className={styles.v2Link} onClick={() => void loadPublicRooms(true)}>
+                Повторить
+              </button>
+            </div>
+          ) : (
+            <div className={styles.v2RoomList}>
+              {visibleRooms.map((room) => (
+                <article
+                  className={styles.v2Room}
+                  data-full={room.isFull ? 'true' : undefined}
+                  key={room.roomId}
+                >
+                  <span className={styles.v2RoomPoster}>
+                    {room.coverUrl ? (
+                      // Public room artwork can come from AniList/Shikimori/CDN hosts outside Next Image's allowlist.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={room.coverUrl} alt="" loading="lazy" />
+                    ) : (
+                      <span>AB</span>
+                    )}
+                  </span>
+
+                  <div className={styles.v2RoomCopy}>
+                    <h3>{room.animeTitle}</h3>
+                    <p>Серия {room.episode} · {room.host.username}</p>
+                    <p className={styles.v2RoomMeta}>
+                      <span data-status={room.status}>
+                        <i aria-hidden="true" />
+                        {roomStatusLabel(room.status)}
+                      </span>
+                      <span>{room.participantCount}/{room.maxParticipants}</span>
+                      <span>{roomAgeLabel(room.createdAt)}</span>
+                    </p>
+                  </div>
+
+                  <div className={styles.v2RoomActions}>
+                    {room.isFull ? (
+                      <span className={styles.v2Full}>Заполнена</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.v2JoinBtn}
+                        onClick={() => void joinPublicRoom(room)}
+                        disabled={joiningRoomId !== null}
+                      >
+                        {joiningRoomId === room.roomId ? 'Подключаем…' : 'Войти'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.v2Kebab}
+                      onClick={() => void reportRoom(room.roomId)}
+                      aria-label="Пожаловаться на комнату"
+                      title="Пожаловаться"
+                    >
+                      ···
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      <TelegramPromoCard placement="watch_together" />
+
+      <section className={styles.v2Seo} aria-labelledby="watch-together-guide">
+        <h2 id="watch-together-guide">Как смотреть аниме вместе с другом онлайн</h2>
+        <p>
+          Watch Together в AnimeBox создан для совместного просмотра аниме через интернет.
+          Выберите тайтл и серию, создайте комнату и отправьте ссылку друзьям —
+          участники смогут смотреть одну серию вместе, даже находясь на расстоянии.
+        </p>
+        <ol>
+          <li><strong>Выберите аниме.</strong> Найдите нужный тайтл в каталоге AnimeBox и укажите серию для совместного просмотра.</li>
+          <li><strong>Создайте комнату.</strong> AnimeBox создаст Watch Together комнату выбранной видимости и подготовит invite-ссылку.</li>
+          <li><strong>Пригласите друзей.</strong> Отправьте ссылку другу и смотрите аниме синхронно с общим управлением и чатом.</li>
+        </ol>
+        <h3>Смотреть аниме вместе, даже если вы далеко</h3>
+        <p>
+          Совместный просмотр не требует находиться рядом. Комната работает через интернет:
+          можно запустить аниме вдвоём или собрать друзей и продолжить просмотр с разных устройств.
+        </p>
+        <h3>Смотреть видео вместе с другом — без лишней настройки</h3>
+        <p>
+          Если речь об аниме из каталога AnimeBox, отдельный сервис не нужен. Watch Together
+          объединяет выбор серии, приватное приглашение, синхронное управление и чат в одном месте.
+        </p>
+
+        <h2>Вопросы о Watch Together</h2>
+        <div className={styles.v2Faq}>
+          <details>
+            <summary>Как смотреть аниме вместе с другом онлайн?</summary>
+            <p>Откройте Watch Together, выберите аниме и серию, создайте комнату и отправьте друзьям invite-ссылку или откройте её в публичном lobby.</p>
+          </details>
+          <details>
+            <summary>Можно ли смотреть аниме вместе на расстоянии?</summary>
+            <p>Да. Комната работает через интернет, поэтому участники могут смотреть одну серию вместе, находясь в разных местах.</p>
+          </details>
+          <details>
+            <summary>Синхронизируются ли пауза и перемотка?</summary>
+            <p>Watch Together синхронизирует управление просмотром между участниками комнаты: воспроизведение, паузу и перемотку.</p>
+          </details>
+          <details>
+            <summary>Сколько человек может смотреть вместе?</summary>
+            <p>Одна комната AnimeBox Watch Together рассчитана максимум на 50 участников. Видео каждый зритель получает напрямую от плеера, а AnimeBox синхронизирует только лёгкие события комнаты.</p>
+          </details>
+          <details>
+            <summary>Нужен ли отдельный сервис, чтобы смотреть видео вместе с другом?</summary>
+            <p>Для аниме из каталога AnimeBox отдельный сервис не нужен: выберите тайтл в Watch Together и создайте комнату.</p>
+          </details>
         </div>
       </section>
-
     </main>
   );
 }
