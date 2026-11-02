@@ -703,7 +703,7 @@ export default function WatchTogetherHub() {
       <section id="create-room" className={styles.v2Pick} aria-labelledby="wt-pick-title">
         <div className={styles.v2PickTop}>
           <h2 id="wt-pick-title">Что будем смотреть?</h2>
-          <label className={styles.v2Search}>
+          <div className={styles.v2Search}>
             <Icon name="search" />
             <input
               value={query}
@@ -716,7 +716,7 @@ export default function WatchTogetherHub() {
             {query && (
               <button type="button" onClick={() => setQuery('')} aria-label="Очистить поиск">×</button>
             )}
-          </label>
+          </div>
         </div>
 
         {intent && intent.titleQuery !== intent.normalized && (
@@ -949,6 +949,8 @@ export default function WatchTogetherHub() {
                 Повторить
               </button>
             </div>
+          ) : visibleRooms.length === 0 ? (
+            <div className={styles.v2Empty}>Сейчас нет свободных комнат с такими условиями.</div>
           ) : (
             <div className={styles.v2RoomList}>
               {visibleRooms.map((room) => (
