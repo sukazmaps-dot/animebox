@@ -25,5 +25,6 @@ assert(anilist.includes('nextEpisodeAiringAt: media.nextAiringEpisode?.airingAt 
 assert(animeType.includes('nextEpisodeAiringAt?: number | null'));
 assert(page.includes('<AnimeDetailAiringCountdown') && page.includes('airingAt={resolved.nextEpisodeAiringAt}'));
 assert(component.includes('window.setInterval(update, 1000)'));
+assert(component.includes('if (!hasSchedule) return;'), 'no idle interval when AniList has no confirmed airing slot');
 assert(component.includes('aria-live="off"') && css.includes(".root[data-state='elapsed']"));
 console.log('PASS anime detail countdown: AniList mapping, formatting, expiry, fallback and accessible timer');
