@@ -122,6 +122,9 @@ jobs:
           PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/animebox-browser/node_modules/playwright
         run: npm run anime-layout:check
 
+      - name: Anime detail next-airing countdown and metadata regression
+        run: npm run anime-detail-countdown:check
+
       - name: Phase 3D before-after browser and screenshot parity
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 280
         env:
