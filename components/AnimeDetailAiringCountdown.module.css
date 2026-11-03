@@ -1,0 +1,18 @@
+.root {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--ab-ui-border);
+  border-radius: 9px;
+  background: var(--ab-ui-surface);
+}
+.label { color: var(--ab-ui-muted); font-size: 11px; line-height: 1.3; }
+.value { color: var(--ab-ui-accent); font-size: 13px; font-weight: 750; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.root[data-state='elapsed'] .value { color: var(--ab-ui-muted); }
+@media (max-width: 767px) {
+  .root { flex: 0 1 100%; width: max-content; max-width: 100%; margin-top: 2px; }
+  .value { font-size: 12px; }
+}

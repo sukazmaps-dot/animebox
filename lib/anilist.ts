@@ -213,7 +213,7 @@ function mapMediaToAnime(
     popularity?: number | null;
     favourites?: number | null;
     episodes?: number | null;
-    nextAiringEpisode?: { episode?: number | null } | null;
+    nextAiringEpisode?: { episode?: number | null; airingAt?: number | null } | null;
     duration?: number | null;
     status?: string | null;
     format?: string | null;
@@ -301,6 +301,8 @@ function mapMediaToAnime(
     episodes:
       media.episodes ?? null,
     episodesAired: media.nextAiringEpisode?.episode ? Math.max(0, media.nextAiringEpisode.episode - 1) : null,
+    nextEpisodeNumber: media.nextAiringEpisode?.episode ?? null,
+    nextEpisodeAiringAt: media.nextAiringEpisode?.airingAt ?? null,
 
     duration:
       media.duration ?? null,
@@ -931,7 +933,7 @@ const BY_ID_QUERY = `
       description(asHtml: false)
       averageScore
       episodes
-      nextAiringEpisode { episode }
+      nextAiringEpisode { episode airingAt }
       duration
       status
       format

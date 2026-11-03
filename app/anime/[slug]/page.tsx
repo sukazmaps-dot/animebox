@@ -18,6 +18,7 @@ import AnimeFranchise, {
 
 import AnimeImageCascade from '@/components/AnimeImageCascade';
 import AnimeDetailControls from '@/components/AnimeDetailControls';
+import AnimeDetailAiringCountdown from '@/components/AnimeDetailAiringCountdown';
 import AnimeNotificationControl from '@/components/AnimeNotificationControl';
 import AnimeRatingControl from '@/components/AnimeRatingControl';
 import EpisodeDiscussionHub from '@/components/EpisodeDiscussionHub';
@@ -538,6 +539,10 @@ export default async function AnimePage({
             <section className={layout.episodes} aria-labelledby="anime-episodes-title">
               <div className={layout.sectionHead}>
                 <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
+                <AnimeDetailAiringCountdown
+                  episode={resolved.nextEpisodeNumber}
+                  airingAt={resolved.nextEpisodeAiringAt}
+                />
               </div>
               <EpisodeList trackingAnimeId={numericId} animeId={resolved.slug}
                 episodes={anime.episodes} episodesAired={anime.episodes_aired}

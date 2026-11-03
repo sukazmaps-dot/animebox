@@ -46,6 +46,10 @@ export type Anime = {
   favourites?: number | null;
   episodes?: number | null;
   episodesAired?: number | null;
+  /** Next AniList episode number, when it has a confirmed airing slot. */
+  nextEpisodeNumber?: number | null;
+  /** Unix timestamp (seconds) from AniList nextAiringEpisode.airingAt. */
+  nextEpisodeAiringAt?: number | null;
   duration?: number | null;
   status?: string | null;
   format?: string | null;
