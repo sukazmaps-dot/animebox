@@ -45,3 +45,23 @@
 @media (max-width: 767px) { .media { grid-template-columns: 80px minmax(0, 1fr) 28px; min-height: 68px; } .media .thumbnail { width: 80px; height: 45px; min-height: 45px; } }
 :global(html[data-animebox-theme='light']) .shell:global(.episode-list-shell) :global(.episode-list__jump) input { background: #fff !important; border-color: var(--ab-ui-accent) !important; color: var(--ab-ui-text) !important; }
 :global(html[data-animebox-theme='light']) .shell:global(.episode-list-shell) :global(.episode-list__jump) button { color: var(--ab-ui-accent) !important; background: var(--ab-ui-surface) !important; border-color: var(--ab-ui-accent) !important; }
+
+ 
+/* Anime detail redesign: last released episode marker. */
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--ab-ui-accent) 45%, var(--ab-ui-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ab-ui-accent) 14%, var(--ab-ui-surface));
+  color: var(--ab-ui-text);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: 1px;
+}
+.card[data-episode-latest='true']:not(.current) {
+  border-color: color-mix(in srgb, var(--ab-ui-accent) 55%, var(--ab-ui-border));
+}
+.card:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 3px; }

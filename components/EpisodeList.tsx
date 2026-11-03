@@ -877,6 +877,14 @@ export default function EpisodeList({
                 return <CinematicEpisodeCard key={`${selectedAnimeId}:${number}`} slug={selectedAnimeSlug}
                   number={number} percent={percent} current={isCurrent} completed={isCompleted}
                   positionMs={progress?.positionMs}
+                  latest={Boolean(
+                    selectedIsCurrent &&
+                    typeof episodes === 'number' &&
+                    typeof episodesAired === 'number' &&
+                    episodesAired > 0 &&
+                    episodesAired < episodes &&
+                    number === episodesAired
+                  )}
                   detail={availability?.episodeDetails?.find((item) => item.episode === number)} />;
               }
 

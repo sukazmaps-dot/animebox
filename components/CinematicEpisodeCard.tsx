@@ -3,7 +3,7 @@ import AnimeImageCascade from '@/components/AnimeImageCascade';
 import type { EpisodePresentation } from '@/types/episode-availability';
 import styles from './CinematicEpisodeList.module.css';
 
-export default function CinematicEpisodeCard({ slug, number, detail, percent, current, completed, positionMs }: {
+export default function CinematicEpisodeCard({ slug, number, detail, percent, current, completed, positionMs, latest }: {
   slug: string;
   number: number;
   detail?: EpisodePresentation;
@@ -11,6 +11,7 @@ export default function CinematicEpisodeCard({ slug, number, detail, percent, cu
   current: boolean;
   completed: boolean;
   positionMs?: number;
+  latest?: boolean;
 }) {
   const status = current ? 'Сейчас' : completed ? 'Просмотрено' : percent > 0 ? `${percent}% просмотрено` : '';
   const resumeSeconds = Math.floor((positionMs || 0) / 1000);
@@ -18,8 +19,9 @@ export default function CinematicEpisodeCard({ slug, number, detail, percent, cu
     <Link href={`/anime/${slug}/episode/${number}`} prefetch={false} role="listitem"
       className={`${styles.card} ${detail?.thumbnailUrl ? styles.media : ''} ${current ? styles.current : ''} ${completed ? styles.completed : ''}`}
       aria-current={current ? 'page' : undefined}
-      aria-label={`Серия ${number}${detail?.title ? `: ${detail.title}` : ''}${status ? `, ${status}` : ''}`}
+      aria-label={`Серия ${number}${detail?.title ? `: ${detail.title}` : ''}${latest ? ', новая серия' : ''}${status ? `, ${status}` : ''}`}
       data-episode-current={current ? 'true' : undefined}
+      data-episode-latest={latest ? 'true' : undefined}
       data-episode-state={current ? 'current' : completed ? 'completed' : percent > 0 ? 'partial' : 'unwatched'}>
       <span className={`${styles.visual} ${detail?.thumbnailUrl ? styles.thumbnail : ''}`} aria-hidden="true">
         {detail?.thumbnailUrl ? <AnimeImageCascade sources={[detail.thumbnailUrl]} alt="" loading="lazy"
@@ -27,7 +29,7 @@ export default function CinematicEpisodeCard({ slug, number, detail, percent, cu
         {percent > 0 && <span className={styles.progress}><i style={{ width: `${percent}%` }} /></span>}
       </span>
       <span className={styles.copy}>
-        <span className={styles.title}>{detail?.title || `Серия ${number}`}</span>
+        <span className={styles.title}>{detail?.title || `Серия ${number}`}{latest && <span className={styles.badge}>Новая</span>}</span>
         {detail?.title && <span className={styles.subtitle}>Эпизод {number}</span>}
         {detail?.description && <span className={styles.summary}>{detail.description}</span>}
         <span className={styles.status}>

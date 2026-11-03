@@ -381,9 +381,12 @@ export default function AnimeDetailControls({
           title={favorite ? 'Убрать из избранного' : 'Добавить в избранное'}
         >
           {variant === 'cinematic' ? (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill={favorite ? 'currentColor' : 'none'} aria-hidden="true">
-              <path d="M12 20s-8-4.6-8-10a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.4-8 10-8 10Z" stroke="currentColor" strokeWidth="1.7" />
-            </svg>
+            <>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill={favorite ? 'currentColor' : 'none'} aria-hidden="true">
+                <path d="M12 20s-8-4.6-8-10a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.4-8 10-8 10Z" stroke="currentColor" strokeWidth="1.7" />
+              </svg>
+              <span className={cinema.btnLabel} aria-hidden="true">{favorite ? 'В избранном' : 'В избранное'}</span>
+            </>
           ) : favorite ? '♥ В избранном' : '♡ В избранное'}
         </button>
 
@@ -397,9 +400,12 @@ export default function AnimeDetailControls({
             title={trackerBusy ? 'Сохраняем…' : 'Добавить в трекер'}
           >
             {variant === 'cinematic' ? (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
+              <>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                <span className={cinema.btnLabel} aria-hidden="true">{trackerBusy ? 'Сохраняем…' : 'В трекер'}</span>
+              </>
             ) : trackerBusy ? 'Сохраняем…' : '＋ В трекер'}
           </button>
         )}
