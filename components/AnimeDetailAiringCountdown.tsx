@@ -12,15 +12,21 @@ type AnimeDetailAiringCountdownProps = {
 
 export default function AnimeDetailAiringCountdown({ episode, airingAt }: AnimeDetailAiringCountdownProps) {
   const [now, setNow] = useState<number | null>(null);
+  const hasSchedule =
+    Number.isSafeInteger(episode) &&
+    Number.isSafeInteger(airingAt) &&
+    Boolean(episode && episode > 0 && airingAt && airingAt > 0);
 
   useEffect(() => {
+    if (!hasSchedule) return;
+
     const update = () => setNow(Date.now());
     update();
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [hasSchedule]);
 
-  if (!Number.isSafeInteger(episode) || !Number.isSafeInteger(airingAt) || !episode || episode < 1 || !airingAt || airingAt < 1) return null;
+  if (!hasSchedule || !episode || !airingAt) return null;
 
   const snapshot = now === null ? null : getAiringCountdown(airingAt, now);
   const expired = snapshot?.state === 'elapsed';
