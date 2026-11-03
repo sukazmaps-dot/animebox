@@ -15,3 +15,4 @@ export function getAiringCountdown(airingAt: number, nowMs: number): AiringCount
   if (hours > 0) return { state: 'countdown', label: hours + ' ч ' + minutes + ' мин ' + seconds + ' сек' };
   if (minutes > 0) return { state: 'countdown', label: seconds > 0 ? minutes + ' мин ' + seconds + ' сек' : minutes + ' мин' };
   return { state: 'countdown', label: seconds + ' сек' };
+}
