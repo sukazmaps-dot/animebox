@@ -537,8 +537,7 @@ export default async function AnimePage({
           {!playbackRestricted && (
             <section className={layout.episodes} aria-labelledby="anime-episodes-title">
               <div className={layout.sectionHead}>
-                <div><span>ПРОДОЛЖАЙ ИСТОРИЮ</span><h2 id="anime-episodes-title">Сезоны и эпизоды</h2></div>
-                <Link href={`${animeHref(resolved)}/watch`}>Открыть просмотр →</Link>
+                <h2 id="anime-episodes-title">Сезоны и эпизоды</h2>
               </div>
               <EpisodeList trackingAnimeId={numericId} animeId={resolved.slug}
                 episodes={anime.episodes} episodesAired={anime.episodes_aired}
