@@ -185,3 +185,35 @@
   .heroContent, .identity, .description, .discussion { min-width: 0; max-width: 100%; }
   .backdrop { width: 100%; overflow: hidden; }
 }
+
+ 
+/* Anime detail redesign: compact metadata, clearer hierarchy and no empty rail gap. */
+.sectionHead h2 { margin-top: 0; }
+.genres { gap: 8px; }
+.genres > a {
+  min-height: 34px;
+  padding: 4px 10px;
+  border: 1px solid var(--ab-ui-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ab-ui-raised) 60%, transparent);
+}
+.genres > a:hover { border-color: var(--ab-ui-accent); text-decoration: none; }
+.genres > a:focus-visible { outline: 2px solid var(--ab-ui-accent); outline-offset: 2px; }
+.related:not(:has(*)) { display: none; }
+.aliases + .franchise { margin-top: -22px; border-top: 0; }
+@media (max-width: 767px) {
+  /* Reserve the full poster height inside the identity row before facts render. */
+  .withPoster .identity { min-height: clamp(143px, calc(42vw + 8px), 176px); }
+  .facts { gap: 6px; }
+  .facts > span + span::before { content: none; margin: 0; }
+  .facts > span {
+    padding: 3px 9px;
+    border: 1px solid var(--ab-ui-border);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--ab-ui-raised) 70%, transparent);
+    line-height: 1.5;
+  }
+  .facts .score { background: transparent; border-color: transparent; padding-inline: 2px; }
+  .mainColumn { gap: 16px; }
+  .aliases + .franchise { margin-top: -16px; }
+}
