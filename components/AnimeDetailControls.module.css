@@ -14,3 +14,31 @@
   .actions:global(.anime-detail-actions) :global(.anime-detail-actions__watch) { flex: 1 0 100% !important; min-width: 0 !important; }
   .resume { max-width: none; }
 }
+
+ 
+/* Anime detail redesign: labelled secondary actions on phones only. */
+.btnLabel { display: none; }
+@media (max-width: 767px) {
+  .actions:global(.anime-detail-actions) :global(.anime-detail-actions__favorite.btn),
+  .actions:global(.anime-detail-actions) :global(.anime-detail-actions__tracker.btn) {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 0 12px !important;
+    gap: 8px !important;
+    border-radius: 10px !important;
+  }
+  .btnLabel {
+    display: inline;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
