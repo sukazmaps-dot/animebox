@@ -147,3 +147,11 @@ html .tracker-page .tracker-guest__eyebrow { color:var(--ab-ui-accent)!important
 html .tracker-page .tracker-guest__cta { background:var(--ab-ui-primary)!important; color:var(--ab-ui-primary-text)!important; border-color:var(--ab-ui-primary)!important; box-shadow:none!important; min-height:44px; }
 .tracker-page .tracker-guest__icon-core .ab-icon-core__shell { background:var(--ab-ui-raised); border-color:var(--ab-ui-border); box-shadow:none; }
 .tracker-page :is(.tracker-guest__books,.tracker-guest__spark) { color:var(--ab-ui-accent); filter:none; }
+
+
+/* Portal menu is mounted under document.body, outside .tracker-page. */
+html .episode-library-compact__menu[data-episode-library-menu] {
+  background: var(--ab-ui-raised) !important;
+  border-color: var(--ab-ui-border) !important;
+  color: var(--ab-ui-text);
+}
