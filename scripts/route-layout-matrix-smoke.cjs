@@ -193,6 +193,8 @@ async function settleTheme(page) {
   // then replay the *real* layout CSS ownership/import order from source.
   const rootImports=[...((await read('app/layout.tsx')).matchAll(/import '\.\/([^']+\.css)'/g))]
     .map(m=>'app/'+m[1]);
+  const listImports=[...((await read('app/list/layout.tsx')).matchAll(/import '\.\.\/([^']+\.css)'/g))]
+    .map(m=>'app/'+m[1]);
   const profileImports=[...((await read('app/profile/layout.tsx')).matchAll(/import '\.\.\/([^']+\.css)'/g))]
     .map(m=>'app/'+m[1]);
   const animeImports=[...((await read('app/anime/[slug]/layout.tsx')).matchAll(/import '\.\.\/\.\.\/([^']+\.css)'/g))]
@@ -201,7 +203,8 @@ async function settleTheme(page) {
     return (await Promise.all(files.map(read))).map(s=>s.replace(/@import[^;]+;/g,'')).join('\n');
   }
   const assetsStyle=css+'\n'+await inSourceOrder(rootImports)+'\n'+
-    await inSourceOrder(profileImports)+'\n'+await inSourceOrder(animeImports)+'\n'+modules.join('\n');
+    await inSourceOrder(listImports)+'\n'+await inSourceOrder(profileImports)+'\n'+
+    await inSourceOrder(animeImports)+'\n'+modules.join('\n');
   const browser=await chromium.launch({headless:true,args:['--no-sandbox'],
     ...(process.env.CHROMIUM_PATH ? {executablePath:process.env.CHROMIUM_PATH}: {})});
   let cases=0;
@@ -322,6 +325,75 @@ async function settleTheme(page) {
           }
           const resume=await page.locator('.tracker-card__progress a').first().boundingBox();
           assert(resume&&resume.height>=44,tag+': resume touch action too short');
+
+          const portal = await page.evaluate(() => {
+            const labels = [
+              ['Смотрю', '/brand/icons/watching.svg'],
+              ['В планах', '/brand/icons/planned.svg'],
+              ['Просмотрено', '/brand/icons/completed.svg'],
+              ['Брошено', '/brand/icons/dropped.svg'],
+            ];
+            const menu = document.createElement('div');
+            menu.className = 'episode-library-compact__menu';
+            menu.dataset.episodeLibraryMenu = '';
+            Object.assign(menu.style, {
+              position: 'fixed',
+              top: '100px',
+              left: '12px',
+              width: Math.min(250, innerWidth - 24) + 'px',
+              minWidth: Math.min(250, innerWidth - 24) + 'px',
+              maxHeight: '220px',
+              overflowY: 'auto',
+              zIndex: '10050',
+            });
+            menu.innerHTML = labels.map(([label, icon]) =>
+              '<button type="button" role="menuitemradio"><span class="episode-library-compact__menu-icon">' +
+              '<img src="' + icon + '" alt=""></span><span>' + label + '</span></button>'
+            ).join('') +
+              '<button type="button" class="episode-library-compact__remove">' +
+              '<span class="episode-library-compact__menu-icon">×</span><span>Убрать из библиотеки</span></button>';
+            document.body.appendChild(menu);
+
+            const menuStyle = getComputedStyle(menu);
+            const option = menu.querySelector('button');
+            const optionStyle = getComputedStyle(option);
+            const iconStyle = getComputedStyle(menu.querySelector('.episode-library-compact__menu-icon img'));
+            const rect = menu.getBoundingClientRect();
+            const result = {
+              directBodyChild: menu.parentElement === document.body,
+              outsideTracker: !menu.closest('.tracker-page'),
+              position: menuStyle.position,
+              background: menuStyle.backgroundColor,
+              borderWidth: parseFloat(menuStyle.borderTopWidth),
+              radius: parseFloat(menuStyle.borderTopLeftRadius),
+              width: rect.width,
+              left: rect.left,
+              right: rect.right,
+              optionDisplay: optionStyle.display,
+              optionMinHeight: parseFloat(optionStyle.minHeight),
+              optionColumns: optionStyle.gridTemplateColumns,
+              iconWidth: parseFloat(iconStyle.width),
+              iconHeight: parseFloat(iconStyle.height),
+              optionCount: menu.querySelectorAll('button').length,
+            };
+            menu.remove();
+            return result;
+          });
+
+          assert(portal.directBodyChild && portal.outsideTracker,
+            tag+': portal fixture must live under body, outside tracker card ancestry');
+          assert.equal(portal.position, 'fixed', tag+': portal must remain viewport-positioned');
+          assert(!['transparent','rgba(0, 0, 0, 0)'].includes(portal.background),
+            tag+': portal surface is transparent');
+          assert(portal.borderWidth>=1&&portal.radius>=8,
+            tag+': portal panel border/radius missing: '+JSON.stringify(portal));
+          assert(portal.width<=width-23&&portal.left>=0&&portal.right<=width+1,
+            tag+': portal menu escapes viewport: '+JSON.stringify(portal));
+          assert.equal(portal.optionDisplay, 'grid', tag+': portal options lost grid layout');
+          assert(portal.optionMinHeight>=38, tag+': portal option touch row is too short');
+          assert(portal.iconWidth>0&&portal.iconWidth<=16.1&&portal.iconHeight<=16.1,
+            tag+': portal icons are not constrained: '+JSON.stringify(portal));
+          assert.equal(portal.optionCount,5,tag+': status/remove options missing');
         }
         if(name==='anime') {
           const alignment=result.detailAlignment,edge=alignment.edges[0];
