@@ -73,6 +73,7 @@ const vercel = JSON.parse(read('vercel.json'));
 const pkg = JSON.parse(read('package.json'));
 const trackerLayout = read('app/list/layout.tsx');
 const trackerCompactCss = read('app/tracker-library-compact.css');
+const trackerResponsiveCss = read('app/tracker-responsive-grid.css');
 const trackerStatusControl = read('components/LibraryStatusControl.tsx');
 const premiumNicknameChatMigration = read('supabase/migrations/20260927155000_premium_nickname_effects_chat.sql');
 const weeklyChampionAutograntMigration = read('supabase/migrations/20260927155500_weekly_champion_premium_autogrant.sql');
@@ -112,6 +113,12 @@ need('tracker portal menu contract', trackerStatusControl, [
   'document.body',
   'role="menuitemradio"',
   'episode-library-compact__remove',
+]);
+
+need('tracker portal menu palette', trackerResponsiveCss, [
+  'html .episode-library-compact__menu[data-episode-library-menu]',
+  'background: var(--ab-ui-raised) !important',
+  'border-color: var(--ab-ui-border) !important',
 ]);
 
 
