@@ -499,6 +499,7 @@
 .animebox-premium-player.is-premium-themed .premium-player-next-button { background: var(--player-accent) !important; color: var(--player-text) !important; box-shadow: 0 10px 30px rgba(var(--player-accent-rgb), .28) !important; }
 .animebox-premium-player.is-premium-themed .premium-player-dropdown-trigger.is-open,
 .animebox-premium-player.is-premium-themed .premium-player-dropdown-option.is-active { border-color: rgba(var(--player-accent-rgb), .32) !important; background: rgba(var(--player-accent-rgb), .10) !important; }
+.player-dropdown-menu.is-premium-themed .premium-player-dropdown-option.is-active { border-color: rgba(var(--player-accent-rgb), .32) !important; background: rgba(var(--player-accent-rgb), .10) !important; }
 .animebox-premium-player.is-premium-themed .premium-player-control-icon { color: var(--player-accent) !important; }
 .animebox-premium-player.is-premium-themed .premium-player-toolbar-button:hover { border-color: rgba(var(--player-accent-rgb), .25) !important; background: rgba(var(--player-accent-rgb), .08) !important; color: var(--player-text) !important; }
 

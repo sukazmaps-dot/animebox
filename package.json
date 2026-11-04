@@ -9,6 +9,7 @@
     "patch30-3:check": "node tests/anime-metadata-parity.cjs",
     "player-hotfix:check": "node tests/player-overlay-mobile-regression.cjs",
     "player-hotfix:browser": "node scripts/player-mobile-overlay-browser-smoke.cjs",
+    "player-dropdown:check": "node tests/player-dropdown-position.cjs",
     "patch30-1:check": "node tests/related-anime-taxonomy.cjs && node tests/anime-franchise-recovery.cjs && node scripts/patch30-1-streaming-quality-check.mjs",
     "css-cascade:check": "node scripts/css-cascade-ownership-check.cjs",
     "css:inventory": "node scripts/css-inventory.cjs --report",

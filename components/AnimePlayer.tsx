@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '@/components/Icon';
 import WatchControls from '@/components/WatchControls';
+import PlayerDropdown from '@/components/PlayerDropdown';
 import { usePlayerFullscreen } from '@/hooks/usePlayerFullscreen';
 import KodikPlayer, { type KodikPlayerHandle } from '@/components/KodikPlayer';
 import DirectVideoPlayer from '@/components/DirectVideoPlayer';
@@ -129,15 +130,6 @@ type DropdownOption = {
   meta?: string;
 };
 
-type DropdownProps = {
-  label: string;
-  value: string;
-  options: DropdownOption[];
-  onChange: (id: string) => void;
-  icon?: ReactNode;
-  align?: 'left' | 'right';
-};
-
 function normalizeMediaLink(url: string): string {
   return url.startsWith('//') ? `https:${url}` : url;
 }
@@ -233,171 +225,6 @@ function writeTranslationPreference(
   } catch {
     // localStorage can be unavailable in strict/private browser modes.
   }
-}
-
-function PlayerDropdown({
-  label,
-  value,
-  options,
-  onChange,
-  icon,
-  align = 'left',
-}: DropdownProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const selected = options.find((option) => option.id === value);
-
-  useEffect(() => {
-    function handleOutside(event: MouseEvent) {
-      if (
-        rootRef.current &&
-        event.target instanceof Node &&
-        !rootRef.current.contains(event.target)
-      ) {
-        setOpen(false);
-      }
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
-    }
-
-    document.addEventListener('mousedown', handleOutside);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, []);
-
-  return (
-    <div ref={rootRef} className="premium-player-dropdown relative min-w-0">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        className={`premium-player-dropdown-trigger ${open ? 'is-open' : ''} group flex min-h-11 w-full items-center gap-3 rounded-2xl border px-3.5 text-left transition duration-200 sm:min-w-[210px] ${
-          open
-            ? 'border-[color-mix(in_srgb,var(--ab-ui-accent)_35%,transparent)] bg-[var(--ab-ui-primary)]/[0.08] shadow-[0_0_0_4px_color-mix(in_srgb,_var(--ab-ui-accent)_7%,_transparent)]'
-            : 'border-white/[0.07] bg-white/[0.025] hover:border-white/[0.12] hover:bg-white/[0.045]'
-        }`}
-      >
-        {icon && (
-          <span className="premium-player-control-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/20 text-[var(--ab-ui-accent)]">
-            {icon}
-          </span>
-        )}
-
-        <span className="min-w-0 flex-1">
-          <span className="block text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/30">
-            {label}
-          </span>
-          <span className="mt-0.5 block truncate text-xs font-bold text-white/85">
-            {selected?.label || 'Выбрать'}
-          </span>
-        </span>
-
-        <svg
-          viewBox="0 0 20 20"
-          fill="none"
-          className={`h-4 w-4 shrink-0 text-white/35 transition-transform duration-200 ${
-            open ? 'rotate-180' : ''
-          }`}
-          aria-hidden="true"
-        >
-          <path
-            d="m6 8 4 4 4-4"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(event) => {
-          onChange(event.target.value);
-          setOpen(false);
-        }}
-        onFocus={() => setOpen(false)}
-        className="absolute inset-0 z-[60] h-11 w-full cursor-pointer opacity-0 sm:hidden"
-        style={{ colorScheme: 'dark' }}
-      >
-        {options.map((option) => (
-          <option
-            key={option.id}
-            value={option.id}
-            className="bg-[var(--ab-ui-surface)] text-white"
-          >
-            {option.label}
-          </option>
-        ))}
-      </select>
-
-      <div
-        className={`absolute top-[calc(100%+10px)] z-50 w-full min-w-[240px] overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--ab-ui-accent)_15%,transparent)] bg-[var(--ab-ui-surface)]/[0.98] shadow-[0_24px_70px_rgba(0,0,0,0.52),0_0_0_1px_rgba(255,255,255,0.025)] backdrop-blur-xl transition duration-200 ${
-          align === 'right' ? 'right-0' : 'left-0'
-        } ${
-          open
-            ? 'visible translate-y-0 scale-100 opacity-100'
-            : 'invisible -translate-y-2 scale-[0.985] opacity-0'
-        }`}
-      >
-        <div className="border-b border-white/[0.05] px-3.5 py-3">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/30">
-            {label}
-          </p>
-        </div>
-
-        <div className="max-h-[310px] overflow-y-auto p-2 [scrollbar-color:color-mix(in_srgb,_var(--ab-ui-accent)_34%,_transparent)_transparent] [scrollbar-width:thin]">
-          {options.map((option) => {
-            const active = option.id === value;
-
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => {
-                  onChange(option.id);
-                  setOpen(false);
-                }}
-                className={`premium-player-dropdown-option ${active ? 'is-active' : ''} flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
-                  active
-                    ? 'bg-gradient-to-r from-[var(--ab-ui-primary)]/[0.16] to-[var(--ab-ui-primary)]/[0.08] text-white ring-1 ring-inset ring-violet-400/15'
-                    : 'text-white/60 hover:bg-white/[0.045] hover:text-white'
-                }`}
-              >
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
-                    active
-                      ? 'border-[color-mix(in_srgb,var(--ab-ui-accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--ab-ui-selected)_20%,transparent)] text-[var(--ab-ui-accent)]'
-                      : 'border-white/[0.08] bg-white/[0.025] text-transparent'
-                  }`}
-                >
-                  ✓
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-bold">
-                    {option.label}
-                  </span>
-                  {option.meta && (
-                    <span className="mt-0.5 block truncate text-[10px] text-white/28">
-                      {option.meta}
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function AnimePlayer({
@@ -2492,6 +2319,7 @@ export default function AnimePlayer({
 
       <div className="watch-together-mobile-player-selectors">
         <PlayerDropdown
+          themeStyle={syncedPremiumTheme ? brandStyles : undefined}
           label="Серия"
           value={String(episodeNumber)}
           options={episodeOptions}
@@ -2501,6 +2329,7 @@ export default function AnimePlayer({
 
         {translationOptions.length > 0 && (
           <PlayerDropdown
+            themeStyle={syncedPremiumTheme ? brandStyles : undefined}
             label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
             value={String(activeTranslationIndex)}
             options={translationOptions}
@@ -3056,6 +2885,7 @@ export default function AnimePlayer({
 
           {showEpisodeSelector && (
             <PlayerDropdown
+              themeStyle={syncedPremiumTheme ? brandStyles : undefined}
               label="Серия"
               value={String(episodeNumber)}
               options={episodeOptions}
@@ -3066,6 +2896,7 @@ export default function AnimePlayer({
 
           {translationOptions.length > 0 && (
             <PlayerDropdown
+              themeStyle={syncedPremiumTheme ? brandStyles : undefined}
               label={currentSource?.name === 'Kodik' ? 'Озвучка' : 'Качество'}
               value={String(activeTranslationIndex)}
               options={translationOptions}
