@@ -1,10 +1,9 @@
 /* =========================================================
    AnimeBox tracker — compact library control route scope
 
-   LibraryStatusControl uses the episode-library-compact class family, but the
-   tracker route intentionally does not load the large episode identity sheet.
-   Keep the tracker variant self-contained and scoped under tracker-card so
-   player / episode surfaces are unaffected.
+   The tracker trigger stays scoped to its card. Its dropdown is rendered with
+   createPortal into document.body, so portal rules must target the explicit
+   data attribute rather than relying on a tracker-card ancestor.
    ========================================================= */
 /* Dropdown containment hotfix — the tracker card used overflow:hidden from
    community.css, clipping the absolutely positioned status menu. Keep the
@@ -32,11 +31,7 @@
   overflow: visible;
 }
 
-.tracker-card__controls .episode-library-compact__menu {
-  z-index: 160;
-}
-
-
+/* The dropdown is portalled to body and cannot inherit card stacking rules. */
 .tracker-card__controls {
   position: relative;
   z-index: 5;
@@ -120,7 +115,7 @@
 }
 
 .tracker-card__controls .episode-library-compact__status-icon img,
-.tracker-card__controls .episode-library-compact__menu-icon img {
+.episode-library-compact__menu[data-episode-library-menu] .episode-library-compact__menu-icon img {
   display: block;
   width: 16px;
   height: 16px;
@@ -180,9 +175,9 @@
   color: var(--ab-ui-accent);
 }
 
-.tracker-card__controls .episode-library-compact__menu {
-  position: absolute;
-  z-index: 120;
+.episode-library-compact__menu[data-episode-library-menu] {
+  position: fixed;
+  z-index: 10050;
   top: calc(100% + 6px);
   left: 0;
   width: min(310px, calc(100vw - 40px));
@@ -197,7 +192,7 @@
   box-sizing: border-box;
 }
 
-.tracker-card__controls .episode-library-compact__menu button {
+.episode-library-compact__menu[data-episode-library-menu] button {
   appearance: none;
   display: grid;
   width: 100%;
@@ -220,23 +215,23 @@
   box-sizing: border-box;
 }
 
-.tracker-card__controls .episode-library-compact__menu button:hover {
+.episode-library-compact__menu[data-episode-library-menu] button:hover {
   background: color-mix(in srgb, var(--ab-ui-accent) 8%, transparent);
   color: var(--ab-ui-text);
 }
 
-.tracker-card__controls .episode-library-compact__menu button.is-active {
+.episode-library-compact__menu[data-episode-library-menu] button.is-active {
   background: color-mix(in srgb, var(--ab-ui-accent) 12%, transparent);
   color: var(--ab-ui-accent);
 }
 
-.tracker-card__controls .episode-library-compact__menu button b {
+.episode-library-compact__menu[data-episode-library-menu] button b {
   justify-self: end;
   color: var(--ab-ui-accent);
   font-size: 10px;
 }
 
-.tracker-card__controls .episode-library-compact__menu-icon {
+.episode-library-compact__menu[data-episode-library-menu] .episode-library-compact__menu-icon {
   display: grid;
   width: 24px;
   height: 24px;
@@ -247,14 +242,14 @@
   line-height: 1;
 }
 
-.tracker-card__controls .episode-library-compact__remove {
+.episode-library-compact__menu[data-episode-library-menu] .episode-library-compact__remove {
   margin-top: 3px !important;
   border-top: 1px solid color-mix(in srgb, var(--ab-ui-danger) 8%, transparent) !important;
   color: var(--ab-ui-danger) !important;
 }
 
-.tracker-card__controls .episode-library-compact__remove:hover,
-.tracker-card__controls .episode-library-compact__remove.is-confirm {
+.episode-library-compact__menu[data-episode-library-menu] .episode-library-compact__remove:hover,
+.episode-library-compact__menu[data-episode-library-menu] .episode-library-compact__remove.is-confirm {
   background: color-mix(in srgb, var(--ab-ui-danger) 7%, transparent) !important;
   color: var(--ab-ui-danger) !important;
 }
@@ -285,11 +280,6 @@
     width: 100%;
   }
 
-  .tracker-card__controls .episode-library-compact__menu {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
