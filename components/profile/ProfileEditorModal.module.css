@@ -195,6 +195,27 @@
 .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected strong) {font-size:11px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;}
 .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected-poster) {width:100%;height:auto;aspect-ratio:2/3;}
 .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected small) {font-size:11px;}
+/* Keep the Premium theme controls readable inside the fixed-width editor inspector.
+   The window can be wide while this embedded panel is only 340px. */
+@container profile-modal-inspector (max-width: 430px) {
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets) {
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid) {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid) {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@container profile-modal-inspector (max-width: 280px) {
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets),
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid),
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid) {
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+}
+
 .modal :global(.profile-editor-v18__rewards-tab) {min-width:0;}
 @container inspector (max-width:350px) {
  .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__layout-row) {grid-template-columns:28px minmax(0,1fr) 68px 54px;}
