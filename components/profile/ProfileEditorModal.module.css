@@ -131,6 +131,9 @@
 .modal :global(.profile-editor-v40__upgrade) {min-height:42px;width:100%;margin-top:12px;border:1px solid var(--editor-border);border-radius:10px;background:var(--ab-ui-primary);color:var(--ab-ui-text);cursor:pointer;}
 .modal :global(.profile-editor-v40__error),
 .modal :global(.profile-editor-v40__recovery) {position:absolute;z-index:12;top:62px;left:84px;right:12px;padding:12px;margin:0;background:var(--editor-surface);border:1px solid var(--editor-border);border-radius:10px;}
+.modal :global(.profile-editor-v40__recovery) {display:flex;align-items:center;gap:8px;line-height:1.4;}
+.modal :global(.profile-editor-v40__recovery) > span {flex:1 1 auto;min-width:0;}
+.modal :global(.profile-editor-v40__recovery) button {flex:0 0 auto;min-height:34px;padding:0 10px;border:1px solid var(--editor-border);border-radius:8px;background:var(--ab-ui-raised);color:var(--ab-ui-text);font-size:12px;white-space:nowrap;cursor:pointer;}
 .modal :global(.profile-editor-v40__savebar) {
   position:absolute;grid-column:auto;grid-row:auto;grid-area:auto;z-index:35;bottom:max(12px,env(safe-area-inset-bottom));left:50%;right:auto;
   transform:translateX(-50%);display:flex;align-items:center;justify-content:flex-end;
@@ -198,21 +201,42 @@
 /* Keep the Premium theme controls readable inside the fixed-width editor inspector.
    The window can be wide while this embedded panel is only 340px. */
 @container profile-modal-inspector (max-width: 430px) {
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets) {
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets),
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__scene-grid) {
     grid-template-columns:repeat(2,minmax(0,1fr)) !important;
   }
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid) {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid),
   .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid) {
     grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v12__media-grid) {
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__media-grid > article) {
+    grid-template-columns:112px minmax(0,1fr);
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v24__banner-height-grid) {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v24__banner-ranges) {
+    grid-template-columns:minmax(0,1fr);
   }
 }
 @container profile-modal-inspector (max-width: 280px) {
   .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets),
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__scene-grid),
   .modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid),
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid) {
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid),
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v24__banner-height-grid) {
     grid-template-columns:minmax(0,1fr) !important;
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__media-grid > article) {
+    grid-template-columns:minmax(0,1fr);
+  }
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v19__media-hint),
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v19__media-warning),
+  .modal :global(.profile-editor-v40__panel-content .premium-studio-v19__media-actions) {
+    grid-column:1;
   }
 }
 
