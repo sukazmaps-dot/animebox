@@ -87,6 +87,12 @@ export default function LibraryStatusControl({
       setStatusMenuOpen(false);
     };
 
+    const onScroll = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Node && compactMenuRef.current?.contains(target)) return;
+      setStatusMenuOpen(false);
+    };
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setStatusMenuOpen(false);
@@ -104,13 +110,13 @@ export default function LibraryStatusControl({
         ?.focus({ preventScroll: true });
     });
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('scroll', onScroll, true);
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
