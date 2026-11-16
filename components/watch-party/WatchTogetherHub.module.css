@@ -2334,7 +2334,7 @@
 .v2Intent span { margin-left: 8px; }
 .v2Grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
   gap: var(--wt-gap);
   margin-top: 16px;
 }

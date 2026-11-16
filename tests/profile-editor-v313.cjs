@@ -31,15 +31,15 @@ assert(!baseCss.includes('position:absolute;left:88px'),'Legacy overlay geometry
 // sync with the active 31.18 four-track layout, including the collapsed state.
 const workbenchRule = modalCss.match(/\.modal :global\(\.profile-editor-v40__workbench\)\s*\{([^}]*)\}/)?.[1] ?? '';
 const closedWorkbenchRule = modalCss.match(/\.modal :global\(\.profile-editor-v40__workbench\[data-panel-open='false'\]\)\s*\{([^}]*)\}/)?.[1] ?? '';
-assert.match(workbenchRule, /grid-template-columns:\s*72px\s+340px\s+minmax\(360px,1fr\)\s+320px\s*;/, 'Desktop inspector needs its own grid track');
-assert.match(closedWorkbenchRule, /grid-template-columns:\s*72px\s+0\s+minmax\(360px,1fr\)\s+320px\s*;/, 'Closing inspector must release its grid track');
+assert.match(workbenchRule, /grid-template-columns:\s*72px\s+minmax\(340px,\.8fr\)\s+minmax\(480px,1\.6fr\)\s+minmax\(280px,320px\)\s*;/, 'Desktop inspector needs a flexible grid track');
+assert.match(closedWorkbenchRule, /grid-template-columns:\s*72px\s+0\s+minmax\(480px,1fr\)\s+minmax\(280px,320px\)\s*;/, 'Closing inspector must release its grid track');
 assert(modalCss.includes('@media (min-width:1100px) and (max-width:1279px)'), 'Intermediate desktop breakpoint must remain');
 assert(modalCss.includes('.modal :global(.profile-editor-v40__board) {display:none;}'), 'Intermediate desktop must hide showcase board');
 assert(root.includes('data-panel-open={panelOpen}') && root.includes('modalStyles.modal'));
 assert(root.includes('accountPanel') && root.includes('<TelegramAccountLinkCard />'));
 assert(root.includes("['style','Тема',Palette]"));
 assert(modalCss.includes('.profile-editor-v40__stage') && !root.includes('<ProfileEditorNavigation'));
-assert(modalCss.includes('max-height:80dvh') && modalCss.includes('max-width:1200px'));
+assert(modalCss.includes('max-height:80dvh') && modalCss.includes('max-width:1520px'));
 assert(!modalCss.includes('position:absolute;left:88px'));
 assert(preview.includes('bannerStyleBackground(bannerColor'),'Banner draft must update live');
 assert(preview.includes("onNavigate('banner')") && preview.includes("onNavigate('avatar')"));

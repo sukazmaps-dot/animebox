@@ -13,8 +13,8 @@
 }
 .modal :global(.profile-editor-v40__shell) {
   position:relative; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:56px minmax(0,1fr);align-items:stretch;
-  width:min(1200px,calc(100vw - 48px));max-width:1200px;
-  height:min(800px,calc(100dvh - 48px));
+  width:min(1520px,calc(100vw - 48px));max-width:1520px;
+  height:min(860px,calc(100dvh - 48px));
   max-height:calc(var(--ab-editor-viewport-height,100dvh) - 48px);
   min-width:0;min-height:0;margin:0;padding:0;overflow:hidden;
   border:1px solid var(--editor-border);border-radius:18px;
@@ -40,12 +40,12 @@
 
 .modal :global(.profile-editor-v40__workbench) {
   position:relative;grid-column:1;grid-row:2;display:grid;
-  grid-template-columns:72px 340px minmax(360px,1fr) 320px;
+  grid-template-columns:72px minmax(340px,.8fr) minmax(480px,1.6fr) minmax(280px,320px);
   grid-template-rows:minmax(0,1fr);
   min-width:0;min-height:0;width:100%;height:100%;overflow:hidden;
 }
 .modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {
-  grid-template-columns:72px 0 minmax(360px,1fr) 320px;
+  grid-template-columns:72px 0 minmax(480px,1fr) minmax(280px,320px);
 }
 .modal :global(.profile-editor-v40__tiles) {
   grid-column:1;grid-row:1;display:flex;flex-direction:column;
@@ -195,25 +195,20 @@
 .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected strong) {font-size:11px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;}
 .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected-poster) {width:100%;height:auto;aspect-ratio:2/3;}
 .modal :global(.profile-widgets-editor--embedded .profile-widgets-editor__selected small) {font-size:11px;}
-/* Keep the Premium theme controls readable inside the fixed-width editor inspector.
-   The window can be wide while this embedded panel is only 340px. */
-@container profile-modal-inspector (max-width: 430px) {
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets) {
-    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-  }
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid) {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid) {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
+/* Embedded controls inherit viewport-based layouts that can create four tiny
+   columns inside the editor's narrower inspector. Keep the cards readable. */
+.modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets),
+.modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid),
+.modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid) {
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
 }
-@container profile-modal-inspector (max-width: 280px) {
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets),
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v21__atmosphere-grid),
-  .modal :global(.profile-editor-v40__panel-content .premium-studio-v23__layout-grid) {
-    grid-template-columns:minmax(0,1fr) !important;
-  }
+.modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets > button) {
+  min-width:0;
+  text-align:left;
+}
+.modal :global(.profile-editor-v40__panel-content .premium-studio-v16__presets > button span) {
+  min-width:0;
+  overflow-wrap:anywhere;
 }
 
 .modal :global(.profile-editor-v18__rewards-tab) {min-width:0;}
@@ -222,7 +217,7 @@
 }
 
 @media (min-width:1100px) and (max-width:1279px) {
-  .modal :global(.profile-editor-v40__workbench) {grid-template-columns:72px 340px minmax(0,1fr);}
+  .modal :global(.profile-editor-v40__workbench) {grid-template-columns:72px minmax(340px,.8fr) minmax(420px,1.2fr);}
   .modal :global(.profile-editor-v40__workbench[data-panel-open='false']) {grid-template-columns:72px 0 minmax(0,1fr);}
   .modal :global(.profile-editor-v40__board) {display:none;}
 }
