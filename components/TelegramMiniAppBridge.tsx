@@ -152,7 +152,10 @@ export default function TelegramMiniAppBridge() {
           root.dataset.telegramVerified = 'false';
           root.dataset.telegramAuthenticated = 'false';
           setErrorText(
-            'Не удалось загрузить Telegram Mini App. Закрой и открой его заново.',
+            error instanceof Error &&
+              error.message === 'telegram_sdk_loaded_without_valid_init_data'
+              ? 'Эта кнопка открыла AnimeBox без данных Telegram. Отправь /start боту, затем выбери раздел и нажми кнопку запуска в его ответе.'
+              : 'Не удалось загрузить Telegram Mini App. Закрой и открой его заново.',
           );
         }
       });
