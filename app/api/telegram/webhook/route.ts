@@ -32,38 +32,30 @@ const SITE_URL = 'https://youranimebox.com';
 
 /**
  * Постоянное меню снизу Telegram.
- * web_app открывает AnimeBox прямо внутри Telegram.
+ *
+ * These are text buttons on purpose. Telegram's KeyboardButton.web_app launch
+ * does not provide WebApp initData, while AnimeBox requires signed initData
+ * for login and the subscription gate. The text action below returns an inline
+ * Web App button, which launches with Telegram identity data.
  */
 const BOTTOM_MENU = {
   keyboard: [
     [
       {
         text: '🌐 Открыть AnimeBox',
-        web_app: {
-          url: SITE_URL,
-        },
       },
     ],
     [
       {
         text: '📚 Мой трекер',
-        web_app: {
-          url: `${SITE_URL}/list`,
-        },
       },
       {
         text: '🔍 Найти аниме',
-        web_app: {
-          url: `${SITE_URL}/search`,
-        },
       },
     ],
     [
       {
         text: '📅 Расписание',
-        web_app: {
-          url: `${SITE_URL}/schedule`,
-        },
       },
     ],
     [
@@ -72,9 +64,6 @@ const BOTTOM_MENU = {
       },
       {
         text: '💜 Поддержать',
-        web_app: {
-          url: `${SITE_URL}/support`,
-        },
       },
     ],
     [
@@ -88,6 +77,38 @@ const BOTTOM_MENU = {
   is_persistent: true,
   input_field_placeholder: 'Выбери действие 👇',
 };
+
+const MINI_APP_ACTIONS: Record<string, { url: string; buttonText: string }> = {
+  '🌐 открыть animebox': {
+    url: SITE_URL,
+    buttonText: '🌐 Открыть AnimeBox',
+  },
+  '📚 мой трекер': {
+    url: `${SITE_URL}/list`,
+    buttonText: '📚 Открыть мой трекер',
+  },
+  '🔍 найти аниме': {
+    url: `${SITE_URL}/search`,
+    buttonText: '🔍 Найти аниме',
+  },
+  '📅 расписание': {
+    url: `${SITE_URL}/schedule`,
+    buttonText: '📅 Открыть расписание',
+  },
+  '💜 поддержать': {
+    url: `${SITE_URL}/support`,
+    buttonText: '💜 Поддержать AnimeBox',
+  },
+};
+
+function miniAppLaunchMarkup(action: { url: string; buttonText: string }) {
+  return {
+    inline_keyboard: [[{
+      text: action.buttonText,
+      web_app: { url: action.url },
+    }]],
+  };
+}
 
 /**
  * Отправка сообщения через Telegram Bot API.
@@ -503,6 +524,17 @@ export async function POST(request: NextRequest) {
 
     const normalizedText = text.toLowerCase();
 
+    const miniAppAction = MINI_APP_ACTIONS[normalizedText];
+    if (miniAppAction) {
+      await sendMessage(
+        chatId,
+        'Открой AnimeBox кнопкой ниже — так Telegram передаст данные для входа.',
+        miniAppLaunchMarkup(miniAppAction),
+      );
+
+      return NextResponse.json({ ok: true });
+    }
+
     /**
      * =====================================================
      * /start
@@ -596,7 +628,7 @@ export async function POST(request: NextRequest) {
           '',
           '🔔 Я буду сообщать тебе о выходе новых эпизодов.',
           '',
-          'Используй меню снизу 👇',
+          'Выбери раздел в меню снизу — бот пришлёт кнопку запуска AnimeBox 👇',
         ].join('\n'),
         BOTTOM_MENU,
       );
@@ -614,11 +646,12 @@ export async function POST(request: NextRequest) {
     if (command === '/open') {
       await sendMessage(
         chatId,
-        [
-          '🌐 <b>AnimeBox</b>',
-          '',
-          'Нажми кнопку «Открыть AnimeBox» в меню снизу 👇',
-        ].join('\n'),
+        'Открой AnimeBox кнопкой ниже — она запустит Mini App с данными Telegram для входа.',
+        miniAppLaunchMarkup(MINI_APP_ACTIONS['🌐 открыть animebox']),
+      );
+      await sendMessage(
+        chatId,
+        'Меню обновлено. Выбери раздел снизу, затем нажми кнопку запуска в ответе бота.',
         BOTTOM_MENU,
       );
 
@@ -635,13 +668,12 @@ export async function POST(request: NextRequest) {
     if (command === '/tracker') {
       await sendMessage(
         chatId,
-        [
-          '📚 <b>Твой трекер AnimeBox</b>',
-          '',
-          'Продолжай просмотр с того места, где остановился.',
-          '',
-          'Нажми «Мой трекер» в меню снизу 👇',
-        ].join('\n'),
+        'Продолжай просмотр с того места, где остановился.',
+        miniAppLaunchMarkup(MINI_APP_ACTIONS['📚 мой трекер']),
+      );
+      await sendMessage(
+        chatId,
+        'Меню обновлено. Выбери раздел снизу, затем нажми кнопку запуска в ответе бота.',
         BOTTOM_MENU,
       );
 
@@ -671,9 +703,9 @@ export async function POST(request: NextRequest) {
             '',
             'Твой Telegram пока не связан с аккаунтом AnimeBox.',
             '',
-            'Открой Mini App через кнопку ниже — аккаунт привяжется автоматически.',
+            'Открой Mini App кнопкой ниже — аккаунт привяжется автоматически.',
           ].join('\n'),
-          BOTTOM_MENU,
+          miniAppLaunchMarkup(MINI_APP_ACTIONS['🌐 открыть animebox']),
         );
 
         return NextResponse.json({
@@ -851,6 +883,8 @@ export async function POST(request: NextRequest) {
           '/terms — условия поддержки',
           '/paysupport — помощь с платежом',
           '/help — помощь',
+          '',
+          'Для входа выбери раздел в меню снизу, затем нажми кнопку запуска в ответе бота.',
         ].join('\n'),
         BOTTOM_MENU,
       );

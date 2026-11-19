@@ -150,7 +150,12 @@ export default function TelegramSubscriptionGate({
       // Only a real Mini App reaches this branch. Never confuse a
       // network/SDK failure with confirmed non-membership.
       document.documentElement.dataset.telegramSubscribed = 'unknown';
-      setCheckError('Не удалось связаться с сервером. Проверь подключение и попробуй ещё раз.');
+      setCheckError(
+        error instanceof Error &&
+          error.message === 'telegram_sdk_loaded_without_valid_init_data'
+          ? 'Эта кнопка открыла AnimeBox без данных Telegram. Отправь /start боту, затем выбери раздел и нажми кнопку запуска в его ответе.'
+          : 'Не удалось связаться с сервером. Проверь подключение и попробуй ещё раз.',
+      );
       setState('unavailable');
     } finally {
       setCheckingAgain(false);
