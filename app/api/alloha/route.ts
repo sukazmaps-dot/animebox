@@ -27,15 +27,18 @@ export async function GET(request: NextRequest) {
 
     // Превращаем данные Alloha в аналогичный формат
     // (зависит от того, как именно их API возвращает озвучки)
-    const translations = data.data?.translations?.map((item: any) => ({
-      title: item.name,
-      url: item.iframe_url,
-    })) || [];
+    const translations =
+      data.data?.translations?.map(
+        (item: { name?: string; iframe_url?: string }) => ({
+          title: item.name,
+          url: item.iframe_url,
+        }),
+      ) || [];
 
     return NextResponse.json({ name: 'Alloha', translations }, {
       headers: { 'Cache-Control': 'private, max-age=60' },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch Alloha' }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import {
   NextResponse,
 } from 'next/server';
 import { getAniListByMalId } from '@/lib/anilist';
+import { privateNoStoreHeaders, publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
         },
         {
           status: 400,
+          headers: privateNoStoreHeaders(),
         },
       );
     }
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest) {
         },
         {
           status: 502,
+          headers: privateNoStoreHeaders(),
         },
       );
     }
@@ -58,10 +61,11 @@ export async function GET(request: NextRequest) {
           media.bannerImage ?? null,
       },
       {
-        headers: {
-          'Cache-Control':
-            'public, s-maxage=900, stale-while-revalidate=3600',
-        },
+        headers: publicApiCacheHeaders({
+          browserSeconds: 60,
+          edgeSeconds: 900,
+          staleWhileRevalidateSeconds: 3600,
+        }),
       },
     );
   } catch (error) {
@@ -77,6 +81,7 @@ export async function GET(request: NextRequest) {
       },
       {
         status: 500,
+        headers: privateNoStoreHeaders(),
       },
     );
   }

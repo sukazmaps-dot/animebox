@@ -4,6 +4,7 @@ import { getAnimeFranchiseWithShikimori } from '@/lib/combined-anime';
 import { getCachedAnimeFranchise } from '@/lib/anime-franchise-cache-server';
 import { getPrimarySeasonItems } from '@/lib/anime-franchise';
 import { registerAnime } from '@/lib/anime-registry';
+import { privateNoStoreHeaders, publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 import type {
   EpisodeExtraItem,
   EpisodeSeasonTab,
@@ -40,7 +41,7 @@ export async function GET(
   if (!Number.isSafeInteger(animeId) || animeId <= 0) {
     return NextResponse.json(
       { error: 'Invalid anime id' },
-      { status: 400 },
+      { status: 400, headers: privateNoStoreHeaders() },
     );
   }
 
@@ -57,9 +58,11 @@ export async function GET(
       };
 
       return NextResponse.json(empty, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=3600',
-        },
+        headers: publicApiCacheHeaders({
+          browserSeconds: 60,
+          edgeSeconds: 900,
+          staleWhileRevalidateSeconds: 3600,
+        }),
       });
     }
 
@@ -102,9 +105,11 @@ export async function GET(
     };
 
     return NextResponse.json(payload, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-      },
+      headers: publicApiCacheHeaders({
+        browserSeconds: 60,
+        edgeSeconds: 3600,
+        staleWhileRevalidateSeconds: 86400,
+      }),
     });
   } catch (error) {
     console.error('Episode season selector failed:', error);
@@ -117,9 +122,11 @@ export async function GET(
       } satisfies EpisodeSeasonsResponse,
       {
         status: 200,
-        headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-        },
+        headers: publicApiCacheHeaders({
+          browserSeconds: 15,
+          edgeSeconds: 60,
+          staleWhileRevalidateSeconds: 300,
+        }),
       },
     );
   }

@@ -1,13 +1,16 @@
 import { getCachedHomeChatTeaser } from '@/lib/chat-server';
+import { publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 
 export async function GET() {
   const messages = await getCachedHomeChatTeaser();
   return Response.json(
     { messages },
     {
-      headers: {
-        'Cache-Control': 'public, max-age=30, s-maxage=60, stale-while-revalidate=300',
-      },
+      headers: publicApiCacheHeaders({
+        browserSeconds: 30,
+        edgeSeconds: 60,
+        staleWhileRevalidateSeconds: 300,
+      }),
     },
   );
 }

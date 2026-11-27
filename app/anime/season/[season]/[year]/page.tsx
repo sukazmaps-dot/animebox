@@ -12,6 +12,10 @@ import type { Anime } from '@/types/anime';
 
 export const revalidate = 1800;
 
+export function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   params: Promise<{ season: string; year: string }>;
 };

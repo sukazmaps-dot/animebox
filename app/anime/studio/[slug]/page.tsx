@@ -8,6 +8,10 @@ import type { Anime } from '@/types/anime';
 
 export const revalidate = 3600;
 
+export function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   params: Promise<{ slug: string }>;
 };

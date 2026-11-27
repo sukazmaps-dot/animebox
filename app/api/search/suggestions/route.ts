@@ -16,6 +16,7 @@ import {
   filterAnimeIdsByAvailability,
   refreshCatalogAvailabilityBatch,
 } from '@/lib/catalog-availability-server';
+import { privateNoStoreHeaders, publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 
 export const runtime = 'nodejs';
 
@@ -99,10 +100,11 @@ export async function GET(request: NextRequest) {
         })),
       },
       {
-        headers: {
-          'Cache-Control':
-            'public, max-age=20, s-maxage=180, stale-while-revalidate=300',
-        },
+        headers: publicApiCacheHeaders({
+          browserSeconds: 20,
+          edgeSeconds: 180,
+          staleWhileRevalidateSeconds: 300,
+        }),
       },
     );
   } catch (error) {
@@ -111,7 +113,7 @@ export async function GET(request: NextRequest) {
       { items: [] },
       {
         status: 200,
-        headers: { 'Cache-Control': 'private, no-store' },
+        headers: privateNoStoreHeaders(),
       },
     );
   }

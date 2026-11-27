@@ -1,4 +1,5 @@
 import { readEffectiveAdSettings } from '@/lib/ad-settings-server';
+import { privateNoStoreHeaders, publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 import { AD_PROVIDER } from '@/lib/monetization';
 
 export async function GET() {
@@ -11,9 +12,11 @@ export async function GET() {
         provider: AD_PROVIDER,
       },
       {
-        headers: {
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
-        },
+        headers: publicApiCacheHeaders({
+          browserSeconds: 10,
+          edgeSeconds: 30,
+          staleWhileRevalidateSeconds: 60,
+        }),
       },
     );
   } catch (error) {
@@ -31,7 +34,7 @@ export async function GET() {
         },
         provider: AD_PROVIDER,
       },
-      { status: 200, headers: { 'Cache-Control': 'no-store' } },
+      { status: 200, headers: privateNoStoreHeaders() },
     );
   }
 }

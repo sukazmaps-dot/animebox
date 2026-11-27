@@ -3,6 +3,10 @@ import { createAnimeSocialImage } from '@/lib/anime-social-image';
 export const runtime = 'nodejs';
 export const revalidate = 86400;
 
+export function generateStaticParams() {
+  return [];
+}
+
 export const alt = 'AnimeBox — карточка аниме';
 
 export const size = {

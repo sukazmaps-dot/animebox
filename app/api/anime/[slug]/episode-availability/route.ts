@@ -7,6 +7,16 @@ import { syncSeoEpisodeIndex } from '@/lib/seo-episode-index';
 
 export const runtime = 'nodejs';
 
+function availabilityCacheHeaders(edgeSeconds: number, swrSeconds: number): Record<string, string> {
+  const edgeValue = `public, max-age=${edgeSeconds}, stale-while-revalidate=${swrSeconds}`;
+  return {
+    'Cache-Control': `public, max-age=0, s-maxage=${edgeSeconds}, stale-while-revalidate=${swrSeconds}`,
+    'CDN-Cache-Control': edgeValue,
+    'Vercel-CDN-Cache-Control': edgeValue,
+    'Cloudflare-CDN-Cache-Control': edgeValue,
+  };
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
@@ -15,7 +25,10 @@ export async function GET(
   const animeId = Number(slug);
 
   if (!Number.isSafeInteger(animeId) || animeId <= 0) {
-    return NextResponse.json({ error: 'Invalid anime id' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid anime id' },
+      { status: 400, headers: { 'Cache-Control': 'private, no-store' } },
+    );
   }
 
   try {
@@ -24,7 +37,10 @@ export async function GET(
       ? local
       : await resolveAnimeRoute(String(animeId));
     if (!anime) {
-      return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Anime not found' },
+        { status: 404, headers: { 'Cache-Control': 'private, no-store' } },
+      );
     }
 
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(8_000)]);
@@ -40,16 +56,14 @@ export async function GET(
       });
     }
 
-    const cacheControl =
+    const headers =
       availability.status === 'available'
-        ? 'public, s-maxage=300, stale-while-revalidate=900'
+        ? availabilityCacheHeaders(300, 900)
         : availability.status === 'unavailable'
-          ? 'public, s-maxage=120, stale-while-revalidate=300'
-          : 'public, s-maxage=30, stale-while-revalidate=60';
+          ? availabilityCacheHeaders(120, 300)
+          : availabilityCacheHeaders(30, 60);
 
-    return NextResponse.json(availability, {
-      headers: { 'Cache-Control': cacheControl },
-    });
+    return NextResponse.json(availability, { headers });
   } catch (error) {
     console.error('[episode-availability] failed:', error);
 
@@ -66,7 +80,7 @@ export async function GET(
       },
       {
         status: 200,
-        headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30' },
+        headers: availabilityCacheHeaders(15, 30),
       },
     );
   }

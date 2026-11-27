@@ -5,6 +5,7 @@ import {
   resolvePublicAppearances,
   type PublicResolvedAppearance,
 } from '@/lib/public-avatar-server';
+import { publicApiCacheHeaders } from '@/lib/edge-cache-policy';
 
 type Period = 'week' | 'month';
 
@@ -31,7 +32,13 @@ export async function GET(request: Request) {
     if (!seasonIds.length) {
       return Response.json(
         { period, seasons: [] },
-        { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } },
+        {
+          headers: publicApiCacheHeaders({
+            browserSeconds: 60,
+            edgeSeconds: 300,
+            staleWhileRevalidateSeconds: 900,
+          }),
+        },
       );
     }
 
@@ -120,7 +127,13 @@ export async function GET(request: Request) {
 
     return Response.json(
       { period, seasons: payload },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } },
+      {
+        headers: publicApiCacheHeaders({
+          browserSeconds: 60,
+          edgeSeconds: 300,
+          staleWhileRevalidateSeconds: 900,
+        }),
+      },
     );
   } catch (error) {
     return failure(error);

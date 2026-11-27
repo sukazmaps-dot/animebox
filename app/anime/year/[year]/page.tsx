@@ -8,6 +8,10 @@ import { isSeoCatalogYear } from '@/lib/search-seo';
 
 export const revalidate = 3600;
 
+export function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   params: Promise<{ year: string }>;
 };

@@ -143,6 +143,18 @@ const nextConfig: NextConfig = {
       { key: 'Cloudflare-CDN-Cache-Control', value: 'public, max-age=300, stale-while-revalidate=3600' },
     ];
 
+    const animeLandingHeaders = [
+      { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=1800, stale-while-revalidate=3600' },
+      { key: 'Vercel-CDN-Cache-Control', value: 'public, max-age=1800, stale-while-revalidate=3600' },
+      { key: 'Cloudflare-CDN-Cache-Control', value: 'public, max-age=1800, stale-while-revalidate=3600' },
+    ];
+
+    const socialImageHeaders = [
+      { key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800' },
+      { key: 'Vercel-CDN-Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+      { key: 'Cloudflare-CDN-Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+    ];
+
     return [
       { source: '/:path*', headers: securityHeaders },
       ...htmlRoutes.map((source) => ({ source, headers: htmlNoStoreHeaders })),
@@ -160,6 +172,11 @@ const nextConfig: NextConfig = {
       { source: '/', headers: homeHeaders },
       { source: '/anime/:slug/:path*', headers: htmlNoStoreHeaders },
       { source: '/anime/:slug', headers: animeDetailHeaders },
+      { source: '/anime/:slug/opengraph-image', headers: socialImageHeaders },
+      { source: '/anime/:slug/twitter-image', headers: socialImageHeaders },
+      { source: '/anime/studio/:slug', headers: animeLandingHeaders },
+      { source: '/anime/year/:year', headers: animeLandingHeaders },
+      { source: '/anime/season/:season/:year', headers: animeLandingHeaders },
       { source: '/ui/:path*', headers: staticHeaders },
       { source: '/premium/:path*', headers: staticHeaders },
       { source: '/backgrounds/:path*', headers: staticHeaders },

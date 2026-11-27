@@ -6,18 +6,37 @@ export type PublicApiCacheProfile = {
 
 const PUBLIC_CACHEABLE_API_PATHS = new Set([
   '/api/anime',
+  '/api/anilist',
+  '/api/jikan/anime',
   '/api/recommendations',
   '/api/schedule',
+  '/api/search/instant',
+  '/api/search/suggestions',
+  '/api/ads/config',
+  '/api/chat/teaser',
+  '/api/community/hall-of-fame',
   '/api/image',
   '/api/watch-party/rooms',
 ]);
 
+const NON_DETAIL_ANIME_SEGMENTS = new Set(['sources', 'soursces', 'stream']);
+
 export function isPublicCacheableApiRequest(pathname: string, method: string) {
   const normalizedMethod = method.toUpperCase();
-  return (
-    (normalizedMethod === 'GET' || normalizedMethod === 'HEAD') &&
-    PUBLIC_CACHEABLE_API_PATHS.has(pathname)
-  );
+  if (normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD') {
+    return false;
+  }
+
+  if (PUBLIC_CACHEABLE_API_PATHS.has(pathname)) {
+    return true;
+  }
+
+  const animeDetailMatch = pathname.match(/^\/api\/anime\/([^/]+)$/);
+  if (animeDetailMatch && !NON_DETAIL_ANIME_SEGMENTS.has(animeDetailMatch[1])) {
+    return true;
+  }
+
+  return /^\/api\/anime\/[^/]+\/(?:seasons|episode-availability)$/.test(pathname);
 }
 
 export function publicApiCacheHeaders(
