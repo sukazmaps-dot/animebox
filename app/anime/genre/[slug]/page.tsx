@@ -5,7 +5,7 @@ import SeoAnimeLanding from '@/components/SeoAnimeLanding';
 import { getGenreLandingCollection } from '@/lib/genre-landing-server';
 import { getSeoGenre } from '@/lib/search-seo';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 type Props = {
   params: Promise<{ slug: string }>;

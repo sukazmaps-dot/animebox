@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
       url: item.iframe_url,
     })) || [];
 
-    return NextResponse.json({ name: 'Alloha', translations });
+    return NextResponse.json({ name: 'Alloha', translations }, {
+      headers: { 'Cache-Control': 'private, max-age=60' },
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch Alloha' }, { status: 500 });
   }

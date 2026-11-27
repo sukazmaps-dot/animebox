@@ -28,6 +28,8 @@ import AdSlot from '@/components/monetization/AdSlot';
 import PlaybackRestrictionNotice from '@/components/PlaybackRestrictionNotice';
 
 import { resolveAnimeRoute } from '@/lib/anime-route';
+
+export const revalidate = 3600;
 import { animeHref } from '@/lib/anime-url';
 import { createImageCascade } from '@/lib/image-cascade';
 import { cleanShikimoriDescription } from '@/lib/shikimori-text';

@@ -4,8 +4,6 @@ import {
 } from 'next/server';
 import { getAniListByMalId } from '@/lib/anilist';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: NextRequest) {
   try {
     const malIdRaw =
